@@ -1,6 +1,6 @@
 const contentLetterSrart_actived = "Năm ấy, không phải mùa hoa đẹp nhất..."; //Lời mở đầu cho bức thư
 const mainContentLetter =
-  "Năm ấy, không phải mùa hoa đẹp nhất, nhưng vẫn gặp được mọi người, Năm ấy, mùa hoa nở muộn, may mắn là có mọi người. Thay mặt toàn thể hội anh em Codegym, cám ơn sự có mặt của các chị em, là ánh sáng chiếu rọi cho cuộc sống vô vị này. ❤️"; //Nội dung của bức thư
+  "Năm ấy, không phải mùa hoa đẹp nhất, nhưng vẫn gặp được em. Năm ấy, hoa nở tuyệt đẹp tựa như vì em mà nở; Năm ấy, mùa hoa nở muộn, may mắn là có em. ❤️"; //Nội dung của bức thư
 
 // Gắn 1 đường link ảnh bất kì
 let imgStart = document.querySelector(".myAI"); //Hình ảnh xuất hiện trong lời mở đầu của bức thư
