@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trình Phân Tích Truyện AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.7.0/mammoth.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+      }
+      .prose img {
+        display: none;
+      }
+      .api-key-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px;
+        background-color: #334155; /* slate-700 */
+        border-radius: 8px;
+        margin-bottom: 8px;
+      }
+      .api-key-text {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 80%;
+      }
+      .loader {
+        border: 5px solid #374151; /* gray-700 */
+        border-top: 5px solid #3b82f6; /* blue-500 */
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+      .tab-button {
+        transition: all 0.3s ease;
+      }
+      .tab-button.active {
+        background-color: #3b82f6;
+        color: white;
+        border-color: #3b82f6;
+      }
+      .tab-content {
+        display: none;
+      }
+      .tab-content.active {
+        display: block;
+      }
+      .prose h3 {
+        margin-top: 1.5em;
+        margin-bottom: 0.8em;
+      }
+      .comment-bubble {
+        background-color: #1e293b; /* slate-800 */
+        border: 1px solid #334155; /* slate-700 */
+        padding: 10px 12px;
+        border-radius: 10px;
+        font-size: 0.875rem; /* text-sm */
+        line-height: 1.25rem;
+      }
+      .collapsible-header svg {
+        transition: transform 0.3s ease-in-out;
+      }
+      .collapsible-header.open svg {
+        transform: rotate(180deg);
+      }
+    </style>
+  </head>
+  <body class="bg-slate-900 text-slate-300">
+    <div class="container mx-auto p-4 md:p-8">
+      <header class="text-center mb-8">
+        <h1 class="text-4xl font-bold text-slate-100">
+          Trình Phân Tích Truyện AI
+        </h1>
+        <p class="text-slate-400 mt-2">
+          Đưa nội dung của bạn vào và nhận đánh giá chuyên sâu cấp độ xuất bản
+          từ AI.
+        </p>
+      </header>
+
+      <main class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <!-- Cột điều khiển bên trái -->
+        <div id="control-panel" class="lg:col-span-2 space-y-6">
+          <!-- Thông báo API Key -->
+          <div
+            id="apiKeyNotification"
+            class="hidden bg-yellow-900/30 border border-yellow-700 text-yellow-300 px-4 py-3 rounded-xl"
+            role="alert"
+          >
+            <strong class="font-bold">Lưu ý: </strong>
+            <span class="block sm:inline"
+              >Bạn chưa thêm API Key. Vui lòng thêm key để có thể sử dụng các
+              tính năng phân tích.</span
+            >
+          </div>
+
+          <!-- Quản lý API Key -->
+          <div
+            class="bg-slate-800 border border-slate-700 p-6 rounded-xl shadow-md"
+          >
+            <div
+              id="apiKeyHeader"
+              class="collapsible-header flex justify-between items-center cursor-pointer"
+            >
+              <h2 class="text-xl font-semibold text-slate-100">
+                Quản lý API Key
+              </h2>
+              <svg
+                class="w-6 h-6 text-slate-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 9l-7 7-7-7"
+                ></path>
+              </svg>
+            </div>
+            <div id="apiKeyContent" class="mt-4 hidden">
+              <p class="text-sm text-slate-400 mb-4">
+                Dán API key vào ô bên dưới, mỗi key một dòng. Hệ thống sẽ tự
+                động lưu.
+              </p>
+              <p class="text-sm text-slate-500 mt-2 mb-4">
+                Hãy truy cập
+                <a
+                  href="https://aistudio.google.com/apikey"
+                  target="_blank"
+                  class="text-blue-400 hover:underline"
+                  >https://aistudio.google.com/apikey</a
+                >
+                để lấy API key.
+              </p>
+              <textarea
+                id="apiKeyInput"
+                placeholder="Dán các API Key vào đây..."
+                class="w-full h-20 p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-700 border-slate-600 text-slate-200 placeholder-slate-400"
+              ></textarea>
+              <div id="apiKeysList" class="space-y-2 mt-4">
+                <!-- Key list will be rendered here -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Nhập nội dung -->
+          <div
+            class="bg-slate-800 border border-slate-700 p-6 rounded-xl shadow-md"
+          >
+            <h2 class="text-xl font-semibold text-slate-100 mb-4">
+              Nhập Nội Dung Truyện
+            </h2>
+            <div class="border-b border-slate-700 mb-4">
+              <nav class="-mb-px flex space-x-2" aria-label="Tabs">
+                <button
+                  class="tab-button active py-2 px-4 border text-slate-300 border-transparent text-sm font-medium rounded-t-lg"
+                  data-tab="paste-text"
+                >
+                  Dán Văn Bản
+                </button>
+                <button
+                  class="tab-button py-2 px-4 border text-slate-300 border-transparent text-sm font-medium rounded-t-lg"
+                  data-tab="paste-html"
+                >
+                  Dán HTML
+                </button>
+                <button
+                  class="tab-button py-2 px-4 border text-slate-300 border-transparent text-sm font-medium rounded-t-lg"
+                  data-tab="upload-file"
+                >
+                  Tải File (.docx)
+                </button>
+              </nav>
+            </div>
+
+            <div id="paste-text" class="tab-content active">
+              <textarea
+                id="storyContent"
+                placeholder="Dán nội dung truyện của bạn vào đây..."
+                class="w-full h-40 p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-700 border-slate-600 text-slate-200 placeholder-slate-400"
+              ></textarea>
+            </div>
+            <div id="paste-html" class="tab-content">
+              <textarea
+                id="htmlContent"
+                placeholder="Dán nội dung HTML từ trang truyện..."
+                class="w-full h-40 p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-700 border-slate-600 text-slate-200 placeholder-slate-400"
+              ></textarea>
+            </div>
+            <div id="upload-file" class="tab-content">
+              <input
+                type="file"
+                id="fileInput"
+                accept=".docx"
+                class="w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-slate-700 file:text-slate-300 hover:file:bg-slate-600"
+              />
+              <p id="fileName" class="text-sm text-slate-400 mt-2 truncate"></p>
+            </div>
+          </div>
+
+          <!-- Nhập bình luận -->
+          <div
+            class="bg-slate-800 border border-slate-700 p-6 rounded-xl shadow-md"
+          >
+            <div class="flex justify-between items-center mb-2">
+              <h2 class="text-xl font-semibold text-slate-100">
+                Bình Luận Độc Giả (HTML)
+              </h2>
+              <button
+                id="translateAllBtn"
+                class="bg-blue-600 text-white px-3 py-1 rounded-lg hover:bg-blue-700 text-sm font-semibold hidden disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Dịch toàn bộ
+              </button>
+            </div>
+            <div class="mb-4">
+              <label class="text-sm font-medium text-slate-300"
+                >Phương thức dịch:</label
+              >
+              <div class="flex items-center gap-4 mt-2">
+                <div class="flex items-center">
+                  <input
+                    id="translate-method-ai"
+                    name="translateMethod"
+                    type="radio"
+                    value="ai"
+                    class="h-4 w-4 text-blue-600 border-gray-600 bg-slate-700 focus:ring-blue-500"
+                    checked
+                  />
+                  <label
+                    for="translate-method-ai"
+                    class="ml-2 block text-sm text-slate-200"
+                    >AI Dịch (Chất lượng)</label
+                  >
+                </div>
+                <div class="flex items-center">
+                  <input
+                    id="translate-method-google"
+                    name="translateMethod"
+                    type="radio"
+                    value="google"
+                    class="h-4 w-4 text-blue-600 border-gray-600 bg-slate-700 focus:ring-blue-500"
+                  />
+                  <label
+                    for="translate-method-google"
+                    class="ml-2 block text-sm text-slate-200"
+                    >Google Dịch
+                    <span class="text-xs text-slate-400">(Nhanh)</span></label
+                  >
+                </div>
+              </div>
+            </div>
+            <textarea
+              id="commentsHtmlInput"
+              placeholder="Dán HTML bình luận vào đây..."
+              class="w-full h-32 p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-700 border-slate-600 text-slate-200 placeholder-slate-400"
+            ></textarea>
+            <div
+              id="extractedCommentsContainer"
+              class="mt-4 space-y-3 max-h-48 overflow-y-auto hidden p-1"
+            >
+              <!-- Extracted comments will be displayed here -->
+            </div>
+          </div>
+
+          <!-- Nội dung đã trích xuất -->
+          <div
+            id="extractedContentContainer"
+            class="bg-slate-800 border border-slate-700 p-6 rounded-xl shadow-md hidden"
+          >
+            <div class="flex justify-between items-center mb-4">
+              <h2 class="text-xl font-semibold text-slate-100">
+                Nội dung đã trích xuất
+              </h2>
+              <div class="flex gap-2">
+                <button
+                  id="copyBtn"
+                  class="bg-slate-700 text-slate-300 px-3 py-1 rounded-lg hover:bg-slate-600 text-sm font-semibold"
+                >
+                  Sao chép
+                </button>
+              </div>
+            </div>
+            <textarea
+              id="extractedContentPreview"
+              readonly
+              class="w-full h-40 p-3 border rounded-lg bg-slate-900 text-slate-300 border-slate-700 text-sm"
+            ></textarea>
+          </div>
+
+          <!-- Chế độ đánh giá -->
+          <div
+            class="bg-slate-800 border border-slate-700 p-6 rounded-xl shadow-md"
+          >
+            <h2 class="text-xl font-semibold text-slate-100 mb-4">
+              Chế độ Đánh giá
+            </h2>
+            <fieldset class="space-y-2">
+              <div class="flex items-center">
+                <input
+                  id="mode-detailed"
+                  name="evaluationMode"
+                  type="radio"
+                  value="detailed"
+                  class="h-4 w-4 text-blue-600 border-gray-600 bg-slate-700 focus:ring-blue-500"
+                  checked
+                />
+                <label
+                  for="mode-detailed"
+                  class="ml-3 block text-sm font-medium text-slate-200"
+                >
+                  Đánh giá Chi tiết
+                </label>
+              </div>
+              <div class="flex items-center">
+                <input
+                  id="mode-summary"
+                  name="evaluationMode"
+                  type="radio"
+                  value="summary"
+                  class="h-4 w-4 text-blue-600 border-gray-600 bg-slate-700 focus:ring-blue-500"
+                />
+                <label
+                  for="mode-summary"
+                  class="ml-3 block text-sm font-medium text-slate-200"
+                >
+                  Đánh giá Tóm tắt
+                </label>
+              </div>
+            </fieldset>
+          </div>
+
+          <div class="space-y-3">
+            <button
+              id="analyzeBtn"
+              class="w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 font-bold text-lg transition-transform transform hover:scale-105"
+            >
+              Bắt đầu Phân Tích
+            </button>
+            <button
+              id="resetBtn"
+              class="w-full bg-slate-700 text-slate-300 px-4 py-2 rounded-lg hover:bg-slate-600 font-semibold text-sm transition-colors"
+            >
+              Nhập Truyện Mới (Reset)
+            </button>
+          </div>
+        </div>
+
+        <!-- Cột kết quả bên phải -->
+        <div
+          id="result-panel"
+          class="lg:col-span-3 bg-slate-800 border border-slate-700 p-6 rounded-xl shadow-md min-h-[600px] hidden"
+        >
+          <h2 class="text-xl font-semibold text-slate-100 mb-4">
+            Kết Quả Đánh Giá
+          </h2>
+          <div id="resultContainer">
+            <div id="placeholder" class="text-center text-slate-400 py-20">
+              <p>Kết quả phân tích sẽ được hiển thị ở đây.</p>
+              <p>Vui lòng thêm API Key và nội dung truyện để bắt đầu.</p>
+            </div>
+            <div
+              id="loaderContainer"
+              class="hidden justify-center items-center flex-col py-20"
+            >
+              <div class="loader"></div>
+              <p class="mt-4 text-slate-400 font-medium">
+                AI đang phân tích... Quá trình này có thể mất vài phút.
+              </p>
+            </div>
+            <div
+              id="errorContainer"
+              class="hidden text-red-400 bg-red-900/30 p-4 rounded-lg"
+            ></div>
+            <div
+              id="analysisResult"
+              class="prose prose-invert max-w-none"
+            ></div>
+            <!-- Suggestion Container -->
+            <div
+              id="suggestionContainer"
+              class="hidden mt-6 border-t border-slate-700 pt-6"
+            >
+              <h3 class="text-xl font-semibold text-slate-100 mb-3">
+                Gợi Ý Chỉnh Sửa Tự Động
+              </h3>
+              <p class="text-sm text-slate-400 mb-4">
+                Dựa trên phân tích, AI đã đề xuất một phiên bản viết lại để khắc
+                phục các vấn đề. Bạn có thể xem trước và áp dụng thay đổi này
+                vào trình soạn thảo.
+              </p>
+              <textarea
+                id="revisedStoryTextarea"
+                readonly
+                class="w-full h-64 p-3 border rounded-lg bg-slate-900 text-slate-300 border-slate-700 text-sm"
+              ></textarea>
+              <button
+                id="applySuggestionsBtn"
+                class="mt-4 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 font-semibold"
+              >
+                Áp dụng Gợi ý vào Trình Soạn thảo
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        // --- Quản lý State ---
+        let apiKeys = [];
+        let storyText = "";
+        let commentsText = "";
+        const API_KEYS_STORAGE_KEY = "gemini-story-analyzer-api-keys";
+
+        // --- Lấy các phần tử DOM ---
+        const controlPanel = document.getElementById("control-panel");
+        const apiKeyInput = document.getElementById("apiKeyInput");
+        const apiKeysList = document.getElementById("apiKeysList");
+        const apiKeyHeader = document.getElementById("apiKeyHeader");
+        const apiKeyContent = document.getElementById("apiKeyContent");
+        const apiKeyNotification =
+          document.getElementById("apiKeyNotification");
+
+        const storyContent = document.getElementById("storyContent");
+        const htmlContent = document.getElementById("htmlContent");
+        const fileInput = document.getElementById("fileInput");
+        const fileNameDisplay = document.getElementById("fileName");
+        const commentsHtmlInput = document.getElementById("commentsHtmlInput");
+        const extractedCommentsContainer = document.getElementById(
+          "extractedCommentsContainer"
+        );
+        const translateAllBtn = document.getElementById("translateAllBtn");
+
+        const extractedContentContainer = document.getElementById(
+          "extractedContentContainer"
+        );
+        const extractedContentPreview = document.getElementById(
+          "extractedContentPreview"
+        );
+        const copyBtn = document.getElementById("copyBtn");
+
+        const analyzeBtn = document.getElementById("analyzeBtn");
+        const resetBtn = document.getElementById("resetBtn");
+        const resultPanel = document.getElementById("result-panel");
+        const resultContainer = document.getElementById("resultContainer");
+        const placeholder = document.getElementById("placeholder");
+        const loaderContainer = document.getElementById("loaderContainer");
+        const errorContainer = document.getElementById("errorContainer");
+        const analysisResult = document.getElementById("analysisResult");
+        const suggestionContainer = document.getElementById(
+          "suggestionContainer"
+        );
+        const revisedStoryTextarea = document.getElementById(
+          "revisedStoryTextarea"
+        );
+        const applySuggestionsBtn = document.getElementById(
+          "applySuggestionsBtn"
+        );
+
+        const tabs = document.querySelectorAll(".tab-button");
+        const tabContents = document.querySelectorAll(".tab-content");
+        let activeTab = "paste-text";
+
+        // --- Chức năng Reset ---
+        const resetApp = () => {
+          // Clear textareas
+          storyContent.value = "";
+          htmlContent.value = "";
+          commentsHtmlInput.value = "";
+          revisedStoryTextarea.value = "";
+          extractedContentPreview.value = "";
+
+          // Reset file input
+          fileInput.value = "";
+          fileNameDisplay.textContent = "";
+
+          // Hide containers
+          extractedContentContainer.classList.add("hidden");
+          extractedCommentsContainer.classList.add("hidden");
+          translateAllBtn.classList.add("hidden");
+          resultPanel.classList.add("hidden");
+          suggestionContainer.classList.add("hidden");
+          errorContainer.classList.add("hidden");
+
+          // Reset result panel content
+          analysisResult.innerHTML = "";
+          placeholder.classList.remove("hidden");
+
+          // Reset layout
+          controlPanel.classList.remove("lg:col-span-2");
+          controlPanel.classList.add("lg:col-span-5");
+
+          // Reset tabs to default
+          tabs.forEach((t) => t.classList.remove("active"));
+          document
+            .querySelector('button[data-tab="paste-text"]')
+            .classList.add("active");
+          tabContents.forEach((content) => content.classList.remove("active"));
+          document.getElementById("paste-text").classList.add("active");
+          activeTab = "paste-text";
+
+          // Scroll to top
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        };
+
+        resetBtn.addEventListener("click", resetApp);
+
+        // --- Logic Giao diện (Collapsible API) ---
+        apiKeyHeader.addEventListener("click", () => {
+          apiKeyContent.classList.toggle("hidden");
+          apiKeyHeader.classList.toggle("open");
+        });
+
+        // Initial layout adjustment
+        controlPanel.classList.remove("lg:col-span-2");
+        controlPanel.classList.add("lg:col-span-5");
+
+        // --- Logic Tabs ---
+        tabs.forEach((tab) => {
+          tab.addEventListener("click", () => {
+            tabs.forEach((t) => t.classList.remove("active"));
+            tab.classList.add("active");
+            activeTab = tab.dataset.tab;
+            tabContents.forEach((content) => {
+              content.classList.remove("active");
+              if (content.id === activeTab) content.classList.add("active");
+            });
+            processAndDisplayContent();
+          });
+        });
+
+        // --- Logic quản lý API Key ---
+        const renderApiKeys = () => {
+          if (apiKeys.length === 0) {
+            apiKeysList.innerHTML =
+              '<p class="text-sm text-slate-400">Chưa có API key nào được lưu.</p>';
+            apiKeyNotification.classList.remove("hidden");
+            return;
+          }
+          apiKeyNotification.classList.add("hidden");
+          apiKeysList.innerHTML = "";
+          apiKeys.forEach((key, index) => {
+            const keyElement = document.createElement("div");
+            keyElement.className = "api-key-item";
+            keyElement.innerHTML = `
+                        <span class="api-key-text font-mono text-sm text-slate-300">***${key.slice(
+                          -4
+                        )} (Key ${index + 1})</span>
+                        <button data-index="${index}" class="remove-key-btn text-red-500 hover:text-red-400 font-bold">Xóa</button>
+                    `;
+            apiKeysList.appendChild(keyElement);
+          });
+
+          document.querySelectorAll(".remove-key-btn").forEach((btn) => {
+            btn.addEventListener("click", (e) => {
+              const indexToRemove = parseInt(e.target.dataset.index, 10);
+              apiKeys.splice(indexToRemove, 1);
+              apiKeyInput.value = apiKeys.join("\n");
+              localStorage.setItem(
+                API_KEYS_STORAGE_KEY,
+                JSON.stringify(apiKeys)
+              );
+              renderApiKeys();
+            });
+          });
+        };
+
+        const loadApiKeys = () => {
+          const savedKeysString = localStorage.getItem(API_KEYS_STORAGE_KEY);
+          if (savedKeysString) {
+            try {
+              const savedKeys = JSON.parse(savedKeysString);
+              if (Array.isArray(savedKeys)) apiKeys = savedKeys;
+            } catch (e) {
+              console.error("Could not parse saved API keys", e);
+              localStorage.removeItem(API_KEYS_STORAGE_KEY);
+            }
+          }
+          apiKeyInput.value = apiKeys.join("\n");
+          renderApiKeys();
+        };
+
+        apiKeyInput.addEventListener("input", () => {
+          const keysString = apiKeyInput.value.trim();
+          const currentKeys = keysString
+            .split("\n")
+            .map((key) => key.trim())
+            .filter((key) => key !== "");
+          apiKeys = currentKeys;
+          localStorage.setItem(API_KEYS_STORAGE_KEY, JSON.stringify(apiKeys));
+          renderApiKeys();
+        });
+
+        fileInput.addEventListener("change", (e) => {
+          const file = e.target.files[0];
+          fileNameDisplay.textContent = file ? `Đã chọn: ${file.name}` : "";
+          processAndDisplayContent();
+        });
+
+        // --- Trích xuất và hiển thị nội dung ---
+        const extractContent = async () => {
+          errorContainer.classList.add("hidden");
+          storyText = "";
+          switch (activeTab) {
+            case "paste-text":
+              storyText = storyContent.value.trim();
+              break;
+            case "paste-html":
+              const htmlString = htmlContent.value.trim();
+              if (htmlString) {
+                try {
+                  const parser = new DOMParser();
+                  const doc = parser.parseFromString(htmlString, "text/html");
+                  const contentElement =
+                    doc.querySelector("#content") || doc.body;
+                  const paragraphs = contentElement.querySelectorAll("p");
+                  storyText = Array.from(paragraphs)
+                    .map((p) => p.textContent.trim())
+                    .join("\n\n");
+                } catch (e) {
+                  return false;
+                }
+              }
+              break;
+            case "upload-file":
+              const file = fileInput.files[0];
+              if (file) {
+                try {
+                  const arrayBuffer = await file.arrayBuffer();
+                  const result = await mammoth.extractRawText({
+                    arrayBuffer: arrayBuffer,
+                  });
+                  storyText = result.value;
+                } catch (e) {
+                  return false;
+                }
+              }
+              break;
+          }
+          return !!storyText;
+        };
+
+        const processAndDisplayContent = async () => {
+          const contentReady = await extractContent();
+          if (contentReady) {
+            extractedContentPreview.value = storyText;
+            extractedContentContainer.classList.remove("hidden");
+          } else {
+            extractedContentContainer.classList.add("hidden");
+          }
+        };
+
+        // --- Trích xuất và Dịch Bình luận ---
+        const handleTranslate = async (e) => {
+          const btn = e.target;
+          const textElement = btn.previousElementSibling;
+          const originalText = textElement.dataset.originalText;
+
+          const selectedMethod = document.querySelector(
+            'input[name="translateMethod"]:checked'
+          ).value;
+
+          if (selectedMethod === "google") {
+            const encodedText = encodeURIComponent(originalText);
+            const url = `https://translate.google.com/?sl=auto&tl=vi&text=${encodedText}`;
+            window.open(url, "_blank");
+            return;
+          }
+
+          // AI Translation
+          if (!originalText || apiKeys.length === 0) {
+            textElement.textContent = "Lỗi: Không có API key hoặc văn bản gốc.";
+            return;
+          }
+
+          btn.textContent = "Đang dịch...";
+          btn.disabled = true;
+
+          let success = false;
+          for (const key of apiKeys) {
+            try {
+              const prompt = `Chỉ dịch đoạn văn bản sau sang tiếng Việt, không thêm bất kỳ lời giải thích, ghi chú, hay định dạng nào. Chỉ trả về duy nhất văn bản đã dịch: "${originalText}"`;
+              const response = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${key}`,
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }],
+                  }),
+                }
+              );
+              if (!response.ok) throw new Error("API request failed");
+              const result = await response.json();
+              textElement.textContent =
+                result.candidates[0].content.parts[0].text;
+              btn.textContent = "Đã dịch";
+              success = true;
+              break;
+            } catch (error) {
+              console.error(`Lỗi dịch với key ***${key.slice(-4)}`, error);
+            }
+          }
+          if (!success) {
+            textElement.textContent = `[Dịch lỗi] ${originalText}`;
+            btn.textContent = "Thử lại";
+            btn.disabled = false;
+          }
+        };
+
+        const extractComments = () => {
+          const htmlString = commentsHtmlInput.value.trim();
+          extractedCommentsContainer.innerHTML = "";
+
+          if (htmlString) {
+            try {
+              const parser = new DOMParser();
+              const doc = parser.parseFromString(htmlString, "text/html");
+              const commentElements = doc.querySelectorAll(".CommentContent");
+              const extracted = Array.from(commentElements)
+                .map((el) => el.textContent.trim())
+                .filter((text) => text);
+
+              if (extracted.length > 0) {
+                extractedCommentsContainer.classList.remove("hidden");
+                translateAllBtn.classList.remove("hidden");
+                extracted.forEach((text) => {
+                  const container = document.createElement("div");
+                  container.className =
+                    "comment-bubble flex justify-between items-start gap-2";
+
+                  const textSpan = document.createElement("span");
+                  textSpan.className = "text-slate-200 flex-grow";
+                  textSpan.textContent = text;
+                  textSpan.dataset.originalText = text;
+
+                  const translateBtn = document.createElement("button");
+                  translateBtn.className =
+                    "translate-btn bg-blue-900/50 text-blue-300 px-2 py-0.5 rounded text-xs font-semibold hover:bg-blue-800/50 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0";
+                  translateBtn.textContent = "Dịch";
+
+                  container.appendChild(textSpan);
+                  container.appendChild(translateBtn);
+                  extractedCommentsContainer.appendChild(container);
+                });
+                commentsText = extracted.join("\n---\n");
+              } else {
+                extractedCommentsContainer.classList.add("hidden");
+                translateAllBtn.classList.add("hidden");
+                commentsText = "";
+              }
+            } catch (e) {
+              console.error("Error parsing comments HTML", e);
+              extractedCommentsContainer.classList.add("hidden");
+              translateAllBtn.classList.add("hidden");
+              commentsText = "";
+            }
+          } else {
+            extractedCommentsContainer.classList.add("hidden");
+            translateAllBtn.classList.add("hidden");
+            commentsText = "";
+          }
+        };
+
+        extractedCommentsContainer.addEventListener("click", (e) => {
+          if (e.target.classList.contains("translate-btn")) {
+            handleTranslate(e);
+          }
+        });
+
+        translateAllBtn.addEventListener("click", async () => {
+          const allTranslateBtns = document.querySelectorAll(
+            ".translate-btn:not(:disabled)"
+          );
+          if (allTranslateBtns.length === 0) return;
+
+          const selectedMethod = document.querySelector(
+            'input[name="translateMethod"]:checked'
+          ).value;
+
+          if (selectedMethod === "google") {
+            const allUntranslatedText = Array.from(allTranslateBtns)
+              .map((btn) => btn.previousElementSibling.dataset.originalText)
+              .join("\n\n");
+            if (allUntranslatedText) {
+              const encodedText = encodeURIComponent(allUntranslatedText);
+              const url = `https://translate.google.com/?sl=auto&tl=vi&text=${encodedText}`;
+              window.open(url, "_blank");
+            }
+            return;
+          }
+
+          // AI Translate All
+          translateAllBtn.textContent = "Đang dịch...";
+          translateAllBtn.disabled = true;
+
+          for (const btn of allTranslateBtns) {
+            btn.click();
+            await new Promise((resolve) => setTimeout(resolve, 250));
+          }
+
+          const checkInterval = setInterval(() => {
+            const remainingBtns = document.querySelectorAll(
+              ".translate-btn[disabled]"
+            );
+            if (
+              remainingBtns.length === 0 ||
+              Array.from(remainingBtns).every(
+                (b) => b.textContent === "Đã dịch"
+              )
+            ) {
+              clearInterval(checkInterval);
+              translateAllBtn.textContent = "Dịch toàn bộ";
+              translateAllBtn.disabled = false;
+            }
+          }, 500);
+        });
+
+        [storyContent, htmlContent].forEach((el) =>
+          el.addEventListener("input", processAndDisplayContent)
+        );
+        commentsHtmlInput.addEventListener("input", extractComments);
+
+        // --- Sao chép ---
+        copyBtn.addEventListener("click", () => {
+          navigator.clipboard
+            .writeText(storyText)
+            .then(() => {
+              copyBtn.textContent = "Đã chép!";
+              setTimeout(() => {
+                copyBtn.textContent = "Sao chép";
+              }, 2000);
+            })
+            .catch((err) => console.error("Failed to copy: ", err));
+        });
+
+        // --- Hiển thị Lỗi và Trạng thái ---
+        const showError = (message) => {
+          errorContainer.textContent = message;
+          errorContainer.classList.remove("hidden");
+          loaderContainer.classList.add("hidden");
+          placeholder.classList.remove("hidden");
+          analysisResult.innerHTML = "";
+          suggestionContainer.classList.add("hidden");
+        };
+
+        const setLoading = (isLoading) => {
+          if (isLoading) {
+            placeholder.classList.add("hidden");
+            errorContainer.classList.add("hidden");
+            analysisResult.innerHTML = "";
+            suggestionContainer.classList.add("hidden");
+            loaderContainer.style.display = "flex";
+            analyzeBtn.disabled = true;
+            analyzeBtn.textContent = "Đang phân tích...";
+            resetBtn.disabled = true;
+            resetBtn.classList.add("opacity-50", "cursor-not-allowed");
+          } else {
+            loaderContainer.style.display = "none";
+            analyzeBtn.disabled = false;
+            analyzeBtn.textContent = "Bắt đầu Phân Tích";
+            resetBtn.disabled = false;
+            resetBtn.classList.remove("opacity-50", "cursor-not-allowed");
+          }
+        };
+
+        // --- Xây dựng Prompt cho AI ---
+        const buildAIPrompt = (content, comments, mode) => {
+          const detailedCriteria = `
+<FRAMEWORK>
+**Phần I: Nền Tảng Cốt Lõi Của Một Tác Phẩm Lôi Cuốn**
+**Chương 1: Kiến Trúc Của Câu Chuyện** (Cốt truyện, Kết cấu, Tình tiết)
+**Chương 2: Xây Dựng Nhân Vật "Sống"** (Chiều kích, Vòng cung phát triển)
+**Chương 3: Bối Cảnh** (Vai trò, Ảnh hưởng)
+**Chương 4: Lời Thoại Tự Nhiên** (Mục đích, Độ "thật")
+**Phần II: Thấu Hiểu Độc Giả Mục Tiêu (Nữ, 18-24 Tuổi tại Việt Nam)**
+**Chương 5 & 6: Giải Mã Thị Hiếu và "Tính Đồng Cảm"** (Đáp ứng kỳ vọng thể loại/trope, Tính xác thực của cảm xúc - Quan trọng nhất)
+</FRAMEWORK>
+`;
+          const commentsContext = comments
+            ? `
+BÌNH LUẬN GỐC TỪ ĐỘC GIẢ (Tiếng Trung):
+"""
+${comments}
+"""
+`
+            : "";
+
+          const detailedFormat = `
+### **Báo Cáo Đánh Giá Chi Tiết Bản Thảo**
+**(Tóm tắt chuyên nghiệp về tiềm năng bản thảo, điểm sáng và vấn đề cốt lõi).**
+---
+### **Phản Hồi Từ Độc Giả (Đã dịch và tổng hợp)**
+**(Dịch các bình luận sang tiếng Việt và tổng hợp ý kiến chính của độc giả).**
+---
+### **Phân Tích Chuyên Sâu Theo Từng Hạng Mục**
+**1. Cốt truyện & Kết cấu:**
+* **Điểm mạnh:** (Phân tích dựa trên Chương 1. Trích dẫn ví dụ).
+* **Điểm yếu:** (Phân tích dựa trên Chương 1. Trích dẫn ví dụ).
+* **Đề xuất cải thiện:** (Gợi ý cụ thể).
+**2. Xây dựng Nhân vật & Tương tác:**
+* **Điểm mạnh:** (Phân tích dựa trên Chương 2. Trích dẫn ví dụ).
+* **Điểm yếu:** (Phân tích dựa trên Chương 2. Trích dẫn ví dụ).
+* **Đề xuất cải thiện:** (Gợi ý cụ thể).
+**3. Bối cảnh & Không khí truyện:**
+* **Điểm mạnh:** (Phân tích dựa trên Chương 3. Trích dẫn ví dụ).
+* **Điểm yếu:** (Phân tích dựa trên Chương 3. Trích dẫn ví dụ).
+* **Đề xuất cải thiện:** (Gợi ý cụ thể).
+**4. Lời thoại & Văn phong:**
+* **Điểm mạnh:** (Phân tích dựa trên Chương 4. Trích dẫn ví dụ).
+* **Điểm yếu:** (Phân tích dựa trên Chương 4. Trích dẫn ví dụ).
+* **Đề xuất cải thiện:** (Gợi ý cụ thể).
+**5. Mức độ Đáp ứng Thị hiếu & Khả năng tạo Đồng cảm:**
+* **Phân tích:** (Phần quan trọng nhất. Dựa trên Phần II và phản hồi độc giả, phân tích sâu).
+* **Đề xuất cải thiện:** (Gợi ý cụ thể).
+---
+### **Kết Luận & Hướng Đi Tiếp Theo**
+**(Nhận định tổng quan và tóm tắt 3-5 hành động quan trọng nhất).**
+`;
+
+          const summaryFormat = `
+### **Đánh Giá Tóm Tắt Bản Thảo**
+**Nhận định chung:** (1-2 câu tóm tắt tiềm năng và vấn đề lớn nhất, có tham khảo ý kiến độc giả).
+---
+**Chấm điểm nhanh:**
+- **Cốt truyện & Kết cấu:** .../10
+- **Nhân vật & Tương tác:** .../10
+- **Lời thoại & Văn phong:** .../10
+- **Cảm xúc & Thị hiếu:** .../10
+---
+**3 Điểm Sáng Giá Nhất:**
+1.  (Điểm mạnh 1)
+2.  (Điểm mạnh 2)
+3.  (Điểm mạnh 3)
+---
+**3 Vấn Đề Cần Ưu Tiên Chỉnh Sửa:**
+1.  (Vấn đề 1 và gợi ý ngắn gọn)
+2.  (Vấn đề 2 và gợi ý ngắn gọn)
+3.  (Vấn đề 3 và gợi ý ngắn gọn)
+`;
+
+          let finalFormatInstruction =
+            mode === "detailed" ? detailedFormat : summaryFormat;
+
+          const suggestionTask = `
+---
+### **NHIỆM VỤ VIẾT LẠI (TÙY CHỌN)**
+**Nếu, và chỉ nếu,** bản thảo có những điểm yếu nghiêm trọng (ví dụ: điểm trung bình dưới 5/10, hoặc có vấn đề lớn về cốt truyện/nhân vật), hãy thực hiện thêm nhiệm vụ sau:
+1.  **Viết lại bản thảo:** Dựa trên TẤT CẢ các phân tích và gợi ý của bạn, hãy viết lại một phiên bản cải thiện của toàn bộ đoạn truyện gốc.
+2.  **Giữ nguyên tinh thần:** Cố gắng giữ lại ý tưởng cốt lõi và giọng văn của tác giả, nhưng khắc phục các vấn đề đã nêu.
+3.  **Định dạng đầu ra:** Đặt toàn bộ phiên bản truyện đã viết lại vào trong một khối mã duy nhất, bắt đầu bằng \`\`\`REVISED_STORY và kết thúc bằng \`\`\`.
+Nếu bản thảo đã tốt và không cần viết lại toàn bộ, hãy bỏ qua nhiệm vụ này.
+`;
+
+          return `
+VAI TRÒ (PERSONA)
+Bạn là một **Biên tập viên chuyên nghiệp** tại một nhà xuất bản lớn, có kinh nghiệm thẩm định và phát triển bản thảo để xuất bản thành công. Phong cách của bạn phải sắc sảo, mang tính xây dựng, và tập trung vào việc giúp tác giả nâng tầm tác phẩm.
+
+BỐI CẢNH (CONTEXT)
+Tôi là một tác giả đang tìm kiếm phản hồi chuyên sâu để hoàn thiện bản thảo với mục tiêu xuất bản. Dưới đây là nội dung truyện của tôi và một số bình luận từ độc giả.
+Nội dung truyện cần đánh giá:
+"""
+${content}
+"""
+${commentsContext}
+
+NHIỆM VỤ (TASK)
+Hãy thực hiện một bài đánh giá **cực kỳ chi tiết và hà khắc** cho bản thảo trên.
+1.  **Dịch và Tóm tắt Bình luận:** Trước tiên, nếu có bình luận, hãy dịch tất cả các bình luận của độc giả sang tiếng Việt. Sau đó, tóm tắt các điểm khen, chê, và thắc mắc chính từ những bình luận này.
+2.  **Nghiên cứu kỹ lưỡng Framework:** Toàn bộ phân tích của bạn BẮT BUỘC phải dựa trên khung kiến thức chuyên sâu dưới đây.
+    ${detailedCriteria}
+3.  **Đưa ra đánh giá:** Dựa vào Framework và **có xem xét đến góc nhìn từ các bình luận của độc giả**, hãy phân tích bản thảo một cách hệ thống.
+4.  **Chọn định dạng đầu ra:** Dựa trên chế độ người dùng đã chọn, hãy cung cấp kết quả theo **ĐÚNG MỘT** trong hai định dạng được yêu cầu.
+${suggestionTask}
+ĐỊNH DẠNG ĐẦU RA (FORMAT)
+**Chế độ người dùng chọn: ${mode}**
+Hãy trình bày bài đánh giá của bạn theo định dạng Markdown tương ứng dưới đây.
+${finalFormatInstruction}
+`;
+        };
+
+        // --- Xử lý Gợi ý ---
+        applySuggestionsBtn.addEventListener("click", () => {
+          const newContent = revisedStoryTextarea.value;
+
+          // Switch to the text paste tab
+          tabs.forEach((t) => t.classList.remove("active"));
+          document
+            .querySelector('button[data-tab="paste-text"]')
+            .classList.add("active");
+
+          tabContents.forEach((content) => content.classList.remove("active"));
+          document.getElementById("paste-text").classList.add("active");
+
+          storyContent.value = newContent;
+          processAndDisplayContent();
+
+          applySuggestionsBtn.textContent = "Đã Áp dụng!";
+          applySuggestionsBtn.classList.remove(
+            "bg-purple-600",
+            "hover:bg-purple-700"
+          );
+          applySuggestionsBtn.classList.add("bg-green-600");
+
+          setTimeout(() => {
+            applySuggestionsBtn.textContent =
+              "Áp dụng Gợi ý vào Trình Soạn thảo";
+            applySuggestionsBtn.classList.remove("bg-green-600");
+            applySuggestionsBtn.classList.add(
+              "bg-purple-600",
+              "hover:bg-purple-700"
+            );
+          }, 2000);
+
+          const storyContentElement = document.getElementById("storyContent");
+          storyContentElement.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
+        });
+
+        // --- Gọi API Gemini và xử lý ---
+        analyzeBtn.addEventListener("click", async () => {
+          // Adjust layout when result panel is shown
+          controlPanel.classList.remove("lg:col-span-5");
+          controlPanel.classList.add("lg:col-span-2");
+          resultPanel.classList.remove("hidden");
+
+          await processAndDisplayContent();
+          extractComments();
+          if (!storyText) {
+            showError("Nội dung truyện không được để trống.");
+            return;
+          }
+          if (apiKeys.length === 0) {
+            showError("Vui lòng thêm ít nhất một API Key của Gemini.");
+            return;
+          }
+
+          setLoading(true);
+
+          const selectedMode = document.querySelector(
+            'input[name="evaluationMode"]:checked'
+          ).value;
+          const prompt = buildAIPrompt(storyText, commentsText, selectedMode);
+          let success = false;
+          for (const key of apiKeys) {
+            try {
+              const response = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${key}`,
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: {
+                      temperature: 0.4,
+                      topK: 1,
+                      topP: 1,
+                      maxOutputTokens: 8192,
+                    },
+                  }),
+                }
+              );
+              if (!response.ok) {
+                const errorData = await response.json();
+                console.error(
+                  `API Key ***${key.slice(-4)} thất bại:`,
+                  errorData.error.message
+                );
+                throw new Error(`HTTP error! status: ${response.status}`);
+              }
+              const result = await response.json();
+              const resultText = result.candidates[0].content.parts[0].text;
+
+              // Handle suggestions
+              const suggestionRegex = /```REVISED_STORY\n([\s\S]*?)\n```/;
+              const match = resultText.match(suggestionRegex);
+              const cleanResultText = resultText.replace(suggestionRegex, "");
+
+              analysisResult.innerHTML = marked.parse(cleanResultText);
+
+              if (match && match[1]) {
+                const revisedStory = match[1].trim();
+                revisedStoryTextarea.value = revisedStory;
+                suggestionContainer.classList.remove("hidden");
+              } else {
+                suggestionContainer.classList.add("hidden");
+              }
+
+              success = true;
+              break;
+            } catch (error) {
+              console.error(`Lỗi với API Key ***${key.slice(-4)}:`, error);
+            }
+          }
+          setLoading(false);
+          if (!success)
+            showError(
+              "Tất cả API Key đều không hợp lệ hoặc đã xảy ra lỗi. Vui lòng kiểm tra lại Key và thử lại."
+            );
+        });
+
+        // --- Khởi tạo ---
+        loadApiKeys();
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,1910 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trình Dịch Truyện AI</title>
+    <!-- Sử dụng Tailwind CSS để làm giao diện đẹp và nhanh chóng -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Thư viện mammoth.js để đọc file .docx -->
+    <script src="https://cdn.jsdelivr.net/npm/mammoth@1.7.0/mammoth.browser.min.js"></script>
+
+    <style>
+      /* Tùy chỉnh nhỏ để giao diện mượt mà hơn */
+      body {
+        font-family: "Inter", sans-serif;
+      }
+      .custom-file-upload {
+        border: 2px dashed #475569;
+        transition: background-color 0.2s ease-in-out,
+          border-color 0.2s ease-in-out;
+      }
+      .custom-file-upload:hover {
+        background-color: #334155;
+        border-color: #64748b;
+      }
+      /* Animation cho spinner */
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .spinner {
+        border: 4px solid rgba(255, 255, 255, 0.1);
+        border-left-color: #3b82f6;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        animation: spin 1s linear infinite;
+      }
+      .spinner-sm {
+        width: 20px;
+        height: 20px;
+        border-width: 2px;
+      }
+      /* Tùy chỉnh thanh trượt tốc độ */
+      input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 16px;
+        height: 16px;
+        background: #3b82f6;
+        border-radius: 50%;
+        cursor: pointer;
+      }
+      input[type="range"]::-moz-range-thumb {
+        width: 16px;
+        height: 16px;
+        background: #3b82f6;
+        border-radius: 50%;
+        cursor: pointer;
+      }
+      .history-item {
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+      .history-item:hover {
+        background-color: #1e293b;
+      }
+      .tab-active {
+        border-color: #3b82f6;
+        color: #eff6ff;
+        font-weight: 600;
+      }
+      /* Fullscreen chat styles */
+      .chat-fullscreen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 50;
+        background-color: rgba(15, 23, 42, 0.95); /* slate-900 with opacity */
+        backdrop-filter: blur(8px);
+        padding: 2rem;
+        display: flex;
+        flex-direction: column;
+      }
+      .chat-fullscreen #chatHistory {
+        height: 100%;
+        flex-grow: 1;
+      }
+    </style>
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+  </head>
+  <body class="bg-slate-900 text-slate-200 transition-colors duration-300">
+    <div class="w-full max-w-6xl mx-auto p-4">
+      <div
+        class="w-full bg-slate-800 rounded-2xl shadow-xl p-6 md:p-8 space-y-6"
+      >
+        <!-- Header -->
+        <div class="text-center">
+          <h1 class="text-3xl md:text-4xl font-bold text-slate-100">
+            Trình Dịch Truyện & Phụ Đề AI
+          </h1>
+          <p class="text-slate-400 mt-2">
+            Tải lên file truyện (.docx) hoặc phụ đề (.srt) của bạn và để AI
+            dịch.
+          </p>
+        </div>
+
+        <!-- Vùng cài đặt và tải lên -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+          <!-- Cột trái: API Key và Ngôn ngữ -->
+          <div class="space-y-4">
+            <!-- Gemini API Key Input -->
+            <div>
+              <label
+                for="geminiApiKey"
+                class="block text-sm font-medium text-slate-300 mb-1"
+              >
+                <span>Gemini API Keys (một key mỗi dòng)</span>
+                <span class="text-red-500">*</span>
+              </label>
+              <textarea
+                id="geminiApiKey"
+                rows="3"
+                class="block w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-slate-100"
+                placeholder="Dán một hoặc nhiều API Key vào đây..."
+              ></textarea>
+              <p class="text-xs text-slate-400 mt-1">
+                <span>Hãy truy cập</span>
+                <a
+                  href="https://aistudio.google.com/apikey"
+                  target="_blank"
+                  class="text-blue-500 hover:underline"
+                  >https://aistudio.google.com/apikey</a
+                >
+                <span>để lấy API key.</span>
+              </p>
+            </div>
+            <!-- Language Select -->
+            <div>
+              <label
+                for="language"
+                class="block text-sm font-medium text-slate-300 mb-1"
+                >Dịch sang</label
+              >
+              <select
+                id="language"
+                name="language"
+                class="block w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-slate-100"
+              >
+                <option value="Vietnamese">Tiếng Việt</option>
+                <option value="English">Tiếng Anh</option>
+                <option value="Japanese">Tiếng Nhật</option>
+                <option value="Korean">Tiếng Hàn</option>
+                <option value="Chinese (Simplified)">Tiếng Trung</option>
+              </select>
+            </div>
+            <!-- Custom Prompt -->
+            <div id="custom-prompt-container">
+              <div class="flex items-center">
+                <input
+                  id="customPromptToggle"
+                  type="checkbox"
+                  class="h-4 w-4 rounded border-gray-600 text-blue-600 focus:ring-blue-500 bg-slate-700"
+                />
+                <label
+                  for="customPromptToggle"
+                  class="ml-2 block text-sm font-medium text-slate-300"
+                  >Tùy chỉnh prompt (hướng dẫn thêm)</label
+                >
+              </div>
+              <textarea
+                id="customPrompt"
+                rows="4"
+                class="hidden mt-2 w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-slate-100"
+              ></textarea>
+            </div>
+          </div>
+          <!-- Cột phải: Tải file lên -->
+          <div>
+            <label class="block text-sm font-medium text-slate-300 mb-1">
+              <span>File truyện (.docx) hoặc phụ đề (.srt)</span>
+              <span class="text-red-500">*</span>
+            </label>
+            <label
+              for="docFile"
+              class="custom-file-upload flex flex-col items-center justify-center w-full h-full rounded-md cursor-pointer p-6 text-center min-h-[220px] border-slate-600"
+            >
+              <svg
+                id="uploadIcon"
+                class="w-12 h-12 text-slate-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                ></path>
+              </svg>
+              <div class="flex items-center space-x-2 mt-2">
+                <span id="fileName" class="text-sm text-slate-400 break-all"
+                  >Kéo và thả hoặc nhấn để chọn file</span
+                >
+                <button
+                  id="clearFileBtn"
+                  type="button"
+                  class="hidden p-1 bg-red-500 text-white rounded-full hover:bg-red-600 focus:outline-none"
+                >
+                  <svg
+                    class="w-3 h-3"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                      clip-rule="evenodd"
+                    ></path>
+                  </svg>
+                </button>
+              </div>
+            </label>
+            <input
+              type="file"
+              id="docFile"
+              class="hidden"
+              accept=".docx,.srt"
+            />
+          </div>
+        </div>
+
+        <!-- Nút dịch và Trạng thái -->
+        <div class="flex flex-col items-center space-y-3 pt-4">
+          <button
+            id="translateBtn"
+            class="w-full md:w-auto px-6 py-2 text-sm font-semibold bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-slate-400 disabled:cursor-not-allowed transition-colors"
+            disabled
+          >
+            <span>Bắt đầu dịch</span>
+          </button>
+          <div
+            id="status"
+            class="h-6 flex items-center space-x-2 text-sm text-slate-400"
+          ></div>
+        </div>
+
+        <!-- Lịch sử Dịch -->
+        <div id="historyArea" class="hidden pt-6 border-t border-slate-700">
+          <h2 class="text-xl font-bold text-slate-100 mb-4">
+            Lịch sử dịch gần đây
+          </h2>
+          <!-- Tabs -->
+          <div class="flex border-b border-slate-700 mb-4">
+            <button
+              id="storyHistoryTab"
+              class="px-4 py-2 text-sm font-semibold text-slate-300 border-b-2"
+            >
+              Truyện (.docx)
+            </button>
+            <button
+              id="subtitleHistoryTab"
+              class="px-4 py-2 text-sm font-semibold text-slate-400 border-b-2 border-transparent hover:text-slate-200"
+            >
+              Phụ đề (.srt)
+            </button>
+          </div>
+          <!-- History Lists -->
+          <div
+            id="storyHistoryList"
+            class="space-y-2 max-h-48 overflow-y-auto"
+          ></div>
+          <div
+            id="subtitleHistoryList"
+            class="hidden space-y-2 max-h-48 overflow-y-auto"
+          ></div>
+        </div>
+
+        <!-- Vùng kết quả -->
+        <div id="resultArea" class="hidden pt-6 border-t border-slate-700">
+          <div
+            class="flex flex-wrap justify-between items-center gap-y-4 gap-x-2 mb-4"
+          >
+            <h2 class="text-2xl font-bold text-slate-100">Kết quả đã dịch</h2>
+            <div class="flex items-center gap-x-2 flex-wrap">
+              <button
+                id="titleSuggestionBtn"
+                class="px-3 py-1.5 text-sm bg-sky-600 text-white font-semibold rounded-lg shadow-sm hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 transition-colors flex items-center space-x-2 disabled:bg-slate-400 disabled:cursor-not-allowed"
+              >
+                <svg
+                  class="w-5 h-5"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"
+                  />
+                </svg>
+                <span>Gợi ý tên truyện</span>
+              </button>
+              <button
+                id="qualityCheckBtn"
+                class="px-3 py-1.5 text-sm bg-amber-500 text-white font-semibold rounded-lg shadow-sm hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-colors flex items-center space-x-2 disabled:bg-slate-400 disabled:cursor-not-allowed"
+              >
+                <svg
+                  class="w-5 h-5"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm3.707-9.293a1 1 0 0 0-1.414-1.414L9 10.586 7.707 9.293a1 1 0 0 0-1.414 1.414l2 2a1 1 0 0 0 1.414 0l4-4z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+                <span>Kiểm tra bản dịch</span>
+              </button>
+              <button
+                id="copyBtn"
+                class="px-3 py-1.5 text-sm bg-slate-600 text-white font-semibold rounded-lg shadow-sm hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-colors"
+              >
+                <span>Sao chép bản dịch</span>
+              </button>
+            </div>
+          </div>
+          <div
+            id="translatedOutput"
+            class="w-full h-96 overflow-y-auto bg-slate-900 p-4 rounded-md border border-slate-700 whitespace-pre-wrap"
+          ></div>
+
+          <!-- Vùng Gợi ý tên truyện -->
+          <div id="titleSuggestionArea" class="hidden mt-6">
+            <h3 class="text-xl font-bold text-slate-100 mb-2">
+              Gợi ý tên truyện
+            </h3>
+            <div
+              id="titleSuggestionOutput"
+              class="w-full h-64 overflow-y-auto bg-sky-900/20 p-4 rounded-md border border-sky-900/30 whitespace-pre-wrap"
+            ></div>
+            <div class="mt-4 flex justify-end">
+              <button
+                id="suggestAgainBtn"
+                class="px-3 py-1.5 text-sm bg-sky-600 text-white font-semibold rounded-lg shadow-sm hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 transition-colors flex items-center space-x-2 disabled:bg-slate-400 disabled:cursor-not-allowed"
+              >
+                <svg
+                  class="w-5 h-5"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M4 2a1 1 0 0 1 1 1v2.101a7.002 7.002 0 0 1 11.601 2.566 1 1 0 1 1-1.885.666A5.002 5.002 0 0 0 5.999 7H9a1 1 0 0 1 0 2H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zm1 14a1 1 0 0 1 1-1h5.001a5.002 5.002 0 0 0 4.087-7.926 1 1 0 1 1 1.885.666A7.002 7.002 0 0 1 5 17.899V20a1 1 0 1 1-2 0v-5a1 1 0 0 1 1-1z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+                <span>Gợi ý lại</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Vùng Phân tích chất lượng -->
+          <div id="qualityCheckResultArea" class="hidden mt-6">
+            <h3 class="text-xl font-bold text-slate-100 mb-2">
+              Phân tích chất lượng bản dịch
+            </h3>
+            <div
+              id="qualityCheckOutput"
+              class="w-full h-64 overflow-y-auto bg-amber-900/20 p-4 rounded-md border border-amber-900/30 whitespace-pre-wrap"
+            ></div>
+            <div class="mt-4 flex justify-end">
+              <button
+                id="regenerateBtn"
+                class="px-3 py-1.5 text-sm bg-green-600 text-white font-semibold rounded-lg shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors flex items-center space-x-2 disabled:bg-slate-400 disabled:cursor-not-allowed"
+              >
+                <svg
+                  class="w-5 h-5"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M4 2a1 1 0 0 1 1 1v2.101a7.002 7.002 0 0 1 11.601 2.566 1 1 0 1 1-1.885.666A5.002 5.002 0 0 0 5.999 7H9a1 1 0 0 1 0 2H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zm1 14a1 1 0 0 1 1-1h5.001a5.002 5.002 0 0 0 4.087-7.926 1 1 0 1 1 1.885.666A7.002 7.002 0 0 1 5 17.899V20a1 1 0 1 1-2 0v-5a1 1 0 0 1 1-1z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+                <span>Áp dụng & Dịch lại</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Vùng Chatbot -->
+          <div id="chatArea" class="hidden mt-6">
+            <div class="flex justify-between items-center mb-2">
+              <h3 class="text-xl font-bold text-slate-100">
+                Hỏi đáp về nội dung truyện
+              </h3>
+              <div>
+                <button
+                  id="chatExpandBtn"
+                  class="p-2 rounded-md hover:bg-slate-700"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-5 w-5"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                    <path
+                      fill-rule="evenodd"
+                      d="M.458 10C3.732 4.943 9.522 3 10 3s6.268 1.943 9.542 7c-3.274 5.057-9.064 7-9.542 7S3.732 15.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                </button>
+                <button
+                  id="chatCollapseBtn"
+                  class="p-2 rounded-md hover:bg-slate-700 hidden"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-5 w-5"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 4 10 4a9.95 9.95 0 00-2.553.424L3.707 2.293zM10 12a2 2 0 110-4 2 2 0 010 4z"
+                      clip-rule="evenodd"
+                    />
+                    <path
+                      d="M2 10a9.948 9.948 0 013.523-7.222l1.473 1.473a8.013 8.013 0 00-2.015 5.75c0 .363.029.718.084 1.068l-1.453 1.453A9.92 9.92 0 012 10z"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div
+              id="chatHistory"
+              class="w-full h-64 overflow-y-auto bg-slate-900 p-4 rounded-md border border-slate-700 mb-4 space-y-4"
+            >
+              <!-- Chat messages will appear here -->
+            </div>
+            <div class="flex space-x-2">
+              <input
+                type="text"
+                id="chatInput"
+                placeholder="Nhập câu hỏi của bạn ở đây..."
+                class="flex-grow px-3 py-2 bg-slate-700 border border-slate-600 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-slate-100"
+              />
+              <button
+                id="chatSendBtn"
+                class="px-4 py-2 text-sm font-semibold bg-sky-600 text-white rounded-lg shadow-md hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 disabled:bg-slate-400 disabled:cursor-not-allowed transition-colors"
+              >
+                Gửi
+              </button>
+            </div>
+          </div>
+
+          <!-- Vùng điều khiển âm thanh -->
+          <div id="audio-controls-container" class="space-y-4 mt-6">
+            <!-- Nghe trực tiếp -->
+            <div
+              id="browser-tts-container"
+              class="p-3 bg-slate-700/50 rounded-lg border border-slate-700"
+            >
+              <h3 class="text-sm font-semibold text-slate-200 mb-2">
+                Nghe trực tiếp (Giọng đọc của trình duyệt)
+              </h3>
+              <div
+                id="browser-tts-controls"
+                class="flex flex-wrap items-center gap-x-3 gap-y-2"
+              >
+                <select
+                  id="voiceSelect"
+                  name="voiceSelect"
+                  class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-1.5 focus:outline-none text-sm font-medium text-slate-300 disabled:bg-slate-200 disabled:cursor-not-allowed"
+                >
+                  <option>Đang tải...</option>
+                </select>
+                <div class="flex items-center space-x-1.5">
+                  <label
+                    for="speedControl"
+                    class="text-sm font-medium text-slate-300 whitespace-nowrap"
+                    >Tốc độ:</label
+                  >
+                  <input
+                    type="range"
+                    id="speedControl"
+                    min="0.5"
+                    max="2"
+                    step="0.1"
+                    value="1"
+                    class="w-20 cursor-pointer align-middle disabled:cursor-not-allowed"
+                  />
+                  <span
+                    id="speedValue"
+                    class="text-sm font-medium text-slate-300 w-9 text-left"
+                    >1.0x</span
+                  >
+                </div>
+                <button
+                  id="listenBtn"
+                  class="px-3 py-1.5 text-sm bg-purple-600 text-white font-semibold rounded-lg shadow-sm hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors flex items-center space-x-2 disabled:bg-slate-400 disabled:cursor-not-allowed"
+                >
+                  <svg
+                    id="listenIcon"
+                    class="w-5 h-5"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M9.383 3.076A1 1 0 0 1 10 4v12a1 1 0 0 1-1.707.707L4.586 13H2a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1h2.586l3.707-3.707a1 1 0 0 1 1.09-.217zM12.293 7.293a1 1 0 0 1 1.414 0L15 8.586l1.293-1.293a1 1 0 1 1 1.414 1.414L16.414 10l1.293 1.293a1 1 0 0 1-1.414 1.414L15 11.414l-1.293 1.293a1 1 0 0 1-1.414-1.414L13.586 10l-1.293-1.293a1 1 0 0 1 0-1.414z"
+                    ></path>
+                  </svg>
+                  <span id="listenBtnText">Nghe</span>
+                </button>
+              </div>
+              <p
+                id="edge-tts-warning"
+                class="text-red-600 text-xs mt-2 font-semibold hidden"
+              >
+                Để sử dụng tính năng nghe trực tiếp, hãy dùng trình duyệt
+                Microsoft Edge.
+              </p>
+            </div>
+            <!-- Tạo file audio -->
+            <div class="p-3 bg-slate-700/50 rounded-lg border border-slate-700">
+              <h3 class="text-sm font-semibold text-slate-200 mb-2">
+                Tạo file Audio (Giọng đọc của Gemini)
+              </h3>
+              <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+                <select
+                  id="geminiVoiceSelect"
+                  name="geminiVoiceSelect"
+                  class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-1.5 focus:outline-none text-sm font-medium text-slate-300"
+                ></select>
+                <button
+                  id="createAudioBtn"
+                  class="px-3 py-1.5 text-sm bg-teal-600 text-white font-semibold rounded-lg shadow-sm hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors flex items-center space-x-2 disabled:bg-slate-400 disabled:cursor-not-allowed"
+                >
+                  <div id="audioBtnIconContainer">
+                    <svg
+                      class="w-5 h-5"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        d="M7 3a1 1 0 0 0-1 1v12a1 1 0 1 0 2 0V4a1 1 0 0 0-1-1zM3 8a1 1 0 0 0-1 1v2a1 1 0 1 0 2 0V9a1 1 0 0 0-1-1zm14 0a1 1 0 0 0-1 1v2a1 1 0 1 0 2 0V9a1 1 0 0 0-1-1zM11 6a1 1 0 0 0-1 1v6a1 1 0 1 0 2 0V7a1 1 0 0 0-1-1z"
+                      ></path>
+                    </svg>
+                  </div>
+                  <span>Tạo Audio</span>
+                </button>
+              </div>
+              <!-- Vùng hiển thị Audio Player -->
+              <div id="audioPlayerContainer" class="mt-3"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      window.onload = () => {
+        // Lấy các phần tử DOM
+        const geminiApiKeyInput = document.getElementById("geminiApiKey");
+        const docFileInput = document.getElementById("docFile");
+        const fileNameSpan = document.getElementById("fileName");
+        const languageSelect = document.getElementById("language");
+        const customPromptToggle =
+          document.getElementById("customPromptToggle");
+        const customPrompt = document.getElementById("customPrompt");
+        const customPromptContainer = document.getElementById(
+          "custom-prompt-container"
+        );
+        const translateBtn = document.getElementById("translateBtn");
+        const statusDiv = document.getElementById("status");
+        const resultArea = document.getElementById("resultArea");
+        const translatedOutput = document.getElementById("translatedOutput");
+        const copyBtn = document.getElementById("copyBtn");
+        const uploadIcon = document.getElementById("uploadIcon");
+        const clearFileBtn = document.getElementById("clearFileBtn");
+        const listenBtn = document.getElementById("listenBtn");
+        const listenBtnText = document.getElementById("listenBtnText");
+        const listenIcon = document.getElementById("listenIcon");
+        const voiceSelect = document.getElementById("voiceSelect");
+        const speedControl = document.getElementById("speedControl");
+        const speedValue = document.getElementById("speedValue");
+        const createAudioBtn = document.getElementById("createAudioBtn");
+        const audioBtnIconContainer = document.getElementById(
+          "audioBtnIconContainer"
+        );
+        const audioPlayerContainer = document.getElementById(
+          "audioPlayerContainer"
+        );
+        const audioControlsContainer = document.getElementById(
+          "audio-controls-container"
+        );
+        const geminiVoiceSelect = document.getElementById("geminiVoiceSelect");
+        const edgeTtsWarning = document.getElementById("edge-tts-warning");
+        const browserTtsContainer = document.getElementById(
+          "browser-tts-container"
+        );
+        const browserTtsControls = document.getElementById(
+          "browser-tts-controls"
+        );
+        const qualityCheckBtn = document.getElementById("qualityCheckBtn");
+        const qualityCheckResultArea = document.getElementById(
+          "qualityCheckResultArea"
+        );
+        const qualityCheckOutput =
+          document.getElementById("qualityCheckOutput");
+        const regenerateBtn = document.getElementById("regenerateBtn");
+        const historyArea = document.getElementById("historyArea");
+        const storyHistoryTab = document.getElementById("storyHistoryTab");
+        const subtitleHistoryTab =
+          document.getElementById("subtitleHistoryTab");
+        const storyHistoryList = document.getElementById("storyHistoryList");
+        const subtitleHistoryList = document.getElementById(
+          "subtitleHistoryList"
+        );
+        const titleSuggestionBtn =
+          document.getElementById("titleSuggestionBtn");
+        const titleSuggestionArea = document.getElementById(
+          "titleSuggestionArea"
+        );
+        const titleSuggestionOutput = document.getElementById(
+          "titleSuggestionOutput"
+        );
+        const suggestAgainBtn = document.getElementById("suggestAgainBtn");
+        const chatArea = document.getElementById("chatArea");
+        const chatHistory = document.getElementById("chatHistory");
+        const chatInput = document.getElementById("chatInput");
+        const chatSendBtn = document.getElementById("chatSendBtn");
+        const chatExpandBtn = document.getElementById("chatExpandBtn");
+        const chatCollapseBtn = document.getElementById("chatCollapseBtn");
+
+        let originalContent = "";
+        let translatedContent = "";
+        let analysisContent = "";
+        let currentFileType = null;
+        let parsedSrt = [];
+        let isPlaying = false;
+        let isFirstTranslationDone = false;
+
+        const synth = window.speechSynthesis;
+        let voices = [];
+        let currentUtterance = null;
+
+        const geminiVoices = {
+          "Giọng Nữ (Laomedeia)": "Laomedeia",
+          "Giọng Nam (Charon)": "Charon",
+        };
+
+        const storyPromptTemplate = `You are an expert literary translator. Your primary goal is to translate the following text into {language}.
+
+Adhere to these critical rules for the highest quality translation:
+1.  **Plot and Cohesion**: Maintain a clear, logical, and interconnected storyline.
+2.  **Character Name and Proper Noun Transliteration**: All character names and proper nouns must be transliterated into the target language's phonetic system (e.g., into Vietnamese for a Vietnamese translation). These transliterated names must be used consistently throughout the entire text.
+3.  **Accurate Meaning**: Translate the original meaning and context accurately and faithfully.
+4.  **No Content Alteration**: Do not add or omit any content from the original text. Preserve all paragraph breaks and original formatting.
+5.  **Completeness**: Ensure every single word and sentence from the original text is translated. Do not leave out any part of the content.
+6.  **No Untranslated Words**: Do not leave any words from the original source language in the final translation. All terms, including keywords, must be fully translated or adapted into the target language.
+7.  **Contextual Pronoun Identification**: Be highly sensitive to the narrative perspective (e.g., first-person). Characters used as pronouns in specific contexts, such as the Chinese character '上' often meaning 'I' (the narrator) in online stories, must be translated based on this context, not literally transliterated as a name.
+8.  **Contextual and Cultural Nuance**: Differentiate between proper nouns and common terms. If a word seems illogical in context (e.g., '国 303'), infer the most logical meaning (e.g., 'Room 303') rather than translating literally. A term like '万发钥匙' should be understood contextually as a 'master key' or 'universal key' (chìa khóa vạn năng), not a branded name. Prioritize natural, fluent translation over rigid, literal equivalents.
+9.  **Consistent Character Roles and Gender**: From the beginning of the story, identify the main characters, their gender, and their relationships (e.g., older brother, younger sister). You MUST maintain this consistency throughout the entire translation. Do not switch a character's gender or their familial role.
+
+Provide only the translated text as your output, without any additional comments or summaries.
+
+Here is the text to translate:
+
+---
+{text}
+---`;
+
+        const srtPromptTemplate = `You are an expert subtitle translator. Your task is to translate the following subtitle entries into {language}.
+- The entries are separated by a unique delimiter: \`[<->]\`.
+- You MUST preserve this delimiter in your output.
+- The number of entries in your output MUST exactly match the number of entries in the input.
+- Translate the meaning accurately for a viewing audience.
+- Keep the translation concise and natural-sounding.
+- **Crucially, you must translate the ENTIRE content of each entry. Do not leave any words or phrases from the original language untranslated. Your job is to provide a complete and polished translation for every line.**
+
+Here is the subtitle text to translate:
+---
+{text}
+---
+`;
+
+        const qualityCheckPromptTemplate = `You are a professional editor reviewing a translated story. The text has been translated from an original text into {language}.
+
+Please perform the following tasks based on the texts provided below. **IMPORTANT: Your entire analysis and response MUST be in {language}.**
+
+1.  **Summarize the Plot**: Briefly summarize the main plot of the translated text in 2-3 sentences to confirm the story's logic and coherence.
+2.  **Identify Potential Issues**: Carefully review the translated text and point out any specific sentences or phrases that seem illogical, unnatural, or poorly translated. For each issue, provide a brief explanation and suggest a better alternative.
+3.  **Check for Omissions**: Compare the translated text against the original text. Point out any specific words, phrases, or sentences that were missed or omitted during translation.
+4.  If the translation is excellent and has no issues, state that clearly.
+
+Format your response clearly using Markdown for headings and lists.
+
+**Original Text:**
+---
+{original_text}
+---
+
+**Translated Text to Review:**
+---
+{translated_text}
+---
+`;
+        const regenerationPromptTemplate = `You are a master literary translator tasked with refining a translation based on an editor's feedback.
+
+**Original Text:**
+---
+{original_text}
+---
+
+**First Draft Translation (in {language}):**
+---
+{first_translation}
+---
+
+**Editor's Feedback and Suggestions (in {language}):**
+---
+{editor_feedback}
+---
+
+Your task is to produce a new, final version of the translation in {language}. You must incorporate the editor's suggestions to fix the identified issues while retaining the high-quality parts of the first draft. The final output should ONLY be the complete, refined translated text. Do not include any of your own commentary or headings.`;
+
+        const titleSuggestionPromptTemplate = `You are a creative assistant specializing in titling stories. Based on the full story text provided below, which is written in {language}, please generate a list of 5-7 creative, compelling, and suitable titles for this story.
+
+**Instructions:**
+- The titles must be in {language}.
+- The titles should reflect the main theme, plot, or mood of the story.
+- Provide a variety of title styles (e.g., mysterious, romantic, action-oriented, metaphorical).
+- Format the output as a simple numbered list.
+
+**Story Text:**
+---
+{story_text}
+---
+`;
+
+        const chatPromptTemplate = `You are a helpful assistant who has just read a story. Based ONLY on the story text provided below, answer the user's question. Your answer must be in {language}. If the answer cannot be found in the story, say that you cannot find the information in the provided text. **Format your answer using simple Markdown for better readability (e.g., use '**bolding**' for emphasis and '-' for lists).**
+
+Story Text:
+---
+{story_text}
+---
+
+User's Question:
+---
+{user_question}
+---
+`;
+
+        // Hàm khởi tạo
+        function initializeApp() {
+          handleBrowserSpecificFeatures();
+          populateGeminiVoiceList();
+          renderHistory();
+          loadApiKeysFromCache();
+          if (synth.onvoiceschanged !== undefined) {
+            synth.onvoiceschanged = populateBrowserVoiceList;
+          }
+          customPrompt.placeholder = `Ví dụ: Dịch với văn phong hài hước, dí dỏm.`;
+          Notification.requestPermission();
+        }
+
+        function loadApiKeysFromCache() {
+          const savedKeys = localStorage.getItem("geminiApiKeys");
+          if (savedKeys) {
+            geminiApiKeyInput.value = savedKeys;
+            updateTranslateButtonState();
+          }
+        }
+
+        function saveApiKeysToCache() {
+          localStorage.setItem("geminiApiKeys", geminiApiKeyInput.value.trim());
+        }
+
+        function handleBrowserSpecificFeatures() {
+          const isEdge = navigator.userAgent.includes("Edg/");
+          if (!isEdge) {
+            browserTtsControls.classList.add("hidden");
+            edgeTtsWarning.classList.remove("hidden");
+          } else {
+            populateBrowserVoiceList();
+          }
+        }
+
+        function populateGeminiVoiceList() {
+          geminiVoiceSelect.innerHTML = "";
+          for (const [displayName, apiKey] of Object.entries(geminiVoices)) {
+            const option = document.createElement("option");
+            option.textContent = displayName;
+            option.value = apiKey;
+            geminiVoiceSelect.appendChild(option);
+          }
+        }
+
+        function populateBrowserVoiceList() {
+          voices = synth.getVoices();
+          voiceSelect.innerHTML = "";
+          if (voices.length === 0) {
+            voiceSelect.innerHTML = "<option>Không tìm thấy giọng đọc</option>";
+            return;
+          }
+          const vietnameseVoices = voices.filter((voice) =>
+            voice.lang.startsWith("vi")
+          );
+          const otherVoices = voices.filter(
+            (voice) => !voice.lang.startsWith("vi")
+          );
+
+          const addVoiceOption = (voice) => {
+            const option = document.createElement("option");
+            option.textContent = voice.name
+              .replace("Microsoft", "")
+              .replace("Google", "")
+              .trim();
+            option.title = `${voice.name} (${voice.lang})`;
+            option.value = voice.name;
+            voiceSelect.appendChild(option);
+          };
+
+          vietnameseVoices.forEach(addVoiceOption);
+          if (vietnameseVoices.length > 0 && otherVoices.length > 0) {
+            const separator = document.createElement("option");
+            separator.disabled = true;
+            separator.textContent = "──────────";
+            voiceSelect.appendChild(separator);
+          }
+          otherVoices.forEach(addVoiceOption);
+        }
+
+        function updateTranslateButtonState() {
+          const hasApiKeys = geminiApiKeyInput.value.trim() !== "";
+          const hasFile = docFileInput.files.length > 0;
+          translateBtn.disabled = !(hasApiKeys && hasFile);
+
+          if (isFirstTranslationDone) {
+            translateBtn.querySelector("span").textContent = "Dịch lại";
+            translateBtn.classList.remove(
+              "bg-blue-600",
+              "hover:bg-blue-700",
+              "focus:ring-blue-500"
+            );
+            translateBtn.classList.add(
+              "bg-purple-600",
+              "hover:bg-purple-700",
+              "focus:ring-purple-500"
+            );
+          } else {
+            translateBtn.querySelector("span").textContent = "Bắt đầu dịch";
+            translateBtn.classList.add(
+              "bg-blue-600",
+              "hover:bg-blue-700",
+              "focus:ring-blue-500"
+            );
+            translateBtn.classList.remove(
+              "bg-purple-600",
+              "hover:bg-purple-700",
+              "focus:ring-purple-500"
+            );
+          }
+        }
+
+        function toggleActionButtons(disabled) {
+          translateBtn.disabled = disabled;
+          qualityCheckBtn.disabled = disabled;
+          regenerateBtn.disabled = disabled;
+          createAudioBtn.disabled = disabled;
+          titleSuggestionBtn.disabled = disabled;
+        }
+
+        async function showBrowserNotification(title, body) {
+          if (!("Notification" in window)) {
+            console.log("Browser không hỗ trợ thông báo.");
+            return;
+          }
+          let permission = Notification.permission;
+          if (permission === "default") {
+            permission = await Notification.requestPermission();
+          }
+          if (permission === "granted") {
+            new Notification(title, {
+              body,
+              icon: "https://aistudio.google.com/favicon.ico",
+            });
+          }
+        }
+
+        // Event Listeners
+        geminiApiKeyInput.addEventListener("input", updateTranslateButtonState);
+        docFileInput.addEventListener("change", () => {
+          if (docFileInput.files.length > 0) {
+            const file = docFileInput.files[0];
+            fileNameSpan.textContent = file.name;
+            fileNameSpan.classList.remove("text-slate-500");
+            fileNameSpan.classList.add("text-slate-700", "font-medium");
+            uploadIcon.classList.add("hidden");
+            clearFileBtn.classList.remove("hidden");
+
+            if (file.name.toLowerCase().endsWith(".srt")) {
+              currentFileType = "srt";
+              qualityCheckBtn.classList.add("hidden");
+              customPromptContainer.classList.add("hidden");
+              audioControlsContainer.classList.add("hidden");
+              titleSuggestionBtn.classList.add("hidden");
+              chatArea.classList.add("hidden");
+            } else {
+              currentFileType = "docx";
+              qualityCheckBtn.classList.remove("hidden");
+              customPromptContainer.classList.remove("hidden");
+              audioControlsContainer.classList.remove("hidden");
+              titleSuggestionBtn.classList.remove("hidden");
+              chatArea.classList.add("hidden"); // Initially hidden
+            }
+          } else {
+            resetFileSelection();
+          }
+          updateTranslateButtonState();
+        });
+
+        customPromptToggle.addEventListener("change", () => {
+          customPrompt.classList.toggle("hidden", !customPromptToggle.checked);
+        });
+
+        clearFileBtn.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          resetFileSelection();
+        });
+
+        speedControl.addEventListener("input", () => {
+          speedValue.textContent = `${parseFloat(speedControl.value).toFixed(
+            1
+          )}x`;
+        });
+
+        translateBtn.addEventListener("click", handleTranslation);
+        copyBtn.addEventListener("click", copyTranslatedText);
+        listenBtn.addEventListener("click", toggleListen);
+        createAudioBtn.addEventListener("click", handleCreateAudio);
+        qualityCheckBtn.addEventListener("click", handleQualityCheck);
+        regenerateBtn.addEventListener("click", handleRegeneration);
+        titleSuggestionBtn.addEventListener("click", handleTitleSuggestion);
+        suggestAgainBtn.addEventListener("click", handleTitleSuggestion);
+        storyHistoryTab.addEventListener("click", () =>
+          handleTabClick("story")
+        );
+        subtitleHistoryTab.addEventListener("click", () =>
+          handleTabClick("subtitle")
+        );
+        chatSendBtn.addEventListener("click", handleChatSubmit);
+        chatInput.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") {
+            handleChatSubmit();
+          }
+        });
+        chatExpandBtn.addEventListener("click", toggleChatFullscreen);
+        chatCollapseBtn.addEventListener("click", toggleChatFullscreen);
+
+        function showStatus(message, showSpinner = false) {
+          let spinner = showSpinner ? '<div class="spinner"></div>' : "";
+          statusDiv.innerHTML = `${spinner}<span>${message}</span>`;
+        }
+
+        async function executeWithFailover(apiFunction) {
+          saveApiKeysToCache(); // Save keys before using them
+          const keys = geminiApiKeyInput.value
+            .trim()
+            .split("\n")
+            .filter((k) => k.trim() !== "");
+          if (keys.length === 0)
+            throw new Error("Vui lòng nhập ít nhất một Gemini API Key.");
+
+          let lastError = null;
+          for (let i = 0; i < keys.length; i++) {
+            const key = keys[i];
+            try {
+              return await apiFunction(key, i + 1, keys.length);
+            } catch (error) {
+              console.error(`API key ${i + 1} thất bại:`, error);
+              lastError = error;
+            }
+          }
+          if (
+            lastError &&
+            (lastError.message.includes("API key not valid") ||
+              lastError.message.includes("permission to access") ||
+              lastError.message.includes("API key is invalid"))
+          ) {
+            throw new Error(
+              `API key không hợp lệ hoặc đã hết hạn. Vui lòng kiểm tra lại các key bạn đã nhập hoặc tạo một key mới.`
+            );
+          } else if (lastError) {
+            throw new Error(
+              `Tất cả ${keys.length} API key đều thất bại. Lỗi cuối cùng: ${lastError.message}`
+            );
+          } else {
+            throw new Error(`Đã xảy ra lỗi không xác định.`);
+          }
+        }
+
+        // --- SRT Parsing Functions ---
+        function parseSrt(data) {
+          const blocks = data.trim().replace(/\r/g, "").split("\n\n");
+          return blocks
+            .map((block) => {
+              const lines = block.split("\n");
+              if (lines.length < 2) return null;
+              const index = lines[0];
+              const timestamp = lines[1];
+              const text = lines.slice(2).join("\n");
+              return { index, timestamp, text };
+            })
+            .filter(Boolean);
+        }
+
+        function reconstructSrt(originalSubs, translatedTexts) {
+          return originalSubs
+            .map((sub, i) => {
+              const translatedText = translatedTexts[i] || sub.text;
+              return `${sub.index}\n${sub.timestamp}\n${translatedText.trim()}`;
+            })
+            .join("\n\n");
+        }
+
+        // --- History Functions ---
+        function saveToHistory(type, fileName, content, original) {
+          const key = `history_${type}`;
+          let history = JSON.parse(sessionStorage.getItem(key)) || [];
+          const newEntry = {
+            name: fileName,
+            content: content,
+            original: original,
+            date: new Date().toLocaleString("vi-VN"),
+          };
+          history.unshift(newEntry);
+          history = history.slice(0, 5); // Keep last 5 items
+          sessionStorage.setItem(key, JSON.stringify(history));
+          renderHistory();
+        }
+
+        function renderHistory() {
+          const storyHistory =
+            JSON.parse(sessionStorage.getItem("history_docx")) || [];
+          const subtitleHistory =
+            JSON.parse(sessionStorage.getItem("history_srt")) || [];
+
+          if (storyHistory.length === 0 && subtitleHistory.length === 0) {
+            historyArea.classList.add("hidden");
+            return;
+          }
+          historyArea.classList.remove("hidden");
+
+          const renderList = (list, element, type) => {
+            element.innerHTML = "";
+            if (list.length === 0) {
+              element.innerHTML = `<p class="text-sm text-slate-500 px-2">Chưa có lịch sử.</p>`;
+              return;
+            }
+            list.forEach((item, index) => {
+              const div = document.createElement("div");
+              div.className =
+                "history-item p-2 rounded-md flex justify-between items-center";
+              div.innerHTML = `
+                            <span class="text-sm font-medium text-slate-300 truncate">${item.name}</span>
+                            <span class="text-xs text-slate-400 whitespace-nowrap ml-4">${item.date}</span>
+                        `;
+              div.addEventListener("click", () => {
+                translatedContent = item.content;
+                originalContent = item.original;
+                translatedOutput.textContent = translatedContent;
+                resultArea.classList.remove("hidden");
+                qualityCheckResultArea.classList.add("hidden");
+                titleSuggestionArea.classList.add("hidden");
+                if (type === "docx") {
+                  chatArea.classList.remove("hidden");
+                  chatHistory.innerHTML = "";
+                } else {
+                  chatArea.classList.add("hidden");
+                }
+              });
+              element.appendChild(div);
+            });
+          };
+
+          renderList(storyHistory, storyHistoryList, "docx");
+          renderList(subtitleHistory, subtitleHistoryList, "srt");
+        }
+
+        function handleTabClick(tab) {
+          if (tab === "story") {
+            storyHistoryTab.classList.add("tab-active");
+            subtitleHistoryTab.classList.remove("tab-active");
+            storyHistoryList.classList.remove("hidden");
+            subtitleHistoryList.classList.add("hidden");
+          } else {
+            subtitleHistoryTab.classList.add("tab-active");
+            storyHistoryTab.classList.remove("tab-active");
+            subtitleHistoryList.classList.remove("hidden");
+            storyHistoryList.classList.add("hidden");
+          }
+        }
+
+        async function handleTranslation() {
+          toggleActionButtons(true);
+          resultArea.classList.add("hidden");
+          qualityCheckResultArea.classList.add("hidden");
+          titleSuggestionArea.classList.add("hidden");
+          translatedOutput.textContent = "";
+          translatedContent = "";
+          showStatus("Đang đọc file...", true);
+
+          const file = docFileInput.files[0];
+          if (!file) {
+            showStatus("Vui lòng chọn file.", false);
+            toggleActionButtons(false);
+            updateTranslateButtonState();
+            return;
+          }
+          try {
+            let textToTranslate, promptTemplate;
+
+            if (currentFileType === "srt") {
+              originalContent = await file.text();
+              if (!originalContent.trim())
+                throw new Error("File .srt không có nội dung.");
+              parsedSrt = parseSrt(originalContent);
+              textToTranslate = parsedSrt
+                .map((sub) => sub.text)
+                .join("\n[<->]\n");
+              promptTemplate = srtPromptTemplate;
+            } else {
+              // docx
+              const arrayBuffer = await file.arrayBuffer();
+              const result = await mammoth.extractRawText({ arrayBuffer });
+              originalContent = result.value;
+              if (!originalContent.trim())
+                throw new Error("File .docx không có nội dung.");
+              textToTranslate = originalContent;
+              promptTemplate = storyPromptTemplate;
+            }
+
+            const translationFunction = async (
+              apiKey,
+              currentKeyIndex,
+              totalKeys
+            ) => {
+              showStatus(
+                `Đang dịch (sử dụng key ${currentKeyIndex}/${totalKeys})...`,
+                true
+              );
+              const targetLanguage = languageSelect.value;
+              const model = "gemini-2.5-flash-preview-05-20";
+
+              let basePrompt = promptTemplate
+                .replace("{text}", textToTranslate)
+                .replace(/{language}/g, targetLanguage);
+              const userPrompt = customPrompt.value.trim();
+              let finalPrompt = basePrompt;
+
+              if (
+                currentFileType === "docx" &&
+                customPromptToggle.checked &&
+                userPrompt
+              ) {
+                const parts = basePrompt.split(
+                  "\n\nHere is the text to translate:"
+                );
+                finalPrompt = `${parts[0]}\n\nFollow these additional instructions from the user: ${userPrompt}\n\nHere is the text to translate:${parts[1]}`;
+              }
+
+              const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+              const response = await fetch(apiUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  contents: [{ parts: [{ text: finalPrompt }] }],
+                }),
+              });
+
+              if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(
+                  `Lỗi API dịch: ${
+                    errorData.error?.message || response.statusText
+                  }`
+                );
+              }
+
+              const data = await response.json();
+              if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
+                throw new Error("Phản hồi từ API dịch không hợp lệ.");
+              }
+              return data.candidates[0].content.parts[0].text;
+            };
+
+            const rawTranslatedText = await executeWithFailover(
+              translationFunction
+            );
+
+            if (currentFileType === "srt") {
+              const translatedLines = rawTranslatedText
+                .split("[<->]")
+                .map((line) => line.trim());
+              translatedContent = reconstructSrt(parsedSrt, translatedLines);
+            } else {
+              translatedContent = rawTranslatedText;
+            }
+
+            showStatus("Dịch hoàn tất!", false);
+            await showBrowserNotification(
+              "Dịch hoàn tất!",
+              "Bản dịch của bạn đã sẵn sàng để xem lại."
+            );
+            translatedOutput.textContent = translatedContent;
+            resultArea.classList.remove("hidden");
+            if (currentFileType === "docx") {
+              chatArea.classList.remove("hidden");
+              chatHistory.innerHTML = "";
+            }
+            isFirstTranslationDone = true;
+            saveToHistory(
+              currentFileType,
+              file.name,
+              translatedContent,
+              originalContent
+            );
+          } catch (error) {
+            console.error("Lỗi trong quá trình dịch:", error);
+            showStatus(`Đã xảy ra lỗi: ${error.message}`, false);
+          } finally {
+            toggleActionButtons(false);
+            updateTranslateButtonState();
+          }
+        }
+
+        async function handleQualityCheck() {
+          if (!translatedContent) {
+            showStatus("Không có nội dung để kiểm tra.", false);
+            return;
+          }
+
+          toggleActionButtons(true);
+          qualityCheckOutput.textContent = "";
+          showStatus("Đang phân tích chất lượng bản dịch...", true);
+
+          try {
+            const qualityCheckFunction = async (
+              apiKey,
+              currentKeyIndex,
+              totalKeys
+            ) => {
+              showStatus(
+                `Đang phân tích (sử dụng key ${currentKeyIndex}/${totalKeys})...`,
+                true
+              );
+              const targetLanguage = languageSelect.value;
+              const model = "gemini-2.5-flash-preview-05-20";
+              const prompt = qualityCheckPromptTemplate
+                .replace(/{language}/g, targetLanguage)
+                .replace("{original_text}", originalContent)
+                .replace("{translated_text}", translatedContent);
+
+              const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+              const response = await fetch(apiUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  contents: [{ parts: [{ text: prompt }] }],
+                }),
+              });
+
+              if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(
+                  `Lỗi API phân tích: ${
+                    errorData.error?.message || response.statusText
+                  }`
+                );
+              }
+
+              const data = await response.json();
+              if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
+                throw new Error("Phản hồi từ API phân tích không hợp lệ.");
+              }
+              return data.candidates[0].content.parts[0].text;
+            };
+
+            analysisContent = await executeWithFailover(qualityCheckFunction);
+            qualityCheckOutput.textContent = analysisContent;
+            qualityCheckResultArea.classList.remove("hidden");
+            titleSuggestionArea.classList.add("hidden");
+            showStatus("Phân tích hoàn tất!", false);
+            await showBrowserNotification(
+              "Phân tích hoàn tất!",
+              "Kết quả phân tích chất lượng đã có."
+            );
+          } catch (error) {
+            console.error("Lỗi khi phân tích chất lượng:", error);
+            showStatus(`Lỗi phân tích: ${error.message}`, false);
+          } finally {
+            toggleActionButtons(false);
+          }
+        }
+
+        async function handleTitleSuggestion() {
+          if (!translatedContent) {
+            showStatus("Không có nội dung để gợi ý.", false);
+            return;
+          }
+
+          toggleActionButtons(true);
+          titleSuggestionOutput.textContent = "";
+          showStatus("Đang nghĩ tên truyện hay...", true);
+          suggestAgainBtn.disabled = true;
+
+          try {
+            const titleFunction = async (
+              apiKey,
+              currentKeyIndex,
+              totalKeys
+            ) => {
+              showStatus(
+                `Đang gợi ý (sử dụng key ${currentKeyIndex}/${totalKeys})...`,
+                true
+              );
+              const targetLanguage = languageSelect.value;
+              const model = "gemini-2.5-flash-preview-05-20";
+              const prompt = titleSuggestionPromptTemplate
+                .replace("{language}", targetLanguage)
+                .replace("{story_text}", translatedContent.substring(0, 8000)); // Limit context for performance
+
+              const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+              const response = await fetch(apiUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  contents: [{ parts: [{ text: prompt }] }],
+                }),
+              });
+
+              if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(
+                  `Lỗi API gợi ý: ${
+                    errorData.error?.message || response.statusText
+                  }`
+                );
+              }
+
+              const data = await response.json();
+              if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
+                throw new Error("Phản hồi từ API gợi ý không hợp lệ.");
+              }
+              return data.candidates[0].content.parts[0].text;
+            };
+
+            const titles = await executeWithFailover(titleFunction);
+            titleSuggestionOutput.textContent = titles;
+            titleSuggestionArea.classList.remove("hidden");
+            qualityCheckResultArea.classList.add("hidden");
+            showStatus("Đã có gợi ý tên truyện!", false);
+            await showBrowserNotification(
+              "Đã có gợi ý!",
+              "Danh sách tên truyện đã được tạo."
+            );
+          } catch (error) {
+            console.error("Lỗi khi gợi ý tên truyện:", error);
+            showStatus(`Lỗi gợi ý: ${error.message}`, false);
+          } finally {
+            toggleActionButtons(false);
+            suggestAgainBtn.disabled = false;
+          }
+        }
+
+        async function handleRegeneration() {
+          if (!originalContent || !translatedContent || !analysisContent) {
+            showStatus("Thiếu dữ liệu để dịch lại.", false);
+            return;
+          }
+          toggleActionButtons(true);
+          showStatus("Đang áp dụng phân tích và dịch lại...", true);
+
+          try {
+            const regenerationFunction = async (
+              apiKey,
+              currentKeyIndex,
+              totalKeys
+            ) => {
+              showStatus(
+                `Đang dịch lại (sử dụng key ${currentKeyIndex}/${totalKeys})...`,
+                true
+              );
+              const targetLanguage = languageSelect.value;
+              const model = "gemini-2.5-flash-preview-05-20";
+
+              const prompt = regenerationPromptTemplate
+                .replace("{original_text}", originalContent)
+                .replace(/{language}/g, targetLanguage)
+                .replace("{first_translation}", translatedContent)
+                .replace("{editor_feedback}", analysisContent);
+
+              const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+              const response = await fetch(apiUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  contents: [{ parts: [{ text: prompt }] }],
+                }),
+              });
+
+              if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(
+                  `Lỗi API dịch lại: ${
+                    errorData.error?.message || response.statusText
+                  }`
+                );
+              }
+
+              const data = await response.json();
+              if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
+                throw new Error("Phản hồi từ API dịch lại không hợp lệ.");
+              }
+              return data.candidates[0].content.parts[0].text;
+            };
+
+            const newTranslation = await executeWithFailover(
+              regenerationFunction
+            );
+            translatedContent = newTranslation;
+            translatedOutput.textContent = translatedContent;
+            showStatus("Dịch lại hoàn tất!", false);
+            await showBrowserNotification(
+              "Dịch lại hoàn tất!",
+              "Bản dịch đã được cập nhật dựa trên phân tích."
+            );
+            qualityCheckResultArea.classList.add("hidden");
+            saveToHistory(
+              currentFileType,
+              docFileInput.files[0].name,
+              translatedContent,
+              originalContent
+            );
+          } catch (error) {
+            console.error("Lỗi khi dịch lại:", error);
+            showStatus(`Lỗi dịch lại: ${error.message}`, false);
+          } finally {
+            toggleActionButtons(false);
+          }
+        }
+
+        // --- Chatbot Functions ---
+
+        function simpleMarkdownToHtml(text) {
+          let html = text.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+          const lines = html.split("\n");
+          let inList = false;
+          const processedLines = [];
+
+          for (const line of lines) {
+            let processedLine = line;
+            if (
+              processedLine.trim().startsWith("- ") ||
+              processedLine.trim().startsWith("* ")
+            ) {
+              if (!inList) {
+                inList = true;
+                processedLines.push('<ul class="list-disc ml-5 space-y-1">');
+              }
+              processedLines.push(
+                `<li>${processedLine.trim().substring(2)}</li>`
+              );
+            } else {
+              if (inList) {
+                inList = false;
+                processedLines.push("</ul>");
+              }
+              if (processedLine.trim()) {
+                processedLines.push(
+                  `<p class="mt-2 first:mt-0">${processedLine}</p>`
+                );
+              }
+            }
+          }
+
+          if (inList) {
+            processedLines.push("</ul>");
+          }
+
+          return processedLines
+            .join("")
+            .replace(/<br>/g, "")
+            .replace(/<\/ul><p/g, "</ul><p");
+        }
+
+        function toggleChatFullscreen() {
+          chatArea.classList.toggle("chat-fullscreen");
+          chatExpandBtn.classList.toggle("hidden");
+          chatCollapseBtn.classList.toggle("hidden");
+        }
+
+        async function handleChatSubmit() {
+          const userQuestion = chatInput.value.trim();
+          if (!userQuestion || !translatedContent) return;
+
+          chatSendBtn.disabled = true;
+          chatInput.disabled = true;
+          appendChatMessage(userQuestion, "user");
+          chatInput.value = "";
+          const thinkingBubbleId = `ai-bubble-${Date.now()}`;
+          appendChatMessage(
+            "Đang phản hồi...",
+            "ai-thinking",
+            thinkingBubbleId
+          );
+
+          try {
+            const chatFunction = async (apiKey, currentKeyIndex, totalKeys) => {
+              showStatus(
+                `Đang hỏi AI (sử dụng key ${currentKeyIndex}/${totalKeys})...`,
+                true
+              );
+              const targetLanguage = languageSelect.value;
+              const model = "gemini-2.5-flash-preview-05-20";
+              const prompt = chatPromptTemplate
+                .replace("{language}", targetLanguage)
+                .replace("{story_text}", translatedContent)
+                .replace("{user_question}", userQuestion);
+
+              const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+              const response = await fetch(apiUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  contents: [{ parts: [{ text: prompt }] }],
+                }),
+              });
+
+              if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(
+                  `Lỗi API Chat: ${
+                    errorData.error?.message || response.statusText
+                  }`
+                );
+              }
+
+              const data = await response.json();
+              if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
+                throw new Error("Phản hồi từ API Chat không hợp lệ.");
+              }
+              return data.candidates[0].content.parts[0].text;
+            };
+
+            const aiResponse = await executeWithFailover(chatFunction);
+            const finalBubble = document.getElementById(thinkingBubbleId);
+            if (finalBubble) {
+              const bubbleContent = finalBubble.querySelector("div.p-3");
+              bubbleContent.innerHTML = simpleMarkdownToHtml(aiResponse);
+              setTimeout(() => {
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+              }, 0);
+            }
+            showStatus("AI đã trả lời.", false);
+          } catch (error) {
+            console.error("Lỗi khi chat:", error);
+            const finalBubble = document.getElementById(thinkingBubbleId);
+            if (finalBubble) {
+              const bubbleContent = finalBubble.querySelector("div.p-3");
+              bubbleContent.innerHTML = `Lỗi: ${error.message}`;
+              bubbleContent.classList.remove("bg-slate-700");
+              bubbleContent.classList.add("bg-red-800", "text-red-100");
+              setTimeout(() => {
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+              }, 0);
+            }
+            showStatus(`Lỗi chat: ${error.message}`, false);
+          } finally {
+            chatSendBtn.disabled = false;
+            chatInput.disabled = false;
+            chatInput.focus();
+          }
+        }
+
+        function appendChatMessage(message, sender, id = null) {
+          const messageDiv = document.createElement("div");
+          if (id) {
+            messageDiv.id = id;
+          }
+
+          let messageClass = "";
+          let senderName = "";
+          let senderIcon = "";
+
+          if (sender === "user") {
+            messageClass =
+              "bg-blue-600 text-white rounded-lg rounded-br-none self-end";
+            senderName = "Bạn";
+            senderIcon = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" /></svg>`;
+          } else {
+            // ai, ai-thinking, ai-error
+            messageClass =
+              "bg-slate-700 text-slate-200 rounded-lg rounded-bl-none self-start";
+            senderName = "AI Assistant";
+            senderIcon = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>`;
+            if (sender === "ai-error") {
+              messageClass =
+                "bg-red-800 text-red-100 rounded-lg rounded-bl-none self-start";
+            }
+          }
+
+          messageDiv.className = `flex flex-col w-full ${
+            sender === "user" ? "items-end" : "items-start"
+          }`;
+
+          const senderContainer = document.createElement("div");
+          senderContainer.className =
+            "flex items-center space-x-2 text-xs text-slate-400 mb-1 px-1";
+          senderContainer.innerHTML = `${senderIcon}<span>${senderName}</span>`;
+
+          const messageBubble = document.createElement("div");
+          messageBubble.className = `p-3 max-w-lg ${messageClass}`;
+
+          if (sender === "ai-thinking") {
+            messageBubble.classList.add("items-center", "space-x-2");
+            messageBubble.innerHTML = `<span>${message}</span>`;
+          } else {
+            messageBubble.innerHTML = simpleMarkdownToHtml(message);
+          }
+
+          messageDiv.appendChild(senderContainer);
+          messageDiv.appendChild(messageBubble);
+
+          chatHistory.appendChild(messageDiv);
+
+          setTimeout(() => {
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+          }, 0);
+        }
+
+        function updateListenButtonUI(state, text) {
+          listenBtnText.textContent = text;
+          listenIcon.innerHTML = "";
+          if (state === "playing") {
+            listenBtn.classList.add("bg-red-600", "hover:bg-red-700");
+            listenBtn.classList.remove("bg-purple-600", "hover:bg-purple-700");
+            listenIcon.innerHTML = `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM8 7a1 1 0 0 0-1 1v4a1 1 0 1 0 2 0V8a1 1 0 0 0-1-1zm4 0a1 1 0 0 0-1 1v4a1 1 0 1 0 2 0V8a1 1 0 0 0-1-1z" clip-rule="evenodd"></path></svg>`;
+          } else {
+            listenBtn.classList.remove("bg-red-600", "hover:bg-red-700");
+            listenBtn.classList.add("bg-purple-600", "hover:bg-purple-700");
+            listenIcon.innerHTML = `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M9.383 3.076A1 1 0 0 1 10 4v12a1 1 0 0 1-1.707.707L4.586 13H2a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1h2.586l3.707-3.707a1 1 0 0 1 1.09-.217zM12.293 7.293a1 1 0 0 1 1.414 0L15 8.586l1.293-1.293a1 1 0 1 1 1.414 1.414L16.414 10l1.293 1.293a1 1 0 0 1-1.414 1.414L15 11.414l-1.293 1.293a1 1 0 0 1-1.414-1.414L13.586 10l-1.293-1.293a1 1 0 0 1 0-1.414z"></path></svg>`;
+          }
+        }
+
+        function stopAudio() {
+          if (synth.speaking) synth.cancel();
+        }
+
+        function toggleListen() {
+          if (isPlaying) {
+            stopAudio();
+            return;
+          }
+          if (!translatedContent || !("speechSynthesis" in window)) return;
+          stopAudio();
+          currentUtterance = new SpeechSynthesisUtterance(translatedContent);
+          currentUtterance.onstart = () => {
+            isPlaying = true;
+            updateListenButtonUI("playing", "Dừng");
+          };
+          currentUtterance.onend = () => {
+            isPlaying = false;
+            currentUtterance = null;
+            updateListenButtonUI("idle", "Nghe");
+          };
+          currentUtterance.onerror = (event) => {
+            console.error("Lỗi SpeechSynthesis:", event);
+            showStatus(`Lỗi đọc: ${event.error}`, false);
+            isPlaying = false;
+            currentUtterance = null;
+            updateListenButtonUI("idle", "Nghe");
+          };
+          const selectedVoice = voices.find(
+            (voice) => voice.name === voiceSelect.value
+          );
+          if (selectedVoice) currentUtterance.voice = selectedVoice;
+          currentUtterance.rate = parseFloat(speedControl.value);
+          synth.speak(currentUtterance);
+        }
+
+        async function callGeminiTTS(apiKey, text, voiceName) {
+          const ttsApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
+          const payload = {
+            contents: [{ parts: [{ text }] }],
+            generationConfig: {
+              responseModalities: ["AUDIO"],
+              speechConfig: {
+                voiceConfig: { prebuiltVoiceConfig: { voiceName } },
+              },
+            },
+            model: "gemini-2.5-flash-preview-tts",
+          };
+          const response = await fetch(ttsApiUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(
+              `Lỗi API Gemini TTS: ${
+                errorData.error?.message || response.statusText
+              }`
+            );
+          }
+          return await response.json();
+        }
+
+        async function handleCreateAudio() {
+          if (!translatedContent) {
+            showStatus("Không có nội dung để tạo Audio.", false);
+            return;
+          }
+          toggleActionButtons(true);
+          audioBtnIconContainer.innerHTML =
+            '<div class="spinner spinner-sm"></div>';
+
+          try {
+            const selectedVoice = geminiVoiceSelect.value;
+            const createAudioFunction = (
+              apiKey,
+              currentKeyIndex,
+              totalKeys
+            ) => {
+              showStatus(
+                `Đang tạo audio (sử dụng key ${currentKeyIndex}/${totalKeys})...`,
+                true
+              );
+              return callGeminiTTS(apiKey, translatedContent, selectedVoice);
+            };
+            const result = await executeWithFailover(createAudioFunction);
+            const part = result?.candidates?.[0]?.content?.parts?.[0];
+            const base64Audio = part?.inlineData?.data;
+            const mimeType = part?.inlineData?.mimeType;
+
+            if (!base64Audio || !mimeType || !mimeType.startsWith("audio/L16"))
+              throw new Error("Không nhận được dữ liệu âm thanh hợp lệ.");
+
+            const rateMatch = mimeType.match(/rate=(\d+)/);
+            const sampleRate = rateMatch ? parseInt(rateMatch[1], 10) : 24000;
+            const pcmDataBuffer = base64ToArrayBuffer(base64Audio);
+            const wavBlob = pcmToWav(pcmDataBuffer, sampleRate);
+
+            audioPlayerContainer.innerHTML = "";
+            const audioUrl = URL.createObjectURL(wavBlob);
+            const audioPlayer = document.createElement("audio");
+            audioPlayer.controls = true;
+            audioPlayer.src = audioUrl;
+            audioPlayer.classList.add("w-full");
+            audioPlayerContainer.appendChild(audioPlayer);
+            showStatus("Tạo file audio thành công!", false);
+            await showBrowserNotification(
+              "Tạo Audio thành công!",
+              "File âm thanh của bạn đã sẵn sàng để nghe."
+            );
+          } catch (error) {
+            console.error("Lỗi khi tạo Audio:", error);
+            let errorMessage = `Lỗi tạo Audio: ${error.message}`;
+            if (
+              error.message.includes("Quota exceeded") &&
+              error.message.includes("Please retry in")
+            ) {
+              const retryMatch = error.message.match(
+                /Please retry in ([\d.]+)s/
+              );
+              if (retryMatch && retryMatch[1]) {
+                const waitSeconds = Math.ceil(parseFloat(retryMatch[1]));
+                errorMessage = `Bạn đã dùng hết hạn mức miễn phí. Vui lòng thử lại sau ${waitSeconds} giây.`;
+                setTimeout(() => {
+                  toggleActionButtons(false);
+                  updateTranslateButtonState();
+                  showStatus("Sẵn sàng để thử lại.", false);
+                }, waitSeconds * 1000);
+                showStatus(errorMessage, false);
+                return; // Dừng để không chạy finally ngay lập tức
+              }
+            }
+            showStatus(errorMessage, false);
+          } finally {
+            if (!statusDiv.textContent.includes("Vui lòng thử lại sau")) {
+              toggleActionButtons(false);
+              audioBtnIconContainer.innerHTML = `<svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M7 3a1 1 0 0 0-1 1v12a1 1 0 1 0 2 0V4a1 1 0 0 0-1-1zM3 8a1 1 0 0 0-1 1v2a1 1 0 1 0 2 0V9a1 1 0 0 0-1-1zm14 0a1 1 0 0 0-1 1v2a1 1 0 1 0 2 0V9a1 1 0 0 0-1-1zM11 6a1 1 0 0 0-1 1v6a1 1 0 1 0 2 0V7a1 1 0 0 0-1-1z"></path></svg>`;
+            }
+          }
+        }
+
+        function resetFileSelection() {
+          docFileInput.value = "";
+          fileNameSpan.textContent = "Kéo và thả hoặc nhấn để chọn file";
+          fileNameSpan.classList.add("text-slate-500");
+          fileNameSpan.classList.remove("text-slate-700", "font-medium");
+          uploadIcon.classList.remove("hidden");
+          clearFileBtn.classList.add("hidden");
+          stopAudio();
+          resultArea.classList.add("hidden");
+          qualityCheckResultArea.classList.add("hidden");
+          titleSuggestionArea.classList.add("hidden");
+          translatedOutput.textContent = "";
+          statusDiv.innerHTML = "";
+          audioPlayerContainer.innerHTML = "";
+          originalContent = "";
+          translatedContent = "";
+          analysisContent = "";
+          isFirstTranslationDone = false;
+          currentFileType = null;
+          updateTranslateButtonState();
+        }
+
+        function copyTranslatedText() {
+          if (!translatedContent) return;
+          const textArea = document.createElement("textarea");
+          textArea.value = translatedContent;
+          textArea.style.position = "fixed";
+          textArea.style.left = "-9999px";
+          document.body.appendChild(textArea);
+          textArea.focus();
+          textArea.select();
+          try {
+            document.execCommand("copy");
+            const originalText = copyBtn.textContent;
+            copyBtn.textContent = "Đã sao chép!";
+            copyBtn.classList.add("bg-indigo-600");
+            copyBtn.classList.remove("bg-slate-600");
+            setTimeout(() => {
+              copyBtn.textContent = originalText;
+              copyBtn.classList.remove("bg-indigo-600");
+              copyBtn.classList.add("bg-slate-600");
+            }, 2000);
+          } catch (err) {
+            console.error("Fallback: Oops, unable to copy", err);
+            showStatus("Lỗi: không thể sao chép.", false);
+          }
+          document.body.removeChild(textArea);
+        }
+
+        function base64ToArrayBuffer(base64) {
+          const binaryString = window.atob(base64);
+          const len = binaryString.length;
+          const bytes = new Uint8Array(len);
+          for (let i = 0; i < len; i++) bytes[i] = binaryString.charCodeAt(i);
+          return bytes.buffer;
+        }
+
+        function writeString(view, offset, string) {
+          for (let i = 0; i < string.length; i++)
+            view.setUint8(offset + i, string.charCodeAt(i));
+        }
+
+        function pcmToWav(pcmDataBuffer, sampleRate) {
+          const numChannels = 1,
+            bitsPerSample = 16,
+            dataSize = pcmDataBuffer.byteLength;
+          const buffer = new ArrayBuffer(44 + dataSize);
+          const view = new DataView(buffer);
+          writeString(view, 0, "RIFF");
+          view.setUint32(4, 36 + dataSize, true);
+          writeString(view, 8, "WAVE");
+          writeString(view, 12, "fmt ");
+          view.setUint32(16, 16, true);
+          view.setUint16(20, 1, true);
+          view.setUint16(22, numChannels, true);
+          view.setUint32(24, sampleRate, true);
+          view.setUint32(
+            28,
+            sampleRate * numChannels * (bitsPerSample / 8),
+            true
+          );
+          view.setUint16(32, numChannels * (bitsPerSample / 8), true);
+          view.setUint16(34, bitsPerSample, true);
+          writeString(view, 36, "data");
+          view.setUint32(40, dataSize, true);
+          new Uint8Array(buffer, 44).set(new Uint8Array(pcmDataBuffer));
+          return new Blob([view], { type: "audio/wav" });
+        }
+
+        initializeApp();
+        updateTranslateButtonState();
+      };
+    </script>
+  </body>
+</html>

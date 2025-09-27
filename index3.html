@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Delta Force - Hỗ Trợ Build Súng</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: #111827;
+        color: #e5e7eb;
+      }
+      .tab-button.active {
+        background-color: #3b82f6;
+        color: white;
+      }
+      .tab-content {
+        display: none;
+      }
+      .tab-content.active {
+        display: block;
+      }
+      .form-input,
+      .form-textarea,
+      .form-select {
+        background-color: #374151;
+        border: 1px solid #4b5563;
+        color: #e5e7eb;
+        border-radius: 0.375rem;
+      }
+      .form-input:focus,
+      .form-textarea:focus,
+      .form-select:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 2px #1e40af;
+      }
+      .stat-bar {
+        background-color: #4b5563;
+        border-radius: 0.375rem;
+        overflow: hidden;
+        height: 1.25rem;
+      }
+      .stat-bar-fill {
+        background-color: #3b82f6;
+        height: 100%;
+        transition: width 0.3s ease-in-out;
+        text-align: right;
+        padding-right: 0.5rem;
+        color: white;
+        font-weight: 500;
+        font-size: 0.75rem;
+        line-height: 1.25rem;
+      }
+      .modal-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 50;
+      }
+      .modal-content {
+        background-color: #1f2937;
+        padding: 1.5rem;
+        border-radius: 0.5rem;
+        width: 90%;
+        max-width: 500px;
+      }
+    </style>
+  </head>
+  <body class="p-4 md:p-8">
+    <div class="max-w-7xl mx-auto">
+      <header class="text-center mb-8">
+        <h1 class="text-4xl font-bold text-white">
+          Delta Force Gunsmith Assistant
+        </h1>
+        <p class="text-lg text-gray-400 mt-2">
+          Xây dựng, phân tích và quản lý vũ khí của bạn.
+        </p>
+      </header>
+
+      <!-- Notification Area -->
+      <div
+        id="notification"
+        class="hidden fixed top-5 right-5 bg-blue-500 text-white py-2 px-4 rounded-lg shadow-lg transition-opacity duration-300"
+      ></div>
+
+      <!-- Tabs -->
+      <div class="mb-6 border-b border-gray-700">
+        <nav class="flex space-x-4" aria-label="Tabs">
+          <button
+            class="tab-button active text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
+            data-tab="armory"
+          >
+            Kho Vũ Khí
+          </button>
+          <button
+            class="tab-button text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
+            data-tab="add-gun"
+          >
+            Thêm/Sửa Súng
+          </button>
+          <button
+            class="tab-button text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
+            data-tab="ai-analyst"
+          >
+            Phân Tích AI
+          </button>
+          <button
+            class="tab-button text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
+            data-tab="settings"
+          >
+            Cài Đặt & Dữ Liệu
+          </button>
+        </nav>
+      </div>
+
+      <!-- Tab Content -->
+      <main>
+        <!-- Armory Tab -->
+        <div
+          id="armory"
+          class="tab-content active grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
+          <!-- Gun cards will be injected here -->
+          <p
+            id="no-guns-message"
+            class="text-gray-400 col-span-full text-center"
+          >
+            Chưa có vũ khí nào. Hãy thêm súng mới tại tab "Thêm/Sửa Súng".
+          </p>
+        </div>
+
+        <!-- Add/Edit Gun Tab -->
+        <div id="add-gun" class="tab-content">
+          <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+            <h2 id="form-title" class="text-2xl font-bold mb-4">
+              Thêm Súng Mới
+            </h2>
+            <form id="gun-form" class="space-y-6">
+              <input type="hidden" id="gun-id" />
+
+              <!-- Basic Info -->
+              <div>
+                <label
+                  for="gun-name"
+                  class="block text-sm font-medium text-gray-300"
+                  >Tên Súng</label
+                >
+                <div class="mt-1 flex rounded-md shadow-sm">
+                  <input
+                    type="text"
+                    name="gun-name"
+                    id="gun-name"
+                    class="form-input flex-1 block w-full rounded-none rounded-l-md"
+                    placeholder="Ví dụ: SCAR-H"
+                  />
+                  <button
+                    type="button"
+                    id="ai-search-btn"
+                    class="relative inline-flex items-center space-x-2 px-4 py-2 border border-gray-600 text-sm font-medium rounded-r-md text-gray-300 bg-gray-600 hover:bg-gray-700"
+                  >
+                    <svg
+                      class="h-5 w-5"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fill-rule="evenodd"
+                        d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                        clip-rule="evenodd"
+                      />
+                    </svg>
+                    <span>Tìm kiếm AI</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label
+                    for="rate-of-fire"
+                    class="block text-sm font-medium text-gray-300"
+                    >Tốc Độ Bắn (RPM)</label
+                  >
+                  <input
+                    type="number"
+                    id="rate-of-fire"
+                    class="form-input mt-1 block w-full"
+                  />
+                </div>
+                <div>
+                  <label
+                    for="magazine-size"
+                    class="block text-sm font-medium text-gray-300"
+                    >Băng Đạn (viên)</label
+                  >
+                  <input
+                    type="number"
+                    id="magazine-size"
+                    class="form-input mt-1 block w-full"
+                  />
+                </div>
+                <div>
+                  <label
+                    for="muzzle-velocity"
+                    class="block text-sm font-medium text-gray-300"
+                    >Sơ Tốc Đầu Nòng (m/s)</label
+                  >
+                  <input
+                    type="number"
+                    id="muzzle-velocity"
+                    class="form-input mt-1 block w-full"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label
+                  for="fire-modes"
+                  class="block text-sm font-medium text-gray-300"
+                  >Chế Độ Bắn (cách nhau bởi dấu phẩy)</label
+                >
+                <input
+                  type="text"
+                  id="fire-modes"
+                  class="form-input mt-1 block w-full"
+                  placeholder="Đơn, Tự động, Loạt"
+                />
+              </div>
+              <div>
+                <label
+                  for="gun-image"
+                  class="block text-sm font-medium text-gray-300"
+                  >Link Ảnh Súng (tùy chọn)</label
+                >
+                <input
+                  type="text"
+                  id="gun-image"
+                  class="form-input mt-1 block w-full"
+                  placeholder="https://..."
+                />
+              </div>
+
+              <!-- Base Stats -->
+              <h3 class="text-xl font-semibold pt-4 border-t border-gray-700">
+                Thông Số Cơ Bản
+              </h3>
+              <div
+                id="base-stats-inputs"
+                class="grid grid-cols-2 md:grid-cols-3 gap-4"
+              >
+                <!-- Stat inputs will be generated here -->
+              </div>
+
+              <!-- Attachments -->
+              <h3 class="text-xl font-semibold pt-4 border-t border-gray-700">
+                Phụ Kiện
+              </h3>
+              <div id="attachments-section" class="space-y-4">
+                <!-- Attachment slots will be added here -->
+              </div>
+              <button
+                type="button"
+                id="add-attachment-slot-btn"
+                class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded"
+              >
+                Thêm Loại Phụ Kiện
+              </button>
+
+              <!-- Actions -->
+              <div
+                class="flex justify-end space-x-4 pt-4 border-t border-gray-700"
+              >
+                <button
+                  type="button"
+                  id="clear-form-btn"
+                  class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded"
+                >
+                  Xóa Form
+                </button>
+                <button
+                  type="submit"
+                  class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                >
+                  Lưu Súng
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- AI Analyst Tab -->
+        <div id="ai-analyst" class="tab-content">
+          <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+            <h2 class="text-2xl font-bold mb-4">Phân Tích Với AI</h2>
+            <div class="space-y-4">
+              <div>
+                <label
+                  for="ai-prompt"
+                  class="block text-sm font-medium text-gray-300"
+                  >Nhập yêu cầu hoặc thông tin cần phân tích</label
+                >
+                <textarea
+                  id="ai-prompt"
+                  rows="6"
+                  class="form-textarea mt-1 block w-full"
+                  placeholder="Ví dụ: Dựa vào ảnh và thông tin này, hãy cho tôi biết đây là súng gì và các chỉ số của nó trong Delta Force."
+                ></textarea>
+              </div>
+              <div>
+                <label
+                  for="ai-image-upload"
+                  class="block text-sm font-medium text-gray-300"
+                  >Tải Lên Ảnh (tùy chọn)</label
+                >
+                <input
+                  type="file"
+                  id="ai-image-upload"
+                  accept="image/*"
+                  class="mt-1 block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-500 file:text-white hover:file:bg-blue-600"
+                />
+                <img
+                  id="image-preview"
+                  src=""
+                  class="hidden mt-4 max-h-60 rounded-lg"
+                />
+              </div>
+              <div class="flex items-center justify-between">
+                <button
+                  id="ai-analyze-btn"
+                  class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded flex items-center"
+                >
+                  <span id="analyze-btn-text">Gửi Phân Tích</span>
+                  <svg
+                    id="analyze-spinner"
+                    class="animate-spin -mr-1 ml-3 h-5 w-5 text-white hidden"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      class="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      stroke-width="4"
+                    ></circle>
+                    <path
+                      class="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                </button>
+                <p class="text-sm text-gray-400">
+                  Hãy chắc chắn bạn đã thêm API Key ở tab Cài Đặt.
+                </p>
+              </div>
+              <div
+                id="ai-result-container"
+                class="mt-6 pt-4 border-t border-gray-700"
+              >
+                <h3 class="text-lg font-semibold">Kết quả:</h3>
+                <div
+                  id="ai-result"
+                  class="mt-2 p-4 bg-gray-900 rounded-md whitespace-pre-wrap text-gray-300 min-h-[100px]"
+                >
+                  Chưa có kết quả.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Settings Tab -->
+        <div id="settings" class="tab-content">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+              <h2 class="text-2xl font-bold mb-4">Cài Đặt API Key</h2>
+              <p class="text-gray-400 mb-4">
+                Thêm một hoặc nhiều Gemini API key. Mỗi key một dòng. Hệ thống
+                sẽ tự động thử các key nếu có lỗi.
+              </p>
+              <textarea
+                id="api-keys"
+                class="form-textarea w-full h-32"
+                placeholder="Dán API key của bạn vào đây..."
+              ></textarea>
+              <button
+                id="save-api-keys-btn"
+                class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+              >
+                Lưu API Keys
+              </button>
+            </div>
+            <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+              <h2 class="text-2xl font-bold mb-4">Quản Lý Dữ Liệu</h2>
+              <p class="text-gray-400 mb-4">
+                Lưu trữ toàn bộ dữ liệu súng của bạn vào một file .txt hoặc tải
+                lên để khôi phục.
+              </p>
+              <div class="flex space-x-4 mt-4">
+                <button
+                  id="export-data-btn"
+                  class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded w-full"
+                >
+                  Xuất Dữ Liệu (.txt)
+                </button>
+                <label
+                  class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded w-full text-center cursor-pointer"
+                >
+                  <span>Nhập Dữ Liệu (.txt)</span>
+                  <input
+                    type="file"
+                    id="import-data-input"
+                    class="hidden"
+                    accept=".txt"
+                  />
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Modal for viewing gun details -->
+    <div id="gun-details-modal" class="modal-backdrop hidden">
+      <div class="modal-content max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-4">
+          <h2 id="modal-gun-name" class="text-3xl font-bold"></h2>
+          <button id="close-modal-btn" class="text-gray-400 hover:text-white">
+            &times;
+          </button>
+        </div>
+        <div id="modal-gun-body" class="space-y-4">
+          <!-- Details will be injected here -->
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      const STAT_NAMES = [
+        "Sát thương",
+        "Phạm vi",
+        "Kiểm soát",
+        "Thao tác",
+        "Ổn định",
+        "Chính xác",
+      ];
+      let apiKeys = [];
+      let guns = [];
+      let currentGunId = null;
+
+      // --- DOM Elements ---
+      const tabButtons = document.querySelectorAll(".tab-button");
+      const tabContents = document.querySelectorAll(".tab-content");
+      const gunForm = document.getElementById("gun-form");
+      const formTitle = document.getElementById("form-title");
+      const gunIdInput = document.getElementById("gun-id");
+      const armoryContainer = document.getElementById("armory");
+      const apiKeyTextarea = document.getElementById("api-keys");
+      const saveApiKeysBtn = document.getElementById("save-api-keys-btn");
+      const exportBtn = document.getElementById("export-data-btn");
+      const importInput = document.getElementById("import-data-input");
+      const clearFormBtn = document.getElementById("clear-form-btn");
+      const aiSearchBtn = document.getElementById("ai-search-btn");
+      const aiAnalyzeBtn = document.getElementById("ai-analyze-btn");
+      const aiPrompt = document.getElementById("ai-prompt");
+      const aiImageUpload = document.getElementById("ai-image-upload");
+      const imagePreview = document.getElementById("image-preview");
+      const aiResult = document.getElementById("ai-result");
+      const addAttachmentSlotBtn = document.getElementById(
+        "add-attachment-slot-btn"
+      );
+      const attachmentsSection = document.getElementById("attachments-section");
+      const notification = document.getElementById("notification");
+
+      // --- Initialization ---
+      document.addEventListener("DOMContentLoaded", () => {
+        loadApiKeys();
+        loadGuns();
+        setupEventListeners();
+        renderBaseStatInputs();
+        navigateToTab("armory");
+      });
+
+      function showNotification(message, isError = false) {
+        notification.textContent = message;
+        notification.classList.remove("hidden", "bg-blue-500", "bg-red-500");
+        notification.classList.add(isError ? "bg-red-500" : "bg-blue-500");
+        setTimeout(() => {
+          notification.classList.add("hidden");
+        }, 3000);
+      }
+
+      // --- Tab Navigation ---
+      function navigateToTab(tabId) {
+        tabButtons.forEach((btn) => {
+          btn.classList.toggle("active", btn.dataset.tab === tabId);
+        });
+        tabContents.forEach((content) => {
+          content.classList.toggle("active", content.id === tabId);
+        });
+      }
+
+      // --- API Key Management ---
+      function loadApiKeys() {
+        const storedKeys = localStorage.getItem("geminiApiKeys");
+        if (storedKeys) {
+          apiKeys = JSON.parse(storedKeys);
+          apiKeyTextarea.value = apiKeys.join("\n");
+        }
+      }
+
+      function saveApiKeys() {
+        const keys = apiKeyTextarea.value
+          .split("\n")
+          .map((k) => k.trim())
+          .filter(Boolean);
+        apiKeys = keys;
+        localStorage.setItem("geminiApiKeys", JSON.stringify(apiKeys));
+        showNotification("API Keys đã được lưu!");
+      }
+
+      // --- Data Management (Guns) ---
+      function loadGuns() {
+        const storedGuns = localStorage.getItem("deltaForceGuns");
+        if (storedGuns) {
+          guns = JSON.parse(storedGuns);
+        }
+        renderArmory();
+      }
+
+      function saveGuns() {
+        localStorage.setItem("deltaForceGuns", JSON.stringify(guns));
+        renderArmory();
+      }
+
+      function generateUUID() {
+        return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, (c) =>
+          (
+            c ^
+            (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))
+          ).toString(16)
+        );
+      }
+
+      function handleFormSubmit(e) {
+        e.preventDefault();
+        const id = gunIdInput.value || generateUUID();
+        const gunName = document.getElementById("gun-name").value.trim();
+
+        if (!gunName) {
+          showNotification("Tên súng không được để trống.", true);
+          return;
+        }
+
+        const existingGun = guns.find(
+          (g) => g.name.toLowerCase() === gunName.toLowerCase() && g.id !== id
+        );
+        if (existingGun) {
+          showNotification(`Súng với tên "${gunName}" đã tồn tại.`, true);
+          return;
+        }
+
+        const gunData = {
+          id,
+          name: gunName,
+          rateOfFire: document.getElementById("rate-of-fire").value,
+          magazineSize: document.getElementById("magazine-size").value,
+          muzzleVelocity: document.getElementById("muzzle-velocity").value,
+          fireModes: document
+            .getElementById("fire-modes")
+            .value.split(",")
+            .map((s) => s.trim()),
+          image: document.getElementById("gun-image").value,
+          baseStats: {},
+          attachments: {},
+        };
+
+        STAT_NAMES.forEach((stat) => {
+          const key = stat
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/\s+/g, "-");
+          gunData.baseStats[key] =
+            parseInt(document.getElementById(`stat-${key}`).value) || 0;
+        });
+
+        document.querySelectorAll(".attachment-slot").forEach((slotDiv) => {
+          const slotName = slotDiv
+            .querySelector('input[type="text"]')
+            .value.trim();
+          if (slotName) {
+            gunData.attachments[slotName] = [];
+            slotDiv.querySelectorAll(".attachment-item").forEach((itemDiv) => {
+              const attachment = {
+                name: itemDiv
+                  .querySelector('input[placeholder="Tên phụ kiện"]')
+                  .value.trim(),
+                effects: {},
+              };
+              if (attachment.name) {
+                itemDiv
+                  .querySelectorAll(".attachment-effect")
+                  .forEach((effectDiv) => {
+                    const stat = effectDiv.querySelector("select").value;
+                    const value =
+                      parseInt(
+                        effectDiv.querySelector('input[type="number"]').value
+                      ) || 0;
+                    if (stat) attachment.effects[stat] = value;
+                  });
+                gunData.attachments[slotName].push(attachment);
+              }
+            });
+          }
+        });
+
+        const gunIndex = guns.findIndex((g) => g.id === id);
+        if (gunIndex > -1) {
+          guns[gunIndex] = gunData;
+          showNotification("Đã cập nhật súng thành công!");
+        } else {
+          guns.push(gunData);
+          showNotification("Đã thêm súng mới thành công!");
+        }
+
+        saveGuns();
+        clearForm();
+        navigateToTab("armory");
+      }
+
+      // --- UI Rendering ---
+      function renderArmory() {
+        const noGunsMessage = document.getElementById("no-guns-message");
+
+        // Clear only existing gun cards. We will add a 'gun-card' class to them.
+        armoryContainer
+          .querySelectorAll(".gun-card")
+          .forEach((card) => card.remove());
+
+        if (guns.length === 0) {
+          noGunsMessage.style.display = "block";
+          return;
+        }
+
+        noGunsMessage.style.display = "none";
+
+        guns.forEach((gun) => {
+          const calculatedStats = calculateStats(gun);
+          const card = document.createElement("div");
+          // Add 'gun-card' class for selective removal next time
+          card.className =
+            "gun-card bg-gray-800 rounded-lg shadow-lg overflow-hidden transform hover:scale-105 transition-transform duration-300";
+          card.innerHTML = `
+                <img src="${
+                  gun.image ||
+                  "https://placehold.co/600x400/1f2937/e5e7eb?text=" + gun.name
+                }" alt="${
+            gun.name
+          }" class="w-full h-48 object-cover" onerror="this.onerror=null;this.src='https://placehold.co/600x400/1f2937/e5e7eb?text=Image+Not+Found';">
+                <div class="p-4">
+                    <h3 class="text-xl font-bold text-white">${gun.name}</h3>
+                    <div class="mt-2 text-sm text-gray-400">
+                        <span>Tốc độ bắn: ${
+                          gun.rateOfFire || "N/A"
+                        } RPM</span> | 
+                        <span>Băng đạn: ${gun.magazineSize || "N/A"} viên</span>
+                    </div>
+                    <div class="mt-4 space-y-2">
+                        ${STAT_NAMES.map((stat) => {
+                          const key = stat
+                            .toLowerCase()
+                            .normalize("NFD")
+                            .replace(/[\u0300-\u036f]/g, "")
+                            .replace(/\s+/g, "-");
+                          const value = calculatedStats[key] || 0;
+                          return `
+                                <div class="flex items-center">
+                                    <span class="w-24 text-sm">${stat}</span>
+                                    <div class="stat-bar flex-1">
+                                        <div class="stat-bar-fill" style="width: ${value}%;">${value}</div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join("")}
+                    </div>
+                    <div class="mt-6 flex justify-end space-x-2">
+                        <button class="view-gun-btn bg-gray-600 hover:bg-gray-700 text-white py-1 px-3 rounded text-sm" data-id="${
+                          gun.id
+                        }">Chi Tiết</button>
+                        <button class="edit-gun-btn bg-blue-600 hover:bg-blue-700 text-white py-1 px-3 rounded text-sm" data-id="${
+                          gun.id
+                        }">Sửa</button>
+                        <button class="delete-gun-btn bg-red-600 hover:bg-red-700 text-white py-1 px-3 rounded text-sm" data-id="${
+                          gun.id
+                        }">Xóa</button>
+                    </div>
+                </div>
+            `;
+          armoryContainer.appendChild(card);
+        });
+
+        // Re-add event listeners for new buttons
+        document
+          .querySelectorAll(".edit-gun-btn")
+          .forEach((btn) =>
+            btn.addEventListener("click", () => editGun(btn.dataset.id))
+          );
+        document
+          .querySelectorAll(".delete-gun-btn")
+          .forEach((btn) =>
+            btn.addEventListener("click", () => deleteGun(btn.dataset.id))
+          );
+        document
+          .querySelectorAll(".view-gun-btn")
+          .forEach((btn) =>
+            btn.addEventListener("click", () => viewGunDetails(btn.dataset.id))
+          );
+      }
+
+      function renderBaseStatInputs() {
+        const container = document.getElementById("base-stats-inputs");
+        container.innerHTML = STAT_NAMES.map((stat) => {
+          const key = stat
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/\s+/g, "-");
+          return `
+                <div>
+                    <label for="stat-${key}" class="block text-sm font-medium text-gray-300">${stat}</label>
+                    <input type="number" id="stat-${key}" name="stat-${key}" class="form-input mt-1 block w-full" min="0" max="100" value="50">
+                </div>
+            `;
+        }).join("");
+      }
+
+      // --- Form & Attachments Logic ---
+      function clearForm() {
+        gunForm.reset();
+        gunIdInput.value = "";
+        formTitle.textContent = "Thêm Súng Mới";
+        attachmentsSection.innerHTML = "";
+        renderBaseStatInputs();
+      }
+
+      function editGun(id) {
+        const gun = guns.find((g) => g.id === id);
+        if (!gun) return;
+
+        clearForm();
+
+        gunIdInput.value = gun.id;
+        formTitle.textContent = `Chỉnh Sửa Súng: ${gun.name}`;
+
+        document.getElementById("gun-name").value = gun.name;
+        document.getElementById("rate-of-fire").value = gun.rateOfFire || "";
+        document.getElementById("magazine-size").value = gun.magazineSize || "";
+        document.getElementById("muzzle-velocity").value =
+          gun.muzzleVelocity || "";
+        document.getElementById("fire-modes").value = gun.fireModes
+          ? gun.fireModes.join(", ")
+          : "";
+        document.getElementById("gun-image").value = gun.image || "";
+
+        Object.entries(gun.baseStats).forEach(([key, value]) => {
+          const input = document.getElementById(`stat-${key}`);
+          if (input) input.value = value;
+        });
+
+        attachmentsSection.innerHTML = "";
+        if (gun.attachments) {
+          Object.entries(gun.attachments).forEach(([slotName, attachments]) => {
+            const slotDiv = createAttachmentSlot(slotName);
+            attachments.forEach((att) => {
+              const itemDiv = createAttachmentItem();
+              itemDiv.querySelector('input[placeholder="Tên phụ kiện"]').value =
+                att.name;
+              Object.entries(att.effects).forEach(([stat, value]) => {
+                const effectDiv = createAttachmentEffect();
+                effectDiv.querySelector("select").value = stat;
+                effectDiv.querySelector('input[type="number"]').value = value;
+                itemDiv
+                  .querySelector(".attachment-effects-list")
+                  .appendChild(effectDiv);
+              });
+              slotDiv.querySelector(".attachments-list").appendChild(itemDiv);
+            });
+            attachmentsSection.appendChild(slotDiv);
+          });
+        }
+
+        navigateToTab("add-gun");
+      }
+
+      function deleteGun(id) {
+        if (confirm("Bạn có chắc chắn muốn xóa súng này?")) {
+          guns = guns.filter((g) => g.id !== id);
+          saveGuns();
+          showNotification("Đã xóa súng.");
+        }
+      }
+
+      function createAttachmentSlot(name = "") {
+        const div = document.createElement("div");
+        div.className = "attachment-slot bg-gray-700 p-4 rounded-lg space-y-2";
+        div.innerHTML = `
+            <div class="flex items-center justify-between">
+                <input type="text" placeholder="Tên loại phụ kiện (ví dụ: Nòng súng)" value="${name}" class="form-input w-full mr-4">
+                <button type="button" class="remove-slot-btn text-red-400 hover:text-red-300 font-bold">Xóa Loại</button>
+            </div>
+            <div class="attachments-list space-y-2"></div>
+            <button type="button" class="add-attachment-item-btn bg-blue-500 hover:bg-blue-600 text-white text-sm py-1 px-2 rounded">Thêm phụ kiện</button>
+        `;
+        div
+          .querySelector(".add-attachment-item-btn")
+          .addEventListener("click", () => {
+            const list = div.querySelector(".attachments-list");
+            list.appendChild(createAttachmentItem());
+          });
+        div
+          .querySelector(".remove-slot-btn")
+          .addEventListener("click", () => div.remove());
+        return div;
+      }
+
+      function createAttachmentItem() {
+        const div = document.createElement("div");
+        div.className = "attachment-item bg-gray-600 p-3 rounded space-y-2";
+        div.innerHTML = `
+            <div class="flex items-center justify-between">
+                <input type="text" placeholder="Tên phụ kiện" class="form-input w-full mr-4 text-sm">
+                <button type="button" class="remove-item-btn text-red-400 hover:text-red-300">Xóa</button>
+            </div>
+            <div class="attachment-effects-list space-y-1"></div>
+            <button type="button" class="add-attachment-effect-btn bg-green-500 hover:bg-green-600 text-white text-xs py-1 px-2 rounded">Thêm hiệu ứng</button>
+        `;
+        div
+          .querySelector(".add-attachment-effect-btn")
+          .addEventListener("click", () => {
+            const list = div.querySelector(".attachment-effects-list");
+            list.appendChild(createAttachmentEffect());
+          });
+        div
+          .querySelector(".remove-item-btn")
+          .addEventListener("click", () => div.remove());
+        return div;
+      }
+
+      function createAttachmentEffect() {
+        const div = document.createElement("div");
+        div.className = "attachment-effect flex items-center space-x-2";
+        const options = STAT_NAMES.map((stat) => {
+          const key = stat
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/\s+/g, "-");
+          return `<option value="${key}">${stat}</option>`;
+        }).join("");
+
+        div.innerHTML = `
+            <select class="form-select text-sm py-1 flex-1">${options}</select>
+            <input type="number" placeholder="+/-" class="form-input text-sm py-1 w-20">
+            <button type="button" class="remove-effect-btn text-gray-400 hover:text-white">&times;</button>
+        `;
+        div
+          .querySelector(".remove-effect-btn")
+          .addEventListener("click", () => div.remove());
+        return div;
+      }
+
+      // --- Import/Export ---
+      function exportData() {
+        if (guns.length === 0) {
+          showNotification("Không có dữ liệu để xuất.", true);
+          return;
+        }
+        const dataStr = JSON.stringify(guns, null, 2);
+        const dataBlob = new Blob([dataStr], {
+          type: "text/plain;charset=utf-8",
+        });
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `delta-force-gun-data_${new Date()
+          .toISOString()
+          .slice(0, 10)}.txt`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
+
+      function importData(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          try {
+            const importedGuns = JSON.parse(e.target.result);
+            if (
+              Array.isArray(importedGuns) &&
+              importedGuns.every((g) => g.id && g.name)
+            ) {
+              if (
+                confirm("Dữ liệu hiện tại sẽ bị ghi đè. Bạn có muốn tiếp tục?")
+              ) {
+                guns = importedGuns;
+                saveGuns();
+                showNotification("Dữ liệu đã được nhập thành công!");
+                navigateToTab("armory");
+              }
+            } else {
+              throw new Error("Invalid file format");
+            }
+          } catch (error) {
+            showNotification("File dữ liệu không hợp lệ hoặc bị lỗi.", true);
+            console.error("Import error:", error);
+          }
+        };
+        reader.readAsText(file);
+        event.target.value = ""; // Reset input
+      }
+
+      // --- Gemini API Call ---
+      async function callGeminiAPI(prompt, base64ImageData = null) {
+        if (apiKeys.length === 0) {
+          showNotification("Vui lòng thêm Gemini API key ở tab Cài Đặt.", true);
+          return null;
+        }
+
+        const model = base64ImageData ? "gemini-pro-vision" : "gemini-pro";
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=`;
+
+        const parts = [{ text: prompt }];
+        if (base64ImageData) {
+          parts.push({
+            inline_data: {
+              mime_type: "image/jpeg",
+              data: base64ImageData,
+            },
+          });
+        }
+        const body = { contents: [{ parts }] };
+
+        for (const key of apiKeys) {
+          try {
+            const response = await fetch(url + key, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(body),
+            });
+
+            if (!response.ok) {
+              const error = await response.json();
+              console.error("API Error:", error);
+              throw new Error(`API call failed with status ${response.status}`);
+            }
+
+            const data = await response.json();
+            return data.candidates[0].content.parts[0].text;
+          } catch (error) {
+            console.warn(`API key failed, trying next one...`);
+          }
+        }
+
+        showNotification(
+          "Tất cả API keys đều thất bại. Vui lòng kiểm tra lại.",
+          true
+        );
+        return null;
+      }
+
+      async function handleAiSearch() {
+        const gunName = document.getElementById("gun-name").value.trim();
+        if (!gunName) {
+          showNotification("Vui lòng nhập tên súng để tìm kiếm.", true);
+          return;
+        }
+
+        const existingGun = guns.find(
+          (g) => g.name.toLowerCase() === gunName.toLowerCase()
+        );
+        if (existingGun) {
+          if (
+            !confirm(
+              `Súng "${gunName}" đã tồn tại. Bạn có muốn dùng AI để tìm và ghi đè thông tin?`
+            )
+          )
+            return;
+        }
+
+        toggleButtonLoading(aiSearchBtn, true, "...");
+        const prompt = `
+            Find detailed information for the weapon named "${gunName}" in the game "Delta Force: Hawk Ops".
+            Provide the data in a valid JSON format. Do not add any text before or after the JSON object.
+            The JSON object must have these exact keys: "name", "rateOfFire", "magazineSize", "muzzleVelocity", "fireModes" (as an array of strings), "imageUrl", and "baseStats" (an object with keys: "sat-thuong", "pham-vi", "kiem-soat", "thao-tac", "on-dinh", "chinh-xac").
+            If you cannot find the exact weapon, return a JSON object with a key "error" and a message. For example: {"error": "Weapon not found"}.
+            All stat values should be numbers between 0 and 100.
+        `;
+        const result = await callGeminiAPI(prompt);
+        toggleButtonLoading(aiSearchBtn, false, "Tìm kiếm AI");
+
+        if (result) {
+          try {
+            // The API might return the JSON inside markdown, so we need to clean it.
+            const cleanedResult = result
+              .replace(/```json/g, "")
+              .replace(/```/g, "")
+              .trim();
+            const data = JSON.parse(cleanedResult);
+
+            if (data.error) {
+              showNotification(
+                `AI không tìm thấy thông tin cho: ${gunName}`,
+                true
+              );
+            } else {
+              document.getElementById("gun-name").value = data.name || gunName;
+              document.getElementById("rate-of-fire").value =
+                data.rateOfFire || "";
+              document.getElementById("magazine-size").value =
+                data.magazineSize || "";
+              document.getElementById("muzzle-velocity").value =
+                data.muzzleVelocity || "";
+              document.getElementById("fire-modes").value = data.fireModes
+                ? data.fireModes.join(", ")
+                : "";
+              document.getElementById("gun-image").value = data.imageUrl || "";
+
+              if (data.baseStats) {
+                Object.entries(data.baseStats).forEach(([key, value]) => {
+                  const input = document.getElementById(`stat-${key}`);
+                  if (input) input.value = value;
+                });
+              }
+              showNotification("Đã điền thông tin từ AI.");
+            }
+          } catch (e) {
+            console.error("Failed to parse AI response:", e);
+            console.log("Raw AI response:", result);
+            showNotification("AI trả về dữ liệu không hợp lệ.", true);
+          }
+        }
+      }
+
+      async function handleAiAnalysis() {
+        const promptText = aiPrompt.value.trim();
+        const imageFile = aiImageUpload.files[0];
+
+        if (!promptText && !imageFile) {
+          showNotification("Vui lòng nhập yêu cầu hoặc tải lên ảnh.", true);
+          return;
+        }
+
+        toggleButtonLoading(aiAnalyzeBtn, true, "Đang xử lý...");
+        aiResult.textContent = "Đang chờ phản hồi từ AI...";
+
+        let base64Image = null;
+        if (imageFile) {
+          base64Image = await toBase64(imageFile);
+        }
+
+        const result = await callGeminiAPI(promptText, base64Image);
+        toggleButtonLoading(aiAnalyzeBtn, false, "Gửi Phân Tích");
+
+        if (result) {
+          aiResult.textContent = result;
+        } else {
+          aiResult.textContent = "Không nhận được phản hồi từ AI.";
+        }
+      }
+
+      // --- Modal Logic ---
+      function viewGunDetails(id) {
+        const gun = guns.find((g) => g.id === id);
+        if (!gun) return;
+
+        const modal = document.getElementById("gun-details-modal");
+        document.getElementById("modal-gun-name").textContent = gun.name;
+        const body = document.getElementById("modal-gun-body");
+
+        const calculatedStats = calculateStats(gun);
+
+        let attachmentsHtml = '<p class="text-gray-400">Không có phụ kiện.</p>';
+        if (gun.attachments && Object.keys(gun.attachments).length > 0) {
+          attachmentsHtml = Object.entries(gun.attachments)
+            .map(([slot, items]) => {
+              if (items.length === 0) return "";
+              const itemsHtml = items
+                .map((item) => {
+                  const effectsHtml = Object.entries(item.effects)
+                    .map(([statKey, value]) => {
+                      const statName =
+                        STAT_NAMES.find(
+                          (name) =>
+                            name
+                              .toLowerCase()
+                              .normalize("NFD")
+                              .replace(/[\u0300-\u036f]/g, "")
+                              .replace(/\s+/g, "-") === statKey
+                        ) || statKey;
+                      const color =
+                        value > 0 ? "text-green-400" : "text-red-400";
+                      return `<span class="text-xs ${color}">${statName}: ${
+                        value > 0 ? "+" : ""
+                      }${value}</span>`;
+                    })
+                    .join(", ");
+                  return `<li class="text-gray-300">${item.name} <span class="ml-2">(${effectsHtml})</span></li>`;
+                })
+                .join("");
+              return `<div class="mb-3"><h4 class="font-semibold text-lg text-blue-400">${slot}</h4><ul class="list-disc list-inside ml-2">${itemsHtml}</ul></div>`;
+            })
+            .join("");
+        }
+
+        body.innerHTML = `
+            <img src="${
+              gun.image ||
+              "https://placehold.co/600x400/1f2937/e5e7eb?text=" + gun.name
+            }" alt="${
+          gun.name
+        }" class="w-full h-64 object-cover rounded-lg mb-4" onerror="this.onerror=null;this.src='https://placehold.co/600x400/1f2937/e5e7eb?text=Image+Not+Found';">
+            <div class="grid grid-cols-2 gap-4 text-gray-300">
+                <p><strong>Tốc độ bắn:</strong> ${
+                  gun.rateOfFire || "N/A"
+                } RPM</p>
+                <p><strong>Băng đạn:</strong> ${
+                  gun.magazineSize || "N/A"
+                } viên</p>
+                <p><strong>Sơ tốc:</strong> ${
+                  gun.muzzleVelocity || "N/A"
+                } m/s</p>
+                <p><strong>Chế độ bắn:</strong> ${
+                  gun.fireModes ? gun.fireModes.join(", ") : "N/A"
+                }</p>
+            </div>
+            <div class="mt-4">
+                <h3 class="font-semibold text-xl mb-2 text-white">Chỉ Số Tổng</h3>
+                <div class="space-y-2">
+                ${STAT_NAMES.map((stat) => {
+                  const key = stat
+                    .toLowerCase()
+                    .normalize("NFD")
+                    .replace(/[\u0300-\u036f]/g, "")
+                    .replace(/\s+/g, "-");
+                  const value = calculatedStats[key] || 0;
+                  return `
+                        <div class="flex items-center">
+                            <span class="w-24 text-sm">${stat}</span>
+                            <div class="stat-bar flex-1">
+                                <div class="stat-bar-fill" style="width: ${value}%;">${value}</div>
+                            </div>
+                        </div>
+                    `;
+                }).join("")}
+                </div>
+            </div>
+            <div class="mt-4">
+                <h3 class="font-semibold text-xl mb-2 text-white">Phụ Kiện</h3>
+                ${attachmentsHtml}
+            </div>
+        `;
+
+        modal.classList.remove("hidden");
+      }
+
+      function closeModal() {
+        document.getElementById("gun-details-modal").classList.add("hidden");
+      }
+
+      // --- Utility Functions ---
+      function calculateStats(gun) {
+        const finalStats = { ...gun.baseStats };
+        if (gun.attachments) {
+          Object.values(gun.attachments)
+            .flat()
+            .forEach((att) => {
+              Object.entries(att.effects).forEach(([stat, value]) => {
+                if (finalStats[stat] !== undefined) {
+                  finalStats[stat] += value;
+                }
+              });
+            });
+        }
+        // Clamp values between 0 and 100
+        for (const stat in finalStats) {
+          finalStats[stat] = Math.max(0, Math.min(100, finalStats[stat]));
+        }
+        return finalStats;
+      }
+
+      function toggleButtonLoading(button, isLoading, loadingText) {
+        const textSpan = button.querySelector("span");
+        const spinner = button.querySelector("svg");
+        const originalText = textSpan.textContent;
+
+        if (isLoading) {
+          button.disabled = true;
+          textSpan.textContent = loadingText;
+          spinner.classList.remove("hidden");
+        } else {
+          button.disabled = false;
+          textSpan.textContent = originalText;
+          spinner.classList.add("hidden");
+        }
+      }
+
+      function toBase64(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => resolve(reader.result.split(",")[1]);
+          reader.onerror = (error) => reject(error);
+        });
+      }
+
+      // --- Event Listeners Setup ---
+      function setupEventListeners() {
+        tabButtons.forEach((button) => {
+          button.addEventListener("click", () =>
+            navigateToTab(button.dataset.tab)
+          );
+        });
+        saveApiKeysBtn.addEventListener("click", saveApiKeys);
+        gunForm.addEventListener("submit", handleFormSubmit);
+        clearFormBtn.addEventListener("click", clearForm);
+        exportBtn.addEventListener("click", exportData);
+        importInput.addEventListener("change", importData);
+        aiSearchBtn.addEventListener("click", handleAiSearch);
+        aiAnalyzeBtn.addEventListener("click", handleAiAnalysis);
+        addAttachmentSlotBtn.addEventListener("click", () => {
+          attachmentsSection.appendChild(createAttachmentSlot());
+        });
+
+        document
+          .getElementById("close-modal-btn")
+          .addEventListener("click", closeModal);
+        document
+          .getElementById("gun-details-modal")
+          .addEventListener("click", (e) => {
+            if (e.target.id === "gun-details-modal") closeModal();
+          });
+
+        aiImageUpload.addEventListener("change", (e) => {
+          const file = e.target.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              imagePreview.src = e.target.result;
+              imagePreview.classList.remove("hidden");
+            };
+            reader.readAsDataURL(file);
+          } else {
+            imagePreview.classList.add("hidden");
+          }
+        });
+      }
+    </script>
+  </body>
+</html>

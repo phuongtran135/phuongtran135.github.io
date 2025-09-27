@@ -1,0 +1,2450 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Delta Force - Hỗ Trợ Build Súng</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: #111827;
+        color: #d1d5db;
+      }
+      .modal-backdrop {
+        background-color: rgba(0, 0, 0, 0.7);
+      }
+      .modal {
+        max-height: 90vh;
+      }
+      .card {
+        background-color: #1f2937;
+        border: 1px solid #374151;
+      }
+      .btn {
+        transition: all 0.2s ease-in-out;
+      }
+      .btn-primary {
+        background-color: #3b82f6;
+        color: white;
+      }
+      .btn-primary:hover {
+        background-color: #2563eb;
+      }
+      .btn-secondary {
+        background-color: #4b5563;
+        color: white;
+      }
+      .btn-secondary:hover {
+        background-color: #374151;
+      }
+      .btn-danger {
+        background-color: #ef4444;
+        color: white;
+      }
+      .btn-danger:hover {
+        background-color: #dc2626;
+      }
+      .form-input,
+      .form-textarea,
+      .form-select {
+        background-color: #374151;
+        border: 1px solid #4b5563;
+        color: #d1d5db;
+        border-radius: 0.375rem;
+      }
+      .form-input:focus,
+      .form-textarea:focus,
+      .form-select:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 2px #1e40af;
+      }
+      .stat-bar {
+        background-color: #374151;
+        border-radius: 9999px;
+        overflow: hidden;
+        position: relative;
+      }
+      .stat-bar-fill {
+        background-color: #3b82f6;
+        transition: width 0.3s ease-in-out;
+      }
+      .stat-bar-modifier {
+        position: absolute;
+        top: 0;
+        height: 100%;
+        transition: all 0.3s ease-in-out;
+      }
+      .stat-bar-positive {
+        background-color: rgba(74, 222, 128, 0.7); /* green-400 */
+      }
+      .stat-bar-negative {
+        background-color: rgba(248, 113, 113, 0.7); /* red-400 */
+      }
+      .loader {
+        border: 4px solid #374151;
+        border-top: 4px solid #3b82f6;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body class="p-4 md:p-8">
+    <div id="app" class="max-w-7xl mx-auto">
+      <!-- Header -->
+      <header
+        class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4"
+      >
+        <div>
+          <h1 class="text-3xl font-bold text-white">
+            Delta Force Gunsmith Assistant
+          </h1>
+          <p class="text-gray-400">
+            Quản lý kho vũ khí và xây dựng trang bị của bạn.
+          </p>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap justify-center">
+          <button
+            onclick="openSlotManagementModal()"
+            class="btn btn-secondary px-4 py-2 rounded-md"
+          >
+            Quản lý Khe Cắm
+          </button>
+          <button
+            onclick="openAttachmentModal()"
+            class="btn btn-secondary px-4 py-2 rounded-md"
+          >
+            Quản lý Phụ kiện
+          </button>
+          <button
+            onclick="openSettingsModal()"
+            class="btn btn-secondary px-4 py-2 rounded-md"
+          >
+            Cài đặt API
+          </button>
+          <button
+            onclick="openAiChatModal()"
+            class="btn btn-primary px-4 py-2 rounded-md"
+          >
+            Trợ lý AI
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Content -->
+      <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Left Panel: Weapon List & Data Management -->
+        <div class="lg:col-span-1">
+          <div class="card p-4 rounded-lg">
+            <h2 class="text-xl font-semibold text-white mb-4">Kho Vũ Khí</h2>
+            <div class="flex flex-col sm:flex-row gap-2 mb-4">
+              <button
+                onclick="openAddWeaponModal()"
+                class="flex-1 btn btn-primary px-4 py-2 rounded-md"
+              >
+                Thêm Súng Mới
+              </button>
+              <button
+                onclick="document.getElementById('file-upload').click()"
+                class="flex-1 btn btn-secondary px-4 py-2 rounded-md"
+              >
+                Tải Dữ Liệu
+              </button>
+              <input
+                type="file"
+                id="file-upload"
+                class="hidden"
+                accept=".txt,.json"
+                onchange="loadDataFromFile(event)"
+              />
+              <button
+                onclick="saveDataToFile()"
+                class="flex-1 btn btn-secondary px-4 py-2 rounded-md"
+              >
+                Lưu Dữ Liệu
+              </button>
+            </div>
+            <div
+              id="weapon-list"
+              class="space-y-2 max-h-[60vh] overflow-y-auto"
+            >
+              <!-- Weapon items will be injected here -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Panel: Weapon Details -->
+        <div
+          id="weapon-detail-view"
+          class="lg:col-span-2 card p-6 rounded-lg hidden"
+        >
+          <!-- Details will be injected here -->
+        </div>
+        <div
+          id="empty-state"
+          class="lg:col-span-2 card p-12 rounded-lg flex flex-col items-center justify-center text-center"
+        >
+          <svg
+            class="w-16 h-16 text-gray-500 mb-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M12 6V4m0 16v-2M12 12l-2 2-2-2m4 4l2-2 2 2"
+            ></path>
+          </svg>
+          <h3 class="text-xl font-semibold text-white">
+            Chưa có vũ khí nào được chọn
+          </h3>
+          <p class="text-gray-400 mt-2">
+            Hãy chọn một vũ khí từ danh sách bên trái, hoặc thêm một vũ khí mới
+            để bắt đầu.
+          </p>
+        </div>
+      </main>
+    </div>
+
+    <!-- Modals -->
+    <!-- Add/Edit Weapon Modal -->
+    <div
+      id="add-edit-weapon-modal"
+      class="fixed inset-0 modal-backdrop flex items-center justify-center p-4 z-50 hidden"
+    >
+      <div class="card rounded-lg w-full max-w-4xl modal overflow-y-auto">
+        <form
+          id="weapon-form"
+          onsubmit="handleWeaponFormSubmit(event)"
+          onpaste="handleWeaponStatPaste(event)"
+          class="p-6"
+        >
+          <div class="flex justify-between items-center mb-4">
+            <h2 id="modal-title" class="text-2xl font-bold text-white">
+              Thêm Vũ Khí Mới
+            </h2>
+            <button
+              type="button"
+              onclick="document.getElementById('weapon-stat-ai-upload').click()"
+              id="weapon-stat-ai-btn"
+              class="btn btn-primary text-sm px-3 py-1.5 flex items-center gap-2"
+            >
+              <span id="weapon-stat-ai-text">AI Phân Tích Thông Số</span>
+              <div
+                id="weapon-stat-ai-loader"
+                class="loader !w-4 !h-4 hidden"
+              ></div>
+            </button>
+            <input
+              type="file"
+              id="weapon-stat-ai-upload"
+              class="hidden"
+              accept="image/*"
+              onchange="aiAnalyzeWeaponStatsImage(event)"
+            />
+          </div>
+          <p class="text-xs text-center text-gray-500 -mt-2 mb-4">
+            Dán ảnh thông số để AI điền chỉ số, dán ảnh tổng quan súng để AI
+            chọn khe cắm.
+          </p>
+
+          <input type="hidden" id="weapon-id" />
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Column 1: Basic Info -->
+            <div class="space-y-4 md:col-span-1">
+              <div>
+                <label for="tenSung" class="block mb-1 font-medium"
+                  >Tên Súng</label
+                >
+                <div class="flex gap-2">
+                  <input
+                    type="text"
+                    id="tenSung"
+                    class="form-input w-full p-2"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onclick="aiSearchWeaponInfo()"
+                    id="ai-search-btn"
+                    class="btn btn-primary px-4 py-2 rounded-md flex items-center gap-2"
+                  >
+                    <span id="ai-search-text">AI Tìm</span>
+                    <div id="ai-search-loader" class="loader hidden"></div>
+                  </button>
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label for="tocDoBan" class="block mb-1 font-medium"
+                    >Tốc độ bắn</label
+                  >
+                  <input
+                    type="number"
+                    id="tocDoBan"
+                    class="form-input w-full p-2"
+                  />
+                </div>
+                <div>
+                  <label for="bangDan" class="block mb-1 font-medium"
+                    >Băng đạn</label
+                  >
+                  <input
+                    type="number"
+                    id="bangDan"
+                    class="form-input w-full p-2"
+                  />
+                </div>
+                <div>
+                  <label for="cheDoBan" class="block mb-1 font-medium"
+                    >Chế độ bắn</label
+                  >
+                  <input
+                    type="text"
+                    id="cheDoBan"
+                    class="form-input w-full p-2"
+                    placeholder="Đơn, Tự động..."
+                  />
+                </div>
+                <div>
+                  <label for="soTocDauNong" class="block mb-1 font-medium"
+                    >Sơ tốc</label
+                  >
+                  <input
+                    type="number"
+                    id="soTocDauNong"
+                    class="form-input w-full p-2"
+                  />
+                </div>
+              </div>
+              <div>
+                <label for="anhSung" class="block mb-1 font-medium"
+                  >URL Ảnh Súng</label
+                >
+                <input
+                  type="text"
+                  id="anhSung"
+                  class="form-input w-full p-2"
+                  placeholder="https://example.com/image.png"
+                />
+              </div>
+              <div id="slot-analysis-section">
+                <div class="flex justify-between items-center">
+                  <h3 class="text-lg font-semibold text-white">
+                    Các Khe Gắn Phụ Kiện
+                  </h3>
+                  <button
+                    type="button"
+                    onclick="document.getElementById('weapon-slot-ai-upload').click()"
+                    id="weapon-slot-ai-btn"
+                    class="btn btn-primary text-xs px-2 py-1 flex items-center gap-1"
+                  >
+                    <span id="weapon-slot-ai-text">AI Phân Tích Khe</span>
+                    <div
+                      id="weapon-slot-ai-loader"
+                      class="loader !w-4 !h-4 hidden"
+                    ></div>
+                  </button>
+                  <input
+                    type="file"
+                    id="weapon-slot-ai-upload"
+                    class="hidden"
+                    accept="image/*"
+                    onchange="aiAnalyzeWeaponSlotsImage(event)"
+                  />
+                </div>
+                <div
+                  id="weapon-slots-list"
+                  class="grid grid-cols-2 gap-x-4 gap-y-2 card p-3 rounded-lg max-h-48 overflow-y-auto mt-2"
+                >
+                  <!-- Checkboxes for slots will be injected here -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Column 2: Stats -->
+            <div class="space-y-4 md:col-span-1">
+              <h3 class="text-lg font-semibold text-white">
+                Thông Số Kỹ Thuật Gốc (0-100)
+              </h3>
+              <div class="grid grid-cols-1 gap-y-4">
+                <div id="stat-inputs"></div>
+              </div>
+            </div>
+
+            <!-- Column 3: Attachments -->
+            <div class="space-y-4 md:col-span-1">
+              <h3 class="text-lg font-semibold text-white">
+                Phụ Kiện Tương Thích
+              </h3>
+              <div
+                id="available-attachments-list"
+                class="card p-3 rounded-lg h-[85%] overflow-y-auto space-y-2"
+              >
+                <!-- Checkboxes for attachments will be injected here -->
+              </div>
+            </div>
+          </div>
+
+          <div
+            class="flex justify-end gap-3 pt-6 mt-4 border-t border-gray-700"
+          >
+            <button
+              type="button"
+              onclick="closeModal('add-edit-weapon-modal')"
+              class="btn btn-secondary px-6 py-2 rounded-md"
+            >
+              Hủy
+            </button>
+            <button type="submit" class="btn btn-primary px-6 py-2 rounded-md">
+              Lưu
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Attachment Management Modal -->
+    <div
+      id="attachment-modal"
+      class="fixed inset-0 modal-backdrop flex items-center justify-center p-4 z-50 hidden"
+    >
+      <div class="card rounded-lg w-full max-w-4xl h-[90vh] flex flex-col">
+        <h2 class="text-2xl font-bold text-white p-6 border-b border-gray-700">
+          Quản lý Kho Phụ Kiện
+        </h2>
+        <div
+          class="flex-1 grid grid-cols-1 md:grid-cols-3 gap-6 p-6 overflow-y-auto"
+        >
+          <!-- Add/Edit Form -->
+          <div class="md:col-span-1">
+            <form
+              id="attachment-form"
+              onsubmit="handleAttachmentFormSubmit(event)"
+              onpaste="handleAttachmentPaste(event)"
+              class="space-y-4 p-4 card rounded-lg"
+            >
+              <div class="flex justify-between items-center">
+                <h3 id="attachment-form-title" class="text-lg font-semibold">
+                  Thêm Phụ Kiện Mới
+                </h3>
+                <button
+                  type="button"
+                  onclick="document.getElementById('attachment-ai-upload').click()"
+                  id="attachment-ai-btn"
+                  class="btn btn-primary text-xs px-2 py-1 flex items-center gap-1"
+                >
+                  <span id="attachment-ai-text">AI Phân Tích Ảnh</span>
+                  <div
+                    id="attachment-ai-loader"
+                    class="loader !w-4 !h-4 hidden"
+                    style="width: 1rem; height: 1rem"
+                  ></div>
+                </button>
+                <input
+                  type="file"
+                  id="attachment-ai-upload"
+                  class="hidden"
+                  accept="image/*"
+                  onchange="aiAnalyzeAttachmentImage(event)"
+                />
+              </div>
+              <input type="hidden" id="attachment-id" />
+              <div>
+                <label for="attachment-name" class="block mb-1"
+                  >Tên Phụ Kiện</label
+                >
+                <input
+                  type="text"
+                  id="attachment-name"
+                  class="form-input w-full p-2"
+                  required
+                />
+              </div>
+              <div>
+                <label for="attachment-category" class="block mb-1"
+                  >Loại Phụ Kiện</label
+                >
+                <input
+                  type="text"
+                  id="attachment-category"
+                  list="attachment-categories-datalist"
+                  class="form-input w-full p-2"
+                  required
+                  placeholder="Chọn hoặc nhập loại khe..."
+                />
+                <datalist id="attachment-categories-datalist"></datalist>
+              </div>
+              <div>
+                <label for="attachment-image" class="block mb-1"
+                  >URL Ảnh (Tùy chọn)</label
+                >
+                <input
+                  type="text"
+                  id="attachment-image"
+                  class="form-input w-full p-2"
+                  placeholder="https://example.com/image.png"
+                />
+              </div>
+              <h4 class="font-semibold pt-2">Chỉ số thay đổi (+/-)</h4>
+              <p class="text-xs text-center text-gray-500 -mt-2 mb-2">
+                Hoặc dán ảnh đã sao chép vào đây.
+              </p>
+              <div id="attachment-stat-modifiers" class="space-y-2">
+                <!-- Stat modifier inputs will be injected here -->
+              </div>
+              <div>
+                <label for="attachment-unlocks" class="block mb-1 font-medium"
+                  >Mở khóa khe cắm (tùy chọn)</label
+                >
+                <div
+                  id="attachment-unlocks-list"
+                  class="card p-2 rounded-lg max-h-32 overflow-y-auto"
+                >
+                  <!-- Checkboxes for unlockable slots will be injected here -->
+                </div>
+              </div>
+              <div class="flex gap-2 pt-2">
+                <button type="submit" class="btn btn-primary flex-1">
+                  Lưu
+                </button>
+                <button
+                  type="button"
+                  onclick="resetAttachmentForm()"
+                  class="btn btn-secondary"
+                >
+                  Hủy
+                </button>
+              </div>
+            </form>
+          </div>
+          <!-- Attachment List -->
+          <div
+            id="attachment-list-container"
+            class="md:col-span-2 card p-4 rounded-lg overflow-y-auto"
+          >
+            <!-- Attachment items will be injected here -->
+          </div>
+        </div>
+        <div class="p-4 border-t border-gray-700 flex justify-end">
+          <button
+            type="button"
+            onclick="closeModal('attachment-modal')"
+            class="btn btn-secondary px-6 py-2"
+          >
+            Đóng
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI Chat Modal -->
+    <div
+      id="ai-chat-modal"
+      class="fixed inset-0 modal-backdrop flex items-center justify-center p-4 z-50 hidden"
+    >
+      <div class="card rounded-lg w-full max-w-3xl h-[80vh] flex flex-col">
+        <div
+          class="p-4 border-b border-gray-600 flex justify-between items-center"
+        >
+          <h2 class="text-2xl font-bold text-white">Trợ lý AI Phân Tích</h2>
+          <button
+            type="button"
+            onclick="closeModal('ai-chat-modal')"
+            class="text-gray-400 hover:text-white"
+          >
+            &times;
+          </button>
+        </div>
+        <div id="chat-window" class="flex-1 p-4 overflow-y-auto space-y-4">
+          <!-- Chat messages go here -->
+        </div>
+        <div class="p-4 border-t border-gray-600">
+          <form
+            id="ai-chat-form"
+            onsubmit="handleAiChatSubmit(event)"
+            class="flex items-center gap-2"
+          >
+            <input
+              type="text"
+              id="chat-input"
+              class="form-input w-full p-2"
+              placeholder="Nhập yêu cầu phân tích và dán ảnh vào đây..."
+              required
+            />
+            <input
+              type="file"
+              id="chat-image-upload"
+              class="hidden"
+              accept="image/*"
+              onchange="handleChatImageChange(event)"
+            />
+            <button
+              type="button"
+              onclick="document.getElementById('chat-image-upload').click()"
+              id="chat-image-btn"
+              class="btn btn-secondary p-2 rounded-md"
+            >
+              <svg
+                class="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                ></path>
+              </svg>
+            </button>
+            <button
+              type="submit"
+              id="chat-submit-btn"
+              class="btn btn-primary px-4 py-2 rounded-md"
+            >
+              Gửi
+            </button>
+          </form>
+          <div id="chat-image-preview-container" class="mt-2 hidden">
+            <img id="chat-image-preview" class="max-h-20 rounded-md" />
+            <button
+              onclick="removeChatImage()"
+              class="text-red-500 text-xs ml-2"
+            >
+              Xóa ảnh
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div
+      id="settings-modal"
+      class="fixed inset-0 modal-backdrop flex items-center justify-center p-4 z-50 hidden"
+    >
+      <div class="card rounded-lg w-full max-w-md">
+        <div class="p-6 space-y-4">
+          <h2 class="text-2xl font-bold text-white">Cài đặt API Key Gemini</h2>
+          <p class="text-gray-400">
+            Nhập một hoặc nhiều API key, mỗi key một dòng. Hệ thống sẽ tự động
+            thử key khác nếu có lỗi.
+          </p>
+          <div>
+            <label for="api-keys" class="block mb-1 font-medium"
+              >API Keys</label
+            >
+            <textarea
+              id="api-keys"
+              rows="5"
+              class="form-textarea w-full p-2"
+              placeholder="dán API key của bạn vào đây..."
+            ></textarea>
+          </div>
+          <div class="flex justify-end gap-3">
+            <button
+              type="button"
+              onclick="closeModal('settings-modal')"
+              class="btn btn-secondary px-6 py-2 rounded-md"
+            >
+              Hủy
+            </button>
+            <button
+              type="button"
+              onclick="saveApiKeys()"
+              class="btn btn-primary px-6 py-2 rounded-md"
+            >
+              Lưu
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slot Management Modal -->
+    <div
+      id="slot-management-modal"
+      class="fixed inset-0 modal-backdrop flex items-center justify-center p-4 z-50 hidden"
+    >
+      <div class="card rounded-lg w-full max-w-md">
+        <div class="p-6">
+          <h2 class="text-2xl font-bold text-white mb-4">
+            Quản lý các loại Khe Cắm
+          </h2>
+          <form
+            id="add-slot-form"
+            onsubmit="addSlotType(event)"
+            class="flex gap-2 mb-4"
+          >
+            <input
+              type="text"
+              id="new-slot-name"
+              class="form-input w-full p-2"
+              placeholder="Tên khe cắm mới..."
+              required
+            />
+            <button type="submit" class="btn btn-primary px-4">Thêm</button>
+          </form>
+          <div
+            id="slot-list-container"
+            class="max-h-64 overflow-y-auto space-y-2"
+          >
+            <!-- Slot items will be listed here -->
+          </div>
+          <div class="flex justify-end mt-6">
+            <button
+              type="button"
+              onclick="closeModal('slot-management-modal')"
+              class="btn btn-secondary px-6 py-2"
+            >
+              Đóng
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Confirm Modal -->
+    <div
+      id="confirm-modal"
+      class="fixed inset-0 modal-backdrop flex items-center justify-center p-4 z-50 hidden"
+    >
+      <div class="card rounded-lg w-full max-w-sm text-center">
+        <div class="p-6">
+          <h2 id="confirm-title" class="text-xl font-bold text-white mb-2">
+            Xác nhận hành động
+          </h2>
+          <p id="confirm-message" class="text-gray-400 mb-6">
+            Bạn có chắc chắn muốn tiếp tục?
+          </p>
+          <div class="flex justify-center gap-4">
+            <button
+              id="confirm-cancel-btn"
+              class="btn btn-secondary px-6 py-2 rounded-md"
+            >
+              Hủy
+            </button>
+            <button
+              id="confirm-ok-btn"
+              class="btn btn-danger px-6 py-2 rounded-md"
+            >
+              Xác nhận
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div
+      id="toast"
+      class="fixed bottom-5 right-5 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg transform translate-x-[120%] transition-transform duration-300"
+    >
+      Notification message
+    </div>
+
+    <script>
+      // --- STATE MANAGEMENT ---
+      let weaponData = [];
+      let attachmentData = [];
+      let attachmentSlotTypes = [];
+      let apiKeys = [];
+      let currentApiKeyIndex = 0;
+      let currentEditingWeaponId = null;
+      let currentEditingAttachmentId = null;
+      let selectedWeaponName = null;
+      let chatImageBase64 = null;
+      let confirmCallback = null;
+
+      const STAT_NAMES = [
+        "Sát thương",
+        "Phạm vi",
+        "Kiểm soát",
+        "Thao tác",
+        "Ổn định",
+        "Chính xác",
+      ];
+      const DEFAULT_ATTACHMENT_SLOTS = [
+        "Ống Ngắm",
+        "Tầm Nhìn",
+        "Nòng súng",
+        "Ray Trên",
+        "Ray Phải",
+        "Ray Trái",
+        "Ống Lót Tay",
+        "Tay Cầm",
+        "Báng Súng",
+        "Cầm Sau",
+        "Băng Đạn",
+        "Ống Hãm Nòng",
+      ];
+
+      // --- DOM ELEMENTS ---
+      const weaponListEl = document.getElementById("weapon-list");
+      const weaponDetailViewEl = document.getElementById("weapon-detail-view");
+      const emptyStateEl = document.getElementById("empty-state");
+      const weaponForm = document.getElementById("weapon-form");
+      const modalTitle = document.getElementById("modal-title");
+
+      // --- INITIALIZATION ---
+      document.addEventListener("DOMContentLoaded", () => {
+        loadApiKeys();
+        loadSlotTypes();
+        loadLocalData();
+        renderWeaponList();
+        createStatInputs();
+        createAttachmentStatModifierInputs();
+        setupConfirmModalListeners();
+        populateAttachmentCategoryDatalist();
+
+        // Add paste listener for slot analysis section
+        const slotAnalysisSection = document.getElementById(
+          "slot-analysis-section"
+        );
+        slotAnalysisSection.addEventListener("paste", handleWeaponSlotPaste);
+      });
+
+      // --- RENDERING FUNCTIONS ---
+      function createStatInputs() {
+        const container = document.getElementById("stat-inputs");
+        container.innerHTML = STAT_NAMES.map((stat) => {
+          const id = "stat-" + stat.toLowerCase().replace(/\s/g, "-");
+          return `
+                    <div>
+                        <label for="${id}" class="block mb-1 font-medium">${stat}</label>
+                        <input type="range" id="${id}" min="0" max="100" value="50" class="w-full" oninput="this.nextElementSibling.textContent = this.value">
+                        <span class="text-sm text-gray-400">50</span>
+                    </div>
+                `;
+        }).join("");
+      }
+
+      function createAttachmentStatModifierInputs() {
+        const container = document.getElementById("attachment-stat-modifiers");
+        container.innerHTML = STAT_NAMES.map((stat) => {
+          const id = "mod-" + stat.toLowerCase().replace(/\s/g, "-");
+          return `
+                    <div class="grid grid-cols-3 items-center gap-2">
+                         <label for="${id}" class="col-span-1 text-sm">${stat}</label>
+                         <input type="number" id="${id}" class="form-input w-full p-1 col-span-2" placeholder="0">
+                    </div>
+                 `;
+        }).join("");
+      }
+
+      function populateAttachmentCategoryDatalist() {
+        const datalist = document.getElementById(
+          "attachment-categories-datalist"
+        );
+        datalist.innerHTML = attachmentSlotTypes
+          .map((slot) => `<option value="${slot}">`)
+          .join("");
+      }
+
+      function populateUnlockableSlots(checkedSlots = []) {
+        const container = document.getElementById("attachment-unlocks-list");
+        container.innerHTML = attachmentSlotTypes
+          .map(
+            (slot) => `
+                <label class="flex items-center gap-2 p-1 rounded hover:bg-gray-700 cursor-pointer text-sm">
+                    <input type="checkbox" value="${slot}" name="unlocks-slot" class="form-input bg-gray-600" ${
+              checkedSlots.includes(slot) ? "checked" : ""
+            }>
+                    <span>${slot}</span>
+                </label>
+            `
+          )
+          .join("");
+      }
+
+      function renderWeaponList() {
+        weaponData.sort((a, b) => a.tenSung.localeCompare(b.tenSung));
+        if (weaponData.length === 0) {
+          weaponListEl.innerHTML =
+            '<p class="text-gray-500 text-center">Chưa có vũ khí nào.</p>';
+        } else {
+          weaponListEl.innerHTML = weaponData
+            .map(
+              (weapon) => `
+                    <div 
+                        class="card p-3 rounded-md cursor-pointer hover:bg-gray-700 hover:border-blue-500 transition-colors duration-200 ${
+                          selectedWeaponName === weapon.tenSung
+                            ? "border-blue-500 bg-gray-700"
+                            : ""
+                        }"
+                        onclick="selectWeapon('${weapon.tenSung}')"
+                    >
+                        <span class="font-semibold text-white">${
+                          weapon.tenSung
+                        }</span>
+                    </div>
+                `
+            )
+            .join("");
+        }
+      }
+
+      function renderWeaponDetails(weapon) {
+        if (!weapon) {
+          weaponDetailViewEl.classList.add("hidden");
+          emptyStateEl.classList.remove("hidden");
+          return;
+        }
+
+        weapon.equippedAttachments = weapon.equippedAttachments || {};
+        weapon.availableAttachments = weapon.availableAttachments || [];
+        weapon.attachmentSlots = weapon.attachmentSlots || [];
+
+        const finalStats = {};
+        STAT_NAMES.forEach(
+          (stat) => (finalStats[stat] = parseInt(weapon.stats[stat] || 0))
+        );
+
+        const modifiers = {};
+        Object.values(weapon.equippedAttachments).forEach((attachmentId) => {
+          const attachment = attachmentData.find((a) => a.id === attachmentId);
+          if (attachment) {
+            for (const [stat, value] of Object.entries(attachment.modifiers)) {
+              modifiers[stat] = (modifiers[stat] || 0) + value;
+            }
+          }
+        });
+
+        for (const [stat, modValue] of Object.entries(modifiers)) {
+          const baseValue = parseInt(weapon.stats[stat] || 0);
+          finalStats[stat] = Math.max(0, Math.min(100, baseValue + modValue));
+        }
+
+        const statsHtml = STAT_NAMES.map((stat) => {
+          const base = parseInt(weapon.stats[stat] || 0);
+          const final = finalStats[stat];
+          const modifier = final - base;
+
+          let modifierHtml = "";
+          if (modifier !== 0) {
+            modifierHtml = `<span class="${
+              modifier > 0 ? "text-green-400" : "text-red-400"
+            }"> (${modifier > 0 ? "+" : ""}${modifier})</span>`;
+          }
+
+          let modifierBarHtml = "";
+          if (modifier > 0) {
+            modifierBarHtml = `<div class="stat-bar-modifier stat-bar-positive" style="left: ${base}%; width: ${modifier}%"></div>`;
+          } else if (modifier < 0) {
+            modifierBarHtml = `<div class="stat-bar-modifier stat-bar-negative" style="left: ${final}%; width: ${-modifier}%"></div>`;
+          }
+
+          return `
+                <div class="mb-3">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-medium">${stat}</span>
+                        <span class="text-sm font-semibold text-white">${base}${modifierHtml} = <span class="text-blue-300 font-bold">${final}</span></span>
+                    </div>
+                    <div class="stat-bar w-full h-2">
+                        <div class="stat-bar-fill h-full" style="width: ${base}%"></div>
+                        ${modifierBarHtml}
+                    </div>
+                </div>`;
+        }).join("");
+
+        // --- Calculate effective slots ---
+        const baseSlots = [...(weapon.attachmentSlots || [])];
+        const unlockedSlots = [];
+        Object.values(weapon.equippedAttachments).forEach((attachmentId) => {
+          const attachment = attachmentData.find((a) => a.id === attachmentId);
+          if (attachment && attachment.unlocksSlots) {
+            unlockedSlots.push(...attachment.unlocksSlots);
+          }
+        });
+        const effectiveSlots = [
+          ...new Set([...baseSlots, ...unlockedSlots]),
+        ].sort(
+          (a, b) =>
+            attachmentSlotTypes.indexOf(a) - attachmentSlotTypes.indexOf(b)
+        );
+
+        const attachmentsHtml = effectiveSlots
+          .map((slotName) => {
+            const availableForSlot = weapon.availableAttachments
+              .map((attId) => attachmentData.find((a) => a.id === attId))
+              .filter((a) => a && a.category === slotName);
+
+            const isBaseSlot = baseSlots.includes(slotName);
+
+            if (!isBaseSlot && !unlockedSlots.includes(slotName)) {
+              return ""; // Should not happen with the effectiveSlots logic, but as a safeguard
+            }
+
+            const equippedId = weapon.equippedAttachments[slotName];
+
+            const options = availableForSlot
+              .map(
+                (att) =>
+                  `<option value="${att.id}" ${
+                    att.id === equippedId ? "selected" : ""
+                  }>${att.name}</option>`
+              )
+              .join("");
+
+            return `
+                    <div>
+                        <label class="block mb-1 font-medium ${
+                          isBaseSlot ? "" : "text-cyan-400"
+                        }">
+                            ${slotName} ${isBaseSlot ? "" : "(Mở khóa)"}
+                        </label>
+                        <select class="form-select w-full ${
+                          availableForSlot.length === 0 ? "text-gray-400" : ""
+                        }" onchange="equipAttachment('${
+              weapon.tenSung
+            }', '${slotName}', this.value)" ${
+              availableForSlot.length === 0 ? "disabled" : ""
+            }>
+                            <option value="">${
+                              availableForSlot.length === 0
+                                ? "Không có phụ kiện"
+                                : "Không trang bị"
+                            }</option>
+                            ${options}
+                        </select>
+                    </div>
+                `;
+          })
+          .join("");
+
+        weaponDetailViewEl.innerHTML = `
+                <div class="flex flex-col md:flex-row gap-6 items-start">
+                    <img src="${
+                      weapon.anhSung ||
+                      "https://placehold.co/400x200/1f2937/d1d5db?text=No+Image"
+                    }" alt="${
+          weapon.tenSung
+        }" class="w-full md:w-1/3 h-auto object-cover rounded-lg border border-gray-600">
+                    <div class="flex-1">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-3xl font-bold text-white">${
+                              weapon.tenSung
+                            }</h2>
+                            <div class="flex gap-2">
+                                <button onclick="openEditWeaponModal('${
+                                  weapon.tenSung
+                                }')" class="btn btn-secondary px-4 py-2 rounded-md">Sửa</button>
+                                <button onclick="deleteWeapon('${
+                                  weapon.tenSung
+                                }')" class="btn btn-danger px-4 py-2 rounded-md">Xóa</button>
+                            </div>
+                        </div>
+                         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center mb-6">
+                            <div class="card p-3 rounded-md">
+                                <p class="text-xs text-gray-400">Tốc Độ Bắn</p>
+                                <p class="text-lg font-semibold text-white">${
+                                  weapon.tocDoBan || "N/A"
+                                } RPM</p>
+                            </div>
+                            <div class="card p-3 rounded-md">
+                                <p class="text-xs text-gray-400">Băng Đạn</p>
+                                <p class="text-lg font-semibold text-white">${
+                                  weapon.bangDan || "N/A"
+                                } viên</p>
+                            </div>
+                            <div class="card p-3 rounded-md">
+                                <p class="text-xs text-gray-400">Chế Độ Bắn</p>
+                                <p class="text-lg font-semibold text-white">${
+                                  weapon.cheDoBan || "N/A"
+                                }</p>
+                            </div>
+                             <div class="card p-3 rounded-md">
+                                <p class="text-xs text-gray-400">Sơ Tốc</p>
+                                <p class="text-lg font-semibold text-white">${
+                                  weapon.soTocDauNong || "N/A"
+                                } m/s</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-6">
+                    <div>
+                        <h3 class="text-xl font-semibold text-white mb-4">Thông Số Chi Tiết</h3>
+                        ${statsHtml}
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-semibold text-white mb-4">Trang Bị Phụ Kiện</h3>
+                        <div class="space-y-4">
+                            ${
+                              effectiveSlots.length > 0
+                                ? attachmentsHtml
+                                : '<p class="text-gray-500">Súng này không có khe gắn phụ kiện nào được định nghĩa.</p>'
+                            }
+                        </div>
+                    </div>
+                </div>
+            `;
+        weaponDetailViewEl.classList.remove("hidden");
+        emptyStateEl.classList.add("hidden");
+      }
+
+      function renderAttachmentList() {
+        attachmentData.sort((a, b) => a.name.localeCompare(b.name));
+        const container = document.getElementById("attachment-list-container");
+        if (attachmentData.length === 0) {
+          container.innerHTML =
+            '<p class="text-gray-500 text-center">Chưa có phụ kiện nào.</p>';
+          return;
+        }
+        container.innerHTML = attachmentData
+          .map(
+            (att) => `
+                 <div class="card p-3 rounded-md mb-2">
+                    <div class="flex items-start gap-3">
+                        <img src="${
+                          att.imageUrl ||
+                          "https://placehold.co/64x64/1f2937/d1d5db?text=No+Img"
+                        }" alt="${
+              att.name
+            }" class="w-16 h-16 object-cover rounded-md">
+                        <div class="flex-1">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <p class="font-semibold text-white">${
+                                      att.name
+                                    }</p>
+                                    <p class="text-sm text-gray-400">${
+                                      att.category
+                                    }</p>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button onclick="editAttachment('${
+                                      att.id
+                                    }')" class="btn btn-secondary p-2 rounded-md">Sửa</button>
+                                    <button onclick="deleteAttachment('${
+                                      att.id
+                                    }')" class="btn btn-danger p-2 rounded-md">Xóa</button>
+                                </div>
+                            </div>
+                            <div class="text-xs mt-2">
+                                <p class="truncate">
+                                ${Object.entries(att.modifiers)
+                                  .filter(([, val]) => val != 0)
+                                  .map(
+                                    ([key, val]) =>
+                                      `<span class="mr-2">${key}: <span class="${
+                                        val > 0
+                                          ? "text-green-400"
+                                          : "text-red-400"
+                                      }">${
+                                        val > 0 ? "+" : ""
+                                      }${val}</span></span>`
+                                  )
+                                  .join("")}
+                                </p>
+                                ${
+                                  att.unlocksSlots &&
+                                  att.unlocksSlots.length > 0
+                                    ? `<p class="text-cyan-400 mt-1">Mở khóa: ${att.unlocksSlots.join(
+                                        ", "
+                                      )}</p>`
+                                    : ""
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `
+          )
+          .join("");
+      }
+
+      // --- DATA MANAGEMENT ---
+      function saveDataToFile() {
+        const dataToSave = {
+          weapons: weaponData,
+          attachments: attachmentData,
+          slots: attachmentSlotTypes,
+        };
+        if (
+          dataToSave.weapons.length === 0 &&
+          dataToSave.attachments.length === 0
+        ) {
+          showToast("Không có dữ liệu để lưu.", "error");
+          return;
+        }
+        const dataStr = JSON.stringify(dataToSave, null, 2);
+        const dataBlob = new Blob([dataStr], {
+          type: "text/plain;charset=utf-8",
+        });
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", "deltaforce_gunsmith_data.txt");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showToast("Đã lưu dữ liệu thành công!");
+      }
+
+      function loadDataFromFile(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          try {
+            const data = JSON.parse(e.target.result);
+            if (typeof data === "object" && data !== null) {
+              weaponData = data.weapons || [];
+              attachmentData = data.attachments || [];
+              attachmentSlotTypes = data.slots || DEFAULT_ATTACHMENT_SLOTS;
+              saveLocalData();
+              saveSlotTypes();
+              renderWeaponList();
+              renderAttachmentList();
+              populateAttachmentCategoryDatalist();
+              showToast("Tải dữ liệu thành công!");
+              selectedWeaponName = null;
+              renderWeaponDetails(null);
+            } else {
+              throw new Error("Invalid data format.");
+            }
+          } catch (error) {
+            showToast("Lỗi: File dữ liệu không hợp lệ.", "error");
+            console.error("Error parsing file:", error);
+          }
+        };
+        reader.readAsText(file);
+        event.target.value = ""; // Reset file input
+      }
+
+      function saveLocalData() {
+        localStorage.setItem("weaponData", JSON.stringify(weaponData));
+        localStorage.setItem("attachmentData", JSON.stringify(attachmentData));
+      }
+
+      function loadLocalData() {
+        const weapons = localStorage.getItem("weaponData");
+        if (weapons) weaponData = JSON.parse(weapons);
+        const attachments = localStorage.getItem("attachmentData");
+        if (attachments) attachmentData = JSON.parse(attachments);
+      }
+
+      function saveSlotTypes() {
+        localStorage.setItem(
+          "attachmentSlotTypes",
+          JSON.stringify(attachmentSlotTypes)
+        );
+      }
+
+      function loadSlotTypes() {
+        const slots = localStorage.getItem("attachmentSlotTypes");
+        if (slots) {
+          attachmentSlotTypes = JSON.parse(slots);
+        } else {
+          attachmentSlotTypes = [...DEFAULT_ATTACHMENT_SLOTS];
+        }
+      }
+
+      // --- WEAPON ACTIONS ---
+      function selectWeapon(name) {
+        selectedWeaponName = name;
+        const weapon = weaponData.find((w) => w.tenSung === name);
+        renderWeaponDetails(weapon);
+        renderWeaponList();
+      }
+
+      function handleWeaponFormSubmit(event) {
+        event.preventDefault();
+
+        const tenSungInput = document.getElementById("tenSung");
+        const newName = tenSungInput.value.trim();
+
+        const availableAttachments = Array.from(
+          document.querySelectorAll(
+            '#available-attachments-list input[type="checkbox"]:checked'
+          )
+        ).map((cb) => cb.value);
+        const attachmentSlots = Array.from(
+          document.querySelectorAll(
+            '#weapon-slots-list input[type="checkbox"]:checked'
+          )
+        ).map((cb) => cb.value);
+
+        const newWeaponObject = {
+          tenSung: newName,
+          tocDoBan: Number(document.getElementById("tocDoBan").value) || null,
+          bangDan: Number(document.getElementById("bangDan").value) || null,
+          cheDoBan: document.getElementById("cheDoBan").value,
+          soTocDauNong:
+            Number(document.getElementById("soTocDauNong").value) || null,
+          anhSung: document.getElementById("anhSung").value,
+          stats: STAT_NAMES.reduce((acc, stat) => {
+            const id = "stat-" + stat.toLowerCase().replace(/\s/g, "-");
+            acc[stat] = Number(document.getElementById(id).value);
+            return acc;
+          }, {}),
+          attachmentSlots: attachmentSlots,
+          availableAttachments: availableAttachments,
+        };
+
+        if (currentEditingWeaponId) {
+          const index = weaponData.findIndex(
+            (w) => w.id === currentEditingWeaponId
+          );
+          weaponData[index] = { ...weaponData[index], ...newWeaponObject };
+          showToast("Cập nhật súng thành công!");
+          saveAndRenderAll(newName);
+          closeModal("add-edit-weapon-modal");
+          return;
+        }
+
+        const existingWeapon = weaponData.find(
+          (w) => w.tenSung.toLowerCase() === newName.toLowerCase()
+        );
+
+        if (existingWeapon) {
+          const comparableNew = { ...newWeaponObject };
+          const comparableOld = (({ id, equippedAttachments, ...rest }) =>
+            rest)(existingWeapon);
+
+          if (
+            JSON.stringify(normalizeForComparison(comparableNew)) !==
+            JSON.stringify(normalizeForComparison(comparableOld))
+          ) {
+            showConfirmModal(
+              "Cập nhật vũ khí?",
+              `Vũ khí "${newName}" đã tồn tại. Bạn có muốn cập nhật thông tin của nó không?`,
+              () => {
+                const index = weaponData.findIndex(
+                  (w) => w.id === existingWeapon.id
+                );
+                weaponData[index] = { ...existingWeapon, ...newWeaponObject };
+                showToast(`Đã cập nhật vũ khí "${newName}".`);
+                saveAndRenderAll(newName);
+                closeModal("add-edit-weapon-modal");
+              },
+              "btn-primary"
+            );
+          } else {
+            showToast(
+              `Vũ khí "${newName}" đã tồn tại với thông tin không đổi.`,
+              "info"
+            );
+          }
+        } else {
+          const finalWeapon = {
+            ...newWeaponObject,
+            id: Date.now().toString(),
+            equippedAttachments: {},
+          };
+          weaponData.push(finalWeapon);
+          showToast("Thêm súng mới thành công!");
+          saveAndRenderAll(newName);
+          closeModal("add-edit-weapon-modal");
+        }
+      }
+
+      function deleteWeapon(name) {
+        showConfirmModal(
+          "Xác nhận xóa",
+          `Bạn có chắc muốn xóa súng "${name}" không?`,
+          () => {
+            weaponData = weaponData.filter((w) => w.tenSung !== name);
+            if (selectedWeaponName === name) {
+              selectedWeaponName = null;
+              renderWeaponDetails(null);
+            }
+            saveLocalData();
+            renderWeaponList();
+            showToast(`Đã xóa súng "${name}".`);
+          }
+        );
+      }
+
+      function equipAttachment(weaponName, category, attachmentId) {
+        const weaponIndex = weaponData.findIndex(
+          (w) => w.tenSung === weaponName
+        );
+        if (weaponIndex === -1) return;
+
+        if (!attachmentId) {
+          delete weaponData[weaponIndex].equippedAttachments[category];
+        } else {
+          weaponData[weaponIndex].equippedAttachments[category] = attachmentId;
+        }
+
+        saveLocalData();
+        renderWeaponDetails(weaponData[weaponIndex]);
+      }
+
+      // --- MODAL CONTROLS ---
+      function openAddWeaponModal() {
+        currentEditingWeaponId = null;
+        document.getElementById("modal-title").textContent = "Thêm Vũ Khí Mới";
+        weaponForm.reset();
+        STAT_NAMES.forEach((stat) => {
+          const id = "stat-" + stat.toLowerCase().replace(/\s/g, "-");
+          const slider = document.getElementById(id);
+          slider.value = 50;
+          slider.nextElementSibling.textContent = "50";
+        });
+        document.getElementById("tenSung").disabled = false;
+        populateWeaponSlots();
+        filterAvailableAttachments();
+        document
+          .getElementById("add-edit-weapon-modal")
+          .classList.remove("hidden");
+      }
+
+      function openEditWeaponModal(name) {
+        const weapon = weaponData.find((w) => w.tenSung === name);
+        if (!weapon) return;
+
+        currentEditingWeaponId = weapon.id;
+        document.getElementById(
+          "modal-title"
+        ).textContent = `Chỉnh sửa: ${weapon.tenSung}`;
+
+        document.getElementById("weapon-id").value = weapon.id;
+        document.getElementById("tenSung").value = weapon.tenSung;
+        document.getElementById("tenSung").disabled = true;
+        document.getElementById("tocDoBan").value = weapon.tocDoBan;
+        document.getElementById("bangDan").value = weapon.bangDan;
+        document.getElementById("cheDoBan").value = weapon.cheDoBan;
+        document.getElementById("soTocDauNong").value = weapon.soTocDauNong;
+        document.getElementById("anhSung").value = weapon.anhSung;
+
+        Object.entries(weapon.stats).forEach(([statName, value]) => {
+          const id = "stat-" + statName.toLowerCase().replace(/\s/g, "-");
+          const slider = document.getElementById(id);
+          if (slider) {
+            slider.value = value;
+            slider.nextElementSibling.textContent = value;
+          }
+        });
+
+        populateWeaponSlots(weapon.attachmentSlots || []);
+        filterAvailableAttachments(weapon.availableAttachments || []);
+        document
+          .getElementById("add-edit-weapon-modal")
+          .classList.remove("hidden");
+      }
+
+      function filterAvailableAttachments(checkedIds = []) {
+        const activeSlots = [];
+        document
+          .querySelectorAll('#weapon-slots-list input[type="checkbox"]:checked')
+          .forEach((checkbox) => {
+            activeSlots.push(checkbox.value);
+          });
+        populateAvailableAttachments(checkedIds, activeSlots);
+      }
+
+      function populateAvailableAttachments(checkedIds = [], activeSlots = []) {
+        const container = document.getElementById("available-attachments-list");
+
+        if (activeSlots.length === 0) {
+          container.innerHTML =
+            '<p class="text-gray-500 text-center px-4">Hãy chọn ít nhất một "Khe Gắn Phụ Kiện" để xem các phụ kiện tương thích.</p>';
+          return;
+        }
+
+        const filteredAttachments = attachmentData.filter((att) =>
+          activeSlots.includes(att.category)
+        );
+
+        if (filteredAttachments.length === 0) {
+          container.innerHTML =
+            '<p class="text-gray-500 text-center px-4">Không tìm thấy phụ kiện nào phù hợp với các khe đã chọn.</p>';
+          return;
+        }
+
+        container.innerHTML = filteredAttachments
+          .map(
+            (att) => `
+                <label class="flex items-center gap-2 p-2 rounded hover:bg-gray-700 cursor-pointer">
+                    <input type="checkbox" value="${
+                      att.id
+                    }" class="form-input bg-gray-600" ${
+              checkedIds.includes(att.id) ? "checked" : ""
+            }>
+                    <span>${att.name} <span class="text-xs text-gray-400">(${
+              att.category
+            })</span></span>
+                </label>
+            `
+          )
+          .join("");
+      }
+
+      function populateWeaponSlots(checkedSlots = []) {
+        const container = document.getElementById("weapon-slots-list");
+        container.innerHTML = attachmentSlotTypes
+          .map(
+            (slot) => `
+                <label class="flex items-center gap-2 p-1 rounded hover:bg-gray-700 cursor-pointer text-sm">
+                    <input type="checkbox" value="${slot}" name="weapon-slot" class="form-input bg-gray-600" onchange="filterAvailableAttachments()" ${
+              checkedSlots.includes(slot) ? "checked" : ""
+            }>
+                    <span>${slot}</span>
+                </label>
+            `
+          )
+          .join("");
+      }
+
+      function openAttachmentModal() {
+        renderAttachmentList();
+        resetAttachmentForm();
+        populateUnlockableSlots();
+        document.getElementById("attachment-modal").classList.remove("hidden");
+      }
+
+      function openAiChatModal() {
+        document.getElementById("ai-chat-modal").classList.remove("hidden");
+      }
+
+      function openSettingsModal() {
+        document.getElementById("api-keys").value = apiKeys.join("\n");
+        document.getElementById("settings-modal").classList.remove("hidden");
+      }
+
+      function closeModal(modalId) {
+        document.getElementById(modalId).classList.add("hidden");
+      }
+
+      function showConfirmModal(
+        title,
+        message,
+        onConfirm,
+        okButtonClass = "btn-danger"
+      ) {
+        document.getElementById("confirm-title").textContent = title;
+        document.getElementById("confirm-message").textContent = message;
+        const okBtn = document.getElementById("confirm-ok-btn");
+        okBtn.className = "btn px-6 py-2 rounded-md";
+        okBtn.classList.add(okButtonClass);
+
+        confirmCallback = onConfirm;
+        document.getElementById("confirm-modal").classList.remove("hidden");
+      }
+
+      function setupConfirmModalListeners() {
+        document.getElementById("confirm-cancel-btn").onclick = () => {
+          closeModal("confirm-modal");
+          confirmCallback = null;
+        };
+        document.getElementById("confirm-ok-btn").onclick = () => {
+          if (confirmCallback) {
+            confirmCallback();
+          }
+          closeModal("confirm-modal");
+          confirmCallback = null;
+        };
+      }
+
+      // --- ATTACHMENT ACTIONS ---
+      function handleAttachmentFormSubmit(event) {
+        event.preventDefault();
+        const newName = document.getElementById("attachment-name").value.trim();
+        const modifiers = STAT_NAMES.reduce((acc, stat) => {
+          const id = "mod-" + stat.toLowerCase().replace(/\s/g, "-");
+          const value = parseInt(document.getElementById(id).value, 10);
+          if (!isNaN(value) && value !== 0) acc[stat] = value;
+          return acc;
+        }, {});
+        const unlocksSlots = Array.from(
+          document.querySelectorAll(
+            '#attachment-unlocks-list input[type="checkbox"]:checked'
+          )
+        ).map((cb) => cb.value);
+
+        const newAttachmentObject = {
+          name: newName,
+          category: document.getElementById("attachment-category").value.trim(),
+          imageUrl: document.getElementById("attachment-image").value.trim(),
+          modifiers: modifiers,
+          unlocksSlots: unlocksSlots,
+        };
+
+        if (!attachmentSlotTypes.includes(newAttachmentObject.category)) {
+          showToast(
+            `Loại phụ kiện "${newAttachmentObject.category}" không hợp lệ.`,
+            "error"
+          );
+          return;
+        }
+
+        if (currentEditingAttachmentId) {
+          const index = attachmentData.findIndex(
+            (a) => a.id === currentEditingAttachmentId
+          );
+          attachmentData[index] = {
+            ...attachmentData[index],
+            ...newAttachmentObject,
+          };
+          showToast("Cập nhật phụ kiện thành công!");
+          saveLocalData();
+          renderAttachmentList();
+          resetAttachmentForm();
+          return;
+        }
+
+        const existingAttachment = attachmentData.find(
+          (a) => a.name.toLowerCase() === newName.toLowerCase()
+        );
+        if (existingAttachment) {
+          const comparableNew = { ...newAttachmentObject };
+          const comparableOld = (({ id, ...rest }) => rest)(existingAttachment);
+
+          if (
+            JSON.stringify(normalizeForComparison(comparableNew)) !==
+            JSON.stringify(normalizeForComparison(comparableOld))
+          ) {
+            showConfirmModal(
+              "Cập nhật phụ kiện?",
+              `Phụ kiện "${newName}" đã tồn tại. Bạn có muốn cập nhật thông tin của nó không?`,
+              () => {
+                const index = attachmentData.findIndex(
+                  (a) => a.id === existingAttachment.id
+                );
+                attachmentData[index] = {
+                  ...existingAttachment,
+                  ...newAttachmentObject,
+                };
+                showToast(`Đã cập nhật phụ kiện "${newName}".`);
+                saveLocalData();
+                renderAttachmentList();
+                resetAttachmentForm();
+              },
+              "btn-primary"
+            );
+          } else {
+            showToast(
+              `Phụ kiện "${newName}" đã tồn tại với thông tin không đổi.`,
+              "info"
+            );
+          }
+        } else {
+          const finalAttachment = {
+            ...newAttachmentObject,
+            id: Date.now().toString(),
+          };
+          attachmentData.push(finalAttachment);
+          showToast("Thêm phụ kiện mới thành công!");
+          saveLocalData();
+          renderAttachmentList();
+          resetAttachmentForm();
+        }
+      }
+
+      function editAttachment(id) {
+        const attachment = attachmentData.find((a) => a.id === id);
+        if (!attachment) return;
+
+        currentEditingAttachmentId = id;
+        document.getElementById("attachment-form-title").textContent =
+          "Sửa Phụ Kiện";
+        document.getElementById("attachment-id").value = attachment.id;
+        document.getElementById("attachment-name").value = attachment.name;
+        document.getElementById("attachment-category").value =
+          attachment.category;
+        document.getElementById("attachment-image").value =
+          attachment.imageUrl || "";
+
+        STAT_NAMES.forEach((stat) => {
+          const id = "mod-" + stat.toLowerCase().replace(/\s/g, "-");
+          document.getElementById(id).value = attachment.modifiers[stat] || "";
+        });
+
+        populateUnlockableSlots(attachment.unlocksSlots || []);
+      }
+
+      function deleteAttachment(id) {
+        showConfirmModal(
+          "Xác nhận xóa",
+          `Bạn có chắc muốn xóa phụ kiện này không? Việc này sẽ gỡ nó khỏi tất cả các súng.`,
+          () => {
+            attachmentData = attachmentData.filter((a) => a.id !== id);
+            weaponData.forEach((w) => {
+              w.availableAttachments = w.availableAttachments.filter(
+                (attId) => attId !== id
+              );
+              Object.keys(w.equippedAttachments).forEach((cat) => {
+                if (w.equippedAttachments[cat] === id) {
+                  delete w.equippedAttachments[cat];
+                }
+              });
+            });
+            if (selectedWeaponName) {
+              selectWeapon(selectedWeaponName);
+            }
+            saveLocalData();
+            renderAttachmentList();
+          }
+        );
+      }
+
+      function resetAttachmentForm() {
+        currentEditingAttachmentId = null;
+        document.getElementById("attachment-form").reset();
+        document.getElementById("attachment-form-title").textContent =
+          "Thêm Phụ Kiện Mới";
+        populateUnlockableSlots();
+      }
+
+      // --- SLOT MANAGEMENT ---
+      function openSlotManagementModal() {
+        renderSlotList();
+        document
+          .getElementById("slot-management-modal")
+          .classList.remove("hidden");
+      }
+
+      function renderSlotList() {
+        const container = document.getElementById("slot-list-container");
+        attachmentSlotTypes.sort();
+        container.innerHTML = attachmentSlotTypes
+          .map(
+            (slot) => `
+                <div class="flex justify-between items-center p-2 card rounded">
+                    <span>${slot}</span>
+                    <button onclick="deleteSlotType('${slot}')" class="btn btn-danger p-1 text-xs">Xóa</button>
+                </div>
+            `
+          )
+          .join("");
+      }
+
+      function addSlotType(event) {
+        event.preventDefault();
+        const input = document.getElementById("new-slot-name");
+        const newSlot = input.value.trim();
+        if (newSlot) {
+          if (
+            !attachmentSlotTypes.find(
+              (s) => s.toLowerCase() === newSlot.toLowerCase()
+            )
+          ) {
+            attachmentSlotTypes.push(newSlot);
+            saveSlotTypes();
+            renderSlotList();
+            populateAttachmentCategoryDatalist();
+            input.value = "";
+          } else {
+            showToast(`Khe cắm "${newSlot}" đã tồn tại.`, "info");
+          }
+        } else {
+          showToast("Tên khe cắm không hợp lệ.", "error");
+        }
+      }
+
+      function deleteSlotType(slotToDelete) {
+        showConfirmModal(
+          "Xác nhận xóa Khe cắm",
+          `Bạn có chắc muốn xóa khe "${slotToDelete}"? Thao tác này sẽ xóa tất cả các phụ kiện thuộc loại này.`,
+          () => {
+            attachmentSlotTypes = attachmentSlotTypes.filter(
+              (slot) => slot !== slotToDelete
+            );
+            attachmentData = attachmentData.filter(
+              (att) => att.category !== slotToDelete
+            );
+            if (selectedWeaponName) selectWeapon(selectedWeaponName);
+            saveSlotTypes();
+            saveLocalData();
+            renderSlotList();
+            renderAttachmentList();
+            populateAttachmentCategoryDatalist();
+          }
+        );
+      }
+
+      // --- API & SETTINGS ---
+      function saveApiKeys() {
+        const keysText = document.getElementById("api-keys").value;
+        apiKeys = keysText
+          .split("\n")
+          .map((k) => k.trim())
+          .filter((k) => k);
+        localStorage.setItem("geminiApiKeys", JSON.stringify(apiKeys));
+        currentApiKeyIndex = 0;
+        showToast("Đã lưu API keys!");
+        closeModal("settings-modal");
+      }
+
+      function loadApiKeys() {
+        const storedKeys = localStorage.getItem("geminiApiKeys");
+        if (storedKeys) {
+          apiKeys = JSON.parse(storedKeys);
+        }
+      }
+
+      // --- AI & UTILITIES ---
+      function saveAndRenderAll(weaponNameToSelect) {
+        saveLocalData();
+        renderWeaponList();
+        selectWeapon(weaponNameToSelect);
+      }
+
+      function normalizeForComparison(obj) {
+        if (Array.isArray(obj)) {
+          return obj.slice().sort().map(normalizeForComparison);
+        }
+        if (obj !== null && typeof obj === "object") {
+          return Object.keys(obj)
+            .sort()
+            .reduce((acc, key) => {
+              acc[key] = normalizeForComparison(obj[key]);
+              return acc;
+            }, {});
+        }
+        return obj;
+      }
+
+      async function callGeminiAPI(prompt, base64ImageData = null) {
+        if (apiKeys.length === 0) {
+          showToast("Vui lòng thêm API key trong Cài đặt.", "error");
+          return null;
+        }
+
+        const model = "gemini-2.5-flash-preview-05-20";
+        const maxRetries = apiKeys.length;
+
+        for (let i = 0; i < maxRetries; i++) {
+          const apiKey = apiKeys[currentApiKeyIndex];
+          const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+          const parts = [{ text: prompt }];
+          if (base64ImageData) {
+            parts.push({
+              inlineData: {
+                mimeType: "image/jpeg",
+                data: base64ImageData,
+              },
+            });
+          }
+
+          const payload = { contents: [{ parts }] };
+
+          try {
+            const response = await fetch(apiUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(
+                errorData.error.message ||
+                  `HTTP error! status: ${response.status}`
+              );
+            }
+
+            const result = await response.json();
+            if (result.candidates?.[0]?.content?.parts?.[0]?.text) {
+              return result.candidates[0].content.parts[0].text;
+            }
+            throw new Error("Invalid response structure from API.");
+          } catch (error) {
+            console.error(
+              `API call with key index ${currentApiKeyIndex} failed:`,
+              error
+            );
+            showToast(
+              `Lỗi với API key #${
+                currentApiKeyIndex + 1
+              }. Đang thử key tiếp theo...`,
+              "error"
+            );
+            currentApiKeyIndex = (currentApiKeyIndex + 1) % apiKeys.length;
+          }
+        }
+
+        showToast(
+          "Tất cả các API key đều không hợp lệ hoặc đã xảy ra lỗi.",
+          "error"
+        );
+        return null;
+      }
+
+      async function aiSearchWeaponInfo() {
+        const weaponName = document.getElementById("tenSung").value.trim();
+        if (!weaponName) {
+          showToast("Vui lòng nhập tên súng.", "error");
+          return;
+        }
+
+        const loader = document.getElementById("ai-search-loader");
+        const text = document.getElementById("ai-search-text");
+        loader.classList.remove("hidden");
+        text.classList.add("hidden");
+        document.getElementById("ai-search-btn").disabled = true;
+
+        const prompt = `
+                Provide detailed statistics for the weapon "${weaponName}" from the game "Delta Force: Hawk Ops".
+                Return the response ONLY as a valid JSON object. Do not include any text before or after the JSON.
+                The JSON object must have the following keys: "tenSung", "tocDoBan", "bangDan", "cheDoBan", "soTocDauNong", and a "stats" object.
+                The "stats" object must contain these keys: "Sát thương", "Phạm vi", "Kiểm soát", "Thao tác", "Ổn định", "Chính xác".
+                All stat values must be numbers between 0 and 100.
+                For "tenSung", provide the most accurate and official name.
+                For "tocDoBan" (RPM), "bangDan", and "soTocDauNong" (m/s), provide numeric values.
+                For "cheDoBan", provide a string like "Single, Burst, Auto".
+                If you cannot find the exact weapon, provide the data for the closest real-world equivalent and state it in the name.
+                
+                Example JSON structure:
+                {
+                  "tenSung": "M4A1",
+                  "tocDoBan": 800,
+                  "bangDan": 30,
+                  "cheDoBan": "Single, Auto",
+                  "soTocDauNong": 910,
+                  "stats": {
+                    "Sát thương": 65,
+                    "Phạm vi": 55,
+                    "Kiểm soát": 70,
+                    "Thao tác": 80,
+                    "Ổn định": 75,
+                    "Chính xác": 85
+                  }
+                }
+            `;
+
+        const responseText = await callGeminiAPI(prompt);
+
+        loader.classList.add("hidden");
+        text.classList.remove("hidden");
+        document.getElementById("ai-search-btn").disabled = false;
+
+        if (responseText) {
+          try {
+            const jsonString = responseText
+              .replace(/```json/g, "")
+              .replace(/```/g, "")
+              .trim();
+            const data = JSON.parse(jsonString);
+
+            showConfirmModal(
+              "AI Đề Xuất",
+              `AI đề xuất tên: "${data.tenSung}". Bạn có muốn sử dụng thông tin này không?`,
+              () => {
+                document.getElementById("tenSung").value =
+                  data.tenSung || weaponName;
+                document.getElementById("tocDoBan").value = data.tocDoBan || "";
+                document.getElementById("bangDan").value = data.bangDan || "";
+                document.getElementById("cheDoBan").value = data.cheDoBan || "";
+                document.getElementById("soTocDauNong").value =
+                  data.soTocDauNong || "";
+
+                if (data.stats) {
+                  Object.entries(data.stats).forEach(([statName, value]) => {
+                    const id =
+                      "stat-" + statName.toLowerCase().replace(/\s/g, "-");
+                    const slider = document.getElementById(id);
+                    if (slider) {
+                      slider.value = value;
+                      slider.nextElementSibling.textContent = value;
+                    }
+                  });
+                }
+                showToast("Đã tự động điền thông tin từ AI.");
+              },
+              "btn-primary"
+            );
+          } catch (error) {
+            showToast("Lỗi khi phân tích dữ liệu từ AI.", "error");
+            console.error(
+              "AI response parse error:",
+              error,
+              "Response was:",
+              responseText
+            );
+          }
+        }
+      }
+
+      function handleWeaponStatPaste(event) {
+        // Check if the paste is happening inside the slot analysis section
+        if (
+          document
+            .getElementById("slot-analysis-section")
+            .contains(event.target)
+        ) {
+          return; // Do nothing, let the other paste handler take care of it
+        }
+
+        const items = (event.clipboardData || window.clipboardData).items;
+        let imageFile = null;
+        for (let i = 0; i < items.length; i++) {
+          if (items[i].type.indexOf("image") !== -1) {
+            imageFile = items[i].getAsFile();
+            break;
+          }
+        }
+
+        if (imageFile) {
+          event.preventDefault();
+          showToast("Đã nhận ảnh từ clipboard, đang phân tích thông số...");
+          processWeaponStatAIFile(imageFile);
+        }
+      }
+
+      function handleWeaponSlotPaste(event) {
+        const items = (event.clipboardData || window.clipboardData).items;
+        let imageFile = null;
+        for (let i = 0; i < items.length; i++) {
+          if (items[i].type.indexOf("image") !== -1) {
+            imageFile = items[i].getAsFile();
+            break;
+          }
+        }
+
+        if (imageFile) {
+          event.preventDefault();
+          showToast("Đã nhận ảnh từ clipboard, đang phân tích khe cắm...");
+          processWeaponSlotAIFile(imageFile);
+        }
+      }
+
+      function aiAnalyzeWeaponStatsImage(event) {
+        const file = event.target.files[0];
+        if (file) {
+          processWeaponStatAIFile(file);
+        }
+        event.target.value = "";
+      }
+
+      function aiAnalyzeWeaponSlotsImage(event) {
+        const file = event.target.files[0];
+        if (file) {
+          processWeaponSlotAIFile(file);
+        }
+        event.target.value = "";
+      }
+
+      async function processWeaponStatAIFile(file) {
+        const reader = new FileReader();
+        reader.onload = async function (e) {
+          const base64ImageData = e.target.result.split(",")[1];
+
+          const loader = document.getElementById("weapon-stat-ai-loader");
+          const text = document.getElementById("weapon-stat-ai-text");
+          const btn = document.getElementById("weapon-stat-ai-btn");
+          loader.classList.remove("hidden");
+          text.classList.add("hidden");
+          btn.disabled = true;
+
+          const prompt = `
+                    Analyze the attached screenshot of a weapon from "Delta Force: Hawk Ops".
+                    Extract ONLY the weapon's name and its core statistics.
+                    DO NOT analyze or include attachment slots.
+                    Return the response ONLY as a valid JSON object, with no extra text before or after.
+                    The JSON object must have the following keys: "tenSung", "tocDoBan", "bangDan", "cheDoBan", "soTocDauNong", and a "stats" object.
+                    The "stats" object must contain these keys: "${STAT_NAMES.join(
+                      '", "'
+                    )}".
+                    All stat values under the "stats" object must be numbers between 0 and 100.
+                    If any value is not present in the image, set it to null.
+
+                    Example JSON structure:
+                    {
+                      "tenSung": "SCAR-H Battle Rifle",
+                      "tocDoBan": 625,
+                      "bangDan": 20,
+                      "cheDoBan": "Single, Auto",
+                      "soTocDauNong": 714,
+                      "stats": { "Sát thương": 75, "Phạm vi": 60, "Kiểm soát": 50, "Thao tác": 45, "Ổn định": 55, "Chính xác": 65 }
+                    }
+                `;
+
+          const responseText = await callGeminiAPI(prompt, base64ImageData);
+
+          loader.classList.add("hidden");
+          text.classList.remove("hidden");
+          btn.disabled = false;
+
+          if (responseText) {
+            try {
+              const jsonString = responseText
+                .replace(/```json/g, "")
+                .replace(/```/g, "")
+                .trim();
+              const data = JSON.parse(jsonString);
+
+              document.getElementById("tenSung").value = data.tenSung || "";
+              document.getElementById("tocDoBan").value = data.tocDoBan || "";
+              document.getElementById("bangDan").value = data.bangDan || "";
+              document.getElementById("cheDoBan").value = data.cheDoBan || "";
+              document.getElementById("soTocDauNong").value =
+                data.soTocDauNong || "";
+
+              if (data.stats) {
+                Object.entries(data.stats).forEach(([statName, value]) => {
+                  const correctStatName = STAT_NAMES.find(
+                    (s) => s.toLowerCase() === statName.toLowerCase()
+                  );
+                  if (correctStatName && value !== null) {
+                    const id =
+                      "stat-" +
+                      correctStatName.toLowerCase().replace(/\s/g, "-");
+                    const slider = document.getElementById(id);
+                    if (slider) {
+                      slider.value = value;
+                      slider.nextElementSibling.textContent = value;
+                    }
+                  }
+                });
+              }
+              showToast("Đã phân tích và điền thông số súng từ ảnh.");
+            } catch (error) {
+              showToast("Lỗi khi phân tích thông số súng từ AI.", "error");
+              console.error(
+                "AI weapon stats parse error:",
+                error,
+                "Response was:",
+                responseText
+              );
+            }
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+
+      async function processWeaponSlotAIFile(file) {
+        const reader = new FileReader();
+        reader.onload = async function (e) {
+          const base64ImageData = e.target.result.split(",")[1];
+
+          const loader = document.getElementById("weapon-slot-ai-loader");
+          const text = document.getElementById("weapon-slot-ai-text");
+          const btn = document.getElementById("weapon-slot-ai-btn");
+          loader.classList.remove("hidden");
+          text.classList.add("hidden");
+          btn.disabled = true;
+
+          const prompt = `
+                    Analyze the attached screenshot of a weapon from "Delta Force: Hawk Ops".
+                    Your ONLY task is to identify all available attachment slots shown in the image by name.
+                    Return the response ONLY as a valid JSON object, with no extra text before or after.
+                    The JSON object must have a single key: "attachmentSlots".
+                    The value of "attachmentSlots" must be an array of strings.
+                    Each string must exactly match one of the possible slot names from this list: "${attachmentSlotTypes.join(
+                      '", "'
+                    )}".
+                    Do not include any other information like weapon name or stats.
+
+                    Example JSON structure:
+                    {
+                      "attachmentSlots": ["Ống Ngắm", "Nòng súng", "Ray Trên", "Tay Cầm", "Báng Súng", "Băng Đạn"]
+                    }
+                `;
+
+          const responseText = await callGeminiAPI(prompt, base64ImageData);
+
+          loader.classList.add("hidden");
+          text.classList.remove("hidden");
+          btn.disabled = false;
+
+          if (responseText) {
+            try {
+              const jsonString = responseText
+                .replace(/```json/g, "")
+                .replace(/```/g, "")
+                .trim();
+              const data = JSON.parse(jsonString);
+
+              if (data.attachmentSlots && Array.isArray(data.attachmentSlots)) {
+                const slotCheckboxes = document.querySelectorAll(
+                  '#weapon-slots-list input[type="checkbox"]'
+                );
+                slotCheckboxes.forEach((checkbox) => {
+                  checkbox.checked = data.attachmentSlots.includes(
+                    checkbox.value
+                  );
+                });
+                filterAvailableAttachments(); // Re-filter attachments based on new slots
+                showToast("Đã phân tích và chọn các khe phụ kiện từ ảnh.");
+              } else {
+                throw new Error("Invalid slot data structure.");
+              }
+            } catch (error) {
+              showToast("Lỗi khi phân tích khe phụ kiện từ AI.", "error");
+              console.error(
+                "AI weapon slot parse error:",
+                error,
+                "Response was:",
+                responseText
+              );
+            }
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+
+      function aiAnalyzeAttachmentImage(event) {
+        const file = event.target.files[0];
+        if (file) {
+          processAttachmentAIFile(file);
+        }
+        event.target.value = "";
+      }
+
+      function handleAttachmentPaste(event) {
+        const items = (event.clipboardData || window.clipboardData).items;
+        let imageFile = null;
+        for (let i = 0; i < items.length; i++) {
+          if (items[i].type.indexOf("image") !== -1) {
+            imageFile = items[i].getAsFile();
+            break;
+          }
+        }
+
+        if (imageFile) {
+          event.preventDefault();
+          showToast("Đã nhận ảnh từ clipboard, đang phân tích...");
+          processAttachmentAIFile(imageFile);
+        }
+      }
+
+      async function processAttachmentAIFile(file) {
+        const reader = new FileReader();
+        reader.onload = async function (e) {
+          const base64ImageData = e.target.result.split(",")[1];
+
+          const loader = document.getElementById("attachment-ai-loader");
+          const text = document.getElementById("attachment-ai-text");
+          const btn = document.getElementById("attachment-ai-btn");
+          loader.classList.remove("hidden");
+          text.classList.add("hidden");
+          btn.disabled = true;
+
+          const prompt = `
+                    Analyze the attached image showing a weapon attachment from "Delta Force: Hawk Ops".
+                    Extract the attachment's name, category, its statistical modifiers, AND any new attachment slots it unlocks.
+                    The category must be one of these specific values: ${attachmentSlotTypes.join(
+                      ", "
+                    )}.
+                    The statistical modifiers must be for these stats only: ${STAT_NAMES.join(
+                      ", "
+                    )}.
+                    The unlocked slots must also come from the same list of possible slot names.
+                    Return the response ONLY as a valid JSON object.
+                    The JSON must have "name", "category", a "modifiers" object, and an "unlocksSlots" array. The "unlocksSlots" key should be an array of strings. If it doesn't unlock any, return an empty array [].
+
+                    Example JSON structure:
+                    {
+                      "name": "Nòng Súng Dài SCAR-H - Hải Ly",
+                      "category": "Nòng súng",
+                      "modifiers": { "Phạm vi": 6, "Kiểm soát": 7, "Ổn định": 6, "Thao tác": -10, "Chính xác": -12 },
+                      "unlocksSlots": ["Miếng Bọc Trên", "Miếng Bọc Trái", "Miếng Bọc Phải"]
+                    }
+                `;
+
+          const responseText = await callGeminiAPI(prompt, base64ImageData);
+
+          loader.classList.add("hidden");
+          text.classList.remove("hidden");
+          btn.disabled = false;
+
+          if (responseText) {
+            try {
+              const jsonString = responseText
+                .replace(/```json/g, "")
+                .replace(/```/g, "")
+                .trim();
+              const data = JSON.parse(jsonString);
+
+              if (data.name)
+                document.getElementById("attachment-name").value = data.name;
+              if (data.category)
+                document.getElementById("attachment-category").value =
+                  data.category;
+
+              STAT_NAMES.forEach((stat) => {
+                const id = "mod-" + stat.toLowerCase().replace(/\s/g, "-");
+                document.getElementById(id).value = "";
+              });
+
+              if (data.modifiers) {
+                Object.entries(data.modifiers).forEach(([statName, value]) => {
+                  const correctStatName = STAT_NAMES.find(
+                    (s) => s.toLowerCase() === statName.toLowerCase()
+                  );
+                  if (correctStatName) {
+                    const id =
+                      "mod-" +
+                      correctStatName.toLowerCase().replace(/\s/g, "-");
+                    document.getElementById(id).value = value;
+                  }
+                });
+              }
+
+              if (data.unlocksSlots && Array.isArray(data.unlocksSlots)) {
+                const slotCheckboxes = document.querySelectorAll(
+                  '#attachment-unlocks-list input[type="checkbox"]'
+                );
+                slotCheckboxes.forEach((checkbox) => {
+                  checkbox.checked = data.unlocksSlots.includes(checkbox.value);
+                });
+              }
+
+              showToast("Đã phân tích và điền thông tin từ ảnh.");
+            } catch (error) {
+              showToast("Lỗi khi phân tích dữ liệu từ AI.", "error");
+              console.error(
+                "AI attachment parse error:",
+                error,
+                "Response was:",
+                responseText
+              );
+            }
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+
+      function handleChatImageChange(event) {
+        const file = event.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            chatImageBase64 = e.target.result.split(",")[1];
+            document.getElementById("chat-image-preview").src = e.target.result;
+            document
+              .getElementById("chat-image-preview-container")
+              .classList.remove("hidden");
+            document
+              .getElementById("chat-image-btn")
+              .classList.add("border-blue-500", "border-2");
+          };
+          reader.readAsDataURL(file);
+        }
+      }
+
+      function removeChatImage() {
+        chatImageBase64 = null;
+        document.getElementById("chat-image-upload").value = "";
+        document
+          .getElementById("chat-image-preview-container")
+          .classList.add("hidden");
+        document
+          .getElementById("chat-image-btn")
+          .classList.remove("border-blue-500", "border-2");
+      }
+
+      async function handleAiChatSubmit(event) {
+        event.preventDefault();
+        const inputEl = document.getElementById("chat-input");
+        const userInput = inputEl.value.trim();
+        if (!userInput && !chatImageBase64) return;
+
+        const chatWindow = document.getElementById("chat-window");
+        addChatMessage(
+          userInput,
+          "user",
+          chatImageBase64
+            ? document.getElementById("chat-image-preview").src
+            : null
+        );
+
+        const capturedImageBase64 = chatImageBase64;
+        inputEl.value = "";
+        removeChatImage();
+
+        addChatMessage("...", "ai");
+
+        const prompt = `
+                You are a "Delta Force: Hawk Ops" weapon and attachment analyst.
+                The user has provided the following query and potentially an image.
+                Your task is to analyze the request and provide a concise, helpful response.
+                If the user asks to identify a weapon or stats from an image, analyze it carefully.
+                If they ask for suggestions, give clear recommendations.
+                Keep your answers focused on the game.
+                
+                User query: "${userInput}"
+            `;
+
+        const response = await callGeminiAPI(prompt, capturedImageBase64);
+
+        const thinkingMessage = Array.from(
+          chatWindow.querySelectorAll(".bg-gray-700.p-3.rounded-lg")
+        ).pop();
+        if (thinkingMessage && thinkingMessage.textContent === "...") {
+          thinkingMessage.parentElement.parentElement.remove();
+        }
+
+        if (response) {
+          addChatMessage(response, "ai");
+        } else {
+          addChatMessage(
+            "Xin lỗi, tôi không thể xử lý yêu cầu của bạn lúc này.",
+            "ai"
+          );
+        }
+      }
+
+      function addChatMessage(message, sender, imageUrl = null) {
+        const chatWindow = document.getElementById("chat-window");
+        const messageContainer = document.createElement("div");
+        messageContainer.className = `flex flex-col mb-4 ${
+          sender === "user" ? "items-end" : "items-start"
+        }`;
+
+        let imageHtml = "";
+        if (imageUrl) {
+          imageHtml = `<img src="${imageUrl}" class="max-w-xs rounded-lg mb-2">`;
+        }
+
+        const messageBubble = `
+                <div class="max-w-lg">
+                    ${imageHtml}
+                    <div class="${
+                      sender === "user"
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-700"
+                    } p-3 rounded-lg">
+                        ${message.replace(/\n/g, "<br>")}
+                    </div>
+                </div>`;
+
+        messageContainer.innerHTML = messageBubble;
+        chatWindow.appendChild(messageContainer);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+      }
+
+      function showToast(message, type = "success") {
+        const toast = document.getElementById("toast");
+        toast.textContent = message;
+
+        let bgColor = "bg-green-500";
+        if (type === "error") bgColor = "bg-red-500";
+        if (type === "info") bgColor = "bg-blue-500";
+
+        toast.className = `fixed bottom-5 right-5 text-white px-6 py-3 rounded-lg shadow-lg transform transition-transform duration-300 ${bgColor}`;
+
+        toast.classList.remove("translate-x-[120%]");
+        setTimeout(() => {
+          toast.classList.add("translate-x-[120%]");
+        }, 3000);
+      }
+    </script>
+  </body>
+</html>

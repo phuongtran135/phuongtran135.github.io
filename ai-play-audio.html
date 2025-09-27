@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trình Phát Audio & Ghi Chú</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.7.0/mammoth.browser.min.js"></script>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap");
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        background-color: #0f172a;
+        color: #e2e8f0;
+        font-family: "Inter", sans-serif;
+      }
+      .audio-item:hover {
+        background-color: #334155;
+      }
+
+      /* Custom timeline styles */
+      .timeline-container {
+        height: 8px;
+        background-color: #334155;
+        cursor: pointer;
+        position: relative;
+        border-radius: 9999px;
+      }
+      .timeline-progress {
+        height: 100%;
+        background-color: #a78bfa;
+        position: relative;
+        border-radius: 9999px;
+      }
+      .timeline-progress::after {
+        content: "";
+        position: absolute;
+        right: -6px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 16px;
+        height: 16px;
+        background-color: white;
+        border-radius: 50%;
+        box-shadow: 0 0 10px rgba(167, 139, 250, 0.5);
+        opacity: 0;
+        transition: opacity 0.2s ease;
+      }
+      .timeline-container:hover .timeline-progress::after {
+        opacity: 1;
+      }
+      .seek-tooltip {
+        position: absolute;
+        bottom: 20px;
+        transform: translateX(-50%);
+        background-color: #1e293b;
+        color: white;
+        padding: 5px 10px;
+        border-radius: 5px;
+        font-size: 0.8rem;
+        white-space: nowrap;
+        display: none;
+        pointer-events: none;
+      }
+
+      #loop-btn.active {
+        color: #a78bfa;
+      }
+      .speed-option.active {
+        color: #a78bfa;
+        font-weight: bold;
+      }
+
+      /* Custom Volume Slider */
+      input[type="range"].volume-slider {
+        -webkit-appearance: none;
+        background: transparent;
+        cursor: pointer;
+      }
+      input[type="range"].volume-slider::-webkit-slider-runnable-track {
+        height: 6px;
+        background: #334155;
+        border-radius: 5px;
+      }
+      input[type="range"].volume-slider::-moz-range-track {
+        height: 6px;
+        background: #334155;
+        border-radius: 5px;
+      }
+      input[type="range"].volume-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        margin-top: -5px;
+        height: 16px;
+        width: 16px;
+        border-radius: 50%;
+        background: #e2e8f0;
+      }
+      input[type="range"].volume-slider::-moz-range-thumb {
+        height: 16px;
+        width: 16px;
+        border-radius: 50%;
+        background: #e2e8f0;
+        border: none;
+      }
+
+      /* Custom Doc Editor with Highlights */
+      #doc-editor-container {
+        position: relative;
+        flex-grow: 1;
+        background-color: #1e293b;
+      }
+      #doc-editor,
+      #editor-highlights {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        padding: 1rem 1.5rem;
+        font-size: 1rem;
+        line-height: 1.625;
+        font-family: "Inter", sans-serif;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        border: none;
+        outline: none;
+        resize: none;
+      }
+      #doc-editor {
+        background-color: transparent;
+        color: #cbd5e1;
+        caret-color: #a78bfa;
+        z-index: 10;
+      }
+      #editor-highlights {
+        color: transparent;
+        pointer-events: none;
+      }
+      .highlight-line {
+        background-color: rgba(167, 139, 250, 0.2);
+        border-radius: 4px;
+      }
+
+      /* AI Loading Overlay */
+      #ai-loading-overlay .spinner {
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        border-left-color: #a78bfa;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      /* Toast Notification */
+      #toast {
+        position: fixed;
+        bottom: -100px;
+        right: 20px;
+        padding: 1rem 1.5rem;
+        border-radius: 0.5rem;
+        color: white;
+        font-weight: 600;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        transition: bottom 0.5s ease-in-out;
+        z-index: 100;
+      }
+      #toast.show {
+        bottom: 20px;
+      }
+      #toast.success {
+        background-color: #10b981;
+      }
+      #toast.error {
+        background-color: #ef4444;
+      }
+      #toast.info {
+        background-color: #3b82f6;
+      }
+    </style>
+  </head>
+  <body
+    class="bg-slate-900 flex items-center justify-center p-[30px] box-border"
+  >
+    <div
+      id="app-container"
+      class="w-full h-full bg-slate-800 rounded-2xl shadow-2xl overflow-hidden flex relative"
+    >
+      <!-- Chế độ xem Thư viện (Mặc định) -->
+      <div
+        id="library-view"
+        class="w-full h-full flex items-center justify-center p-4"
+      >
+        <div class="w-full max-w-md p-4 sm:p-6 relative">
+          <button
+            id="open-api-modal-btn"
+            class="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"
+            title="Cài đặt API Key"
+          >
+            <i class="fas fa-cog text-xl"></i>
+          </button>
+          <h1
+            class="text-2xl sm:text-3xl font-bold mb-6 text-violet-400 text-center"
+          >
+            Thư viện Audio
+          </h1>
+          <label
+            for="file-input"
+            class="mb-4 w-full bg-violet-600 hover:bg-violet-700 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 inline-block text-center cursor-pointer"
+          >
+            <i class="fas fa-plus mr-2"></i> Thêm Audio Mới
+          </label>
+          <p class="text-center text-xs text-slate-500 mb-6">
+            Nhấn vào <i class="fas fa-cog"></i> để thêm API Key cho tính năng
+            AI.
+          </p>
+          <input type="file" id="file-input" accept="audio/*" class="hidden" />
+          <div
+            id="audio-list"
+            class="space-y-3 max-h-[60vh] overflow-y-auto pr-2"
+          ></div>
+        </div>
+      </div>
+
+      <!-- Chế độ xem Player & Editor (Bị ẩn ban đầu) -->
+      <div
+        id="player-view"
+        class="hidden w-full h-full flex flex-col lg:flex-row"
+      >
+        <!-- Cột Trái: Player -->
+        <div
+          class="w-full lg:w-[420px] lg:flex-shrink-0 h-auto lg:h-full flex flex-col relative lg:border-r lg:border-slate-700"
+        >
+          <button
+            id="back-to-library-btn"
+            class="absolute top-4 left-4 z-20 bg-black bg-opacity-30 text-white rounded-full w-10 h-10 flex items-center justify-center hover:bg-opacity-50 transition-all"
+          >
+            <i class="fas fa-arrow-left"></i>
+          </button>
+          <div
+            class="aspect-square w-full bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center p-8 relative"
+          >
+            <i class="fas fa-music text-9xl text-violet-500 opacity-50"></i>
+          </div>
+          <audio id="audio-player" class="hidden"></audio>
+          <div
+            class="p-4 sm:p-6 space-y-4 flex-grow flex flex-col justify-center"
+          >
+            <div>
+              <p
+                id="player-track-title"
+                class="text-xl font-bold text-center truncate"
+                title="Track title"
+              ></p>
+            </div>
+            <div class="space-y-2">
+              <div id="timeline" class="timeline-container w-full group">
+                <div class="seek-tooltip" id="seek-tooltip">00:00</div>
+                <div id="timeline-progress" class="timeline-progress"></div>
+              </div>
+              <div
+                class="flex justify-between items-center text-xs font-mono text-slate-400"
+              >
+                <span id="current-time">00:00</span>
+                <span id="duration">00:00</span>
+              </div>
+            </div>
+            <div
+              class="flex items-center justify-center space-x-6 text-3xl sm:text-4xl text-slate-300"
+            >
+              <button
+                id="rewind-btn"
+                class="hover:text-white transition-colors"
+              >
+                <i class="fas fa-backward-step"></i>
+              </button>
+              <button
+                id="play-pause-btn"
+                class="w-16 h-16 sm:w-20 sm:h-20 bg-violet-600 rounded-full flex items-center justify-center hover:bg-violet-500 transition-transform transform hover:scale-110 text-4xl shadow-lg"
+              >
+                <i id="play-pause-icon" class="fas fa-play"></i>
+              </button>
+              <button
+                id="forward-btn"
+                class="hover:text-white transition-colors"
+              >
+                <i class="fas fa-forward-step"></i>
+              </button>
+            </div>
+            <div
+              class="flex items-center justify-between text-slate-400 pt-2 text-lg"
+            >
+              <div class="w-1/3 flex items-center gap-2 sm:gap-4 group">
+                <button id="volume-btn">
+                  <i id="volume-icon" class="fas fa-volume-high"></i>
+                </button>
+                <div
+                  class="flex-grow flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <input
+                    type="range"
+                    id="volume-slider"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    class="volume-slider w-full"
+                  />
+                  <span
+                    id="volume-percentage"
+                    class="text-xs w-10 text-center font-mono"
+                    >100%</span
+                  >
+                </div>
+              </div>
+              <div class="w-1/3 flex justify-center items-center">
+                <button id="loop-btn"><i class="fas fa-repeat"></i></button>
+              </div>
+              <div class="w-1/3 text-right relative" id="speed-control">
+                <button
+                  id="speed-btn"
+                  class="font-mono text-slate-400 hover:text-white transition-colors w-16 text-center"
+                >
+                  1.0x
+                </button>
+                <div
+                  id="speed-options"
+                  class="absolute bottom-full right-0 mb-2 w-24 bg-slate-700 rounded-md shadow-lg hidden flex-col-reverse overflow-hidden z-20"
+                >
+                  <button
+                    class="speed-option w-full text-center py-2 px-4 hover:bg-slate-600 transition-colors"
+                    data-speed="0.5"
+                  >
+                    0.5x
+                  </button>
+                  <button
+                    class="speed-option w-full text-center py-2 px-4 hover:bg-slate-600 transition-colors"
+                    data-speed="0.75"
+                  >
+                    0.75x
+                  </button>
+                  <button
+                    class="speed-option w-full text-center py-2 px-4 hover:bg-slate-600 transition-colors active"
+                    data-speed="1.0"
+                  >
+                    1.0x
+                  </button>
+                  <button
+                    class="speed-option w-full text-center py-2 px-4 hover:bg-slate-600 transition-colors"
+                    data-speed="1.25"
+                  >
+                    1.25x
+                  </button>
+                  <button
+                    class="speed-option w-full text-center py-2 px-4 hover:bg-slate-600 transition-colors"
+                    data-speed="1.5"
+                  >
+                    1.5x
+                  </button>
+                  <button
+                    class="speed-option w-full text-center py-2 px-4 hover:bg-slate-600 transition-colors"
+                    data-speed="2.0"
+                  >
+                    2.0x
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cột Phải: Editor -->
+        <div class="w-full lg:flex-grow h-full flex flex-col">
+          <div
+            class="p-2 sm:p-4 bg-slate-900/50 border-b border-slate-700 flex justify-between items-center gap-2 flex-wrap"
+          >
+            <h2 class="text-lg font-bold text-slate-300">Ghi chú</h2>
+            <div class="flex items-center gap-2">
+              <button
+                id="undo-btn"
+                title="Hoàn tác"
+                class="bg-slate-600 hover:bg-slate-700 text-white font-bold py-1 px-3 rounded-lg text-sm disabled:opacity-50"
+                disabled
+              >
+                <i class="fas fa-undo"></i>
+              </button>
+              <button
+                id="redo-btn"
+                title="Làm lại"
+                class="bg-slate-600 hover:bg-slate-700 text-white font-bold py-1 px-3 rounded-lg text-sm disabled:opacity-50"
+                disabled
+              >
+                <i class="fas fa-redo"></i>
+              </button>
+              <button
+                id="copy-note-btn"
+                title="Copy toàn bộ"
+                class="bg-slate-600 hover:bg-slate-700 text-white font-bold py-1 px-3 rounded-lg text-sm"
+              >
+                <i class="fas fa-copy"></i>
+              </button>
+              <button
+                id="clear-note-btn"
+                title="Xóa toàn bộ"
+                class="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded-lg text-sm"
+              >
+                <i class="fas fa-trash"></i>
+              </button>
+              <button
+                id="ai-sync-btn"
+                title="Đồng bộ Audio & Văn bản bằng AI"
+                class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-1 px-3 rounded-lg text-sm"
+              >
+                <i class="fas fa-magic"></i> Đồng bộ AI
+              </button>
+            </div>
+          </div>
+          <div id="doc-editor-container">
+            <div id="editor-highlights"></div>
+            <textarea
+              id="doc-editor"
+              placeholder="Dán nội dung phiên âm vào đây và nhấn 'Đồng bộ AI' để tạo phụ đề..."
+            ></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div
+        id="ai-loading-overlay"
+        class="absolute inset-0 bg-black bg-opacity-80 flex-col items-center justify-center hidden z-40 p-4 text-center"
+      >
+        <div class="spinner"></div>
+        <p id="ai-status-text" class="text-lg mt-4 text-gray-300">
+          AI đang xử lý...
+        </p>
+      </div>
+
+      <div
+        id="resume-prompt"
+        class="absolute inset-0 bg-black bg-opacity-80 flex-col items-center justify-center hidden z-40 p-4 text-center"
+      >
+        <p class="text-xl mb-6 text-gray-300">
+          Bạn đã nghe đến
+          <span id="resume-time" class="font-bold text-violet-400"></span>.
+        </p>
+        <div class="flex space-x-6">
+          <button
+            id="resume-continue-btn"
+            class="bg-violet-600 hover:bg-violet-700 text-white font-bold py-3 px-6 rounded-lg"
+          >
+            Nghe tiếp
+          </button>
+          <button
+            id="resume-restart-btn"
+            class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg"
+          >
+            Nghe lại từ đầu
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- API Key Modal -->
+    <div
+      id="api-key-modal"
+      class="fixed inset-0 bg-black bg-opacity-70 hidden items-center justify-center z-50 p-4"
+    >
+      <div class="bg-slate-800 rounded-lg shadow-xl w-full max-w-lg">
+        <div
+          class="p-4 border-b border-slate-700 flex justify-between items-center"
+        >
+          <h2 class="text-xl font-bold">Quản lý API Key Gemini</h2>
+          <button id="close-api-modal-btn" class="text-2xl">&times;</button>
+        </div>
+        <div class="p-6 space-y-4">
+          <p class="text-slate-400">
+            Nhập API Key của bạn (mỗi key một dòng). Ứng dụng sẽ tự động thử các
+            key khi có lỗi.
+          </p>
+          <textarea
+            id="api-key-input"
+            class="w-full h-32 p-2 bg-slate-700 rounded-md text-slate-200"
+            placeholder="..."
+          ></textarea>
+          <p class="text-sm text-slate-400">
+            Bạn có thể lấy API Key tại:
+            <a
+              href="https://aistudio.google.com/api-keys"
+              target="_blank"
+              class="text-violet-400 hover:underline"
+              >aistudio.google.com/api-keys</a
+            >
+          </p>
+        </div>
+        <div class="p-4 border-t border-slate-700 text-right">
+          <button
+            id="save-api-keys-btn"
+            class="bg-violet-600 hover:bg-violet-700 text-white font-bold py-2 px-4 rounded-lg"
+          >
+            Lưu
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI Sync Options Modal -->
+    <div
+      id="ai-sync-modal"
+      class="fixed inset-0 bg-black bg-opacity-70 hidden items-center justify-center z-50 p-4"
+    >
+      <div class="bg-slate-800 rounded-lg shadow-xl w-full max-w-lg">
+        <div
+          class="p-4 border-b border-slate-700 flex justify-between items-center"
+        >
+          <h2 class="text-xl font-bold">Đồng bộ AI</h2>
+          <button id="close-ai-sync-modal-btn" class="text-2xl">&times;</button>
+        </div>
+        <div class="p-6 space-y-4">
+          <p class="text-slate-400">Chọn nguồn văn bản để đồng bộ với audio:</p>
+          <button
+            id="ai-sync-from-editor-btn"
+            class="w-full bg-violet-600 hover:bg-violet-700 text-white font-bold py-3 px-4 rounded-lg transition-colors text-left flex items-center gap-4 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <i class="fas fa-pen-alt fa-fw"></i>
+            <div>
+              <p>Sử dụng nội dung trong ghi chú</p>
+              <p class="text-xs text-violet-200">
+                Dùng văn bản hiện tại trong trình soạn thảo.
+              </p>
+            </div>
+          </button>
+          <button
+            id="ai-sync-from-file-btn"
+            class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 px-4 rounded-lg transition-colors text-left flex items-center gap-4"
+          >
+            <i class="fas fa-file-word fa-fw"></i>
+            <div>
+              <p>Tải lên file Docx mới</p>
+              <p class="text-xs text-sky-200">
+                Chọn một file .docx từ máy tính của bạn.
+              </p>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Custom Confirm Modal -->
+    <div
+      id="confirm-modal"
+      class="fixed inset-0 bg-black bg-opacity-70 hidden items-center justify-center z-50 p-4"
+    >
+      <div class="bg-slate-800 rounded-lg shadow-xl w-full max-w-md">
+        <div class="p-6 text-center space-y-4">
+          <p id="confirm-modal-text" class="text-lg"></p>
+        </div>
+        <div class="p-4 bg-slate-700/50 flex justify-end gap-4 rounded-b-lg">
+          <button
+            id="confirm-cancel-btn"
+            class="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-lg"
+          >
+            Hủy
+          </button>
+          <button
+            id="confirm-ok-btn"
+            class="bg-violet-600 hover:bg-violet-700 text-white font-bold py-2 px-4 rounded-lg"
+          >
+            Đồng ý
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast"></div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const DB_NAME = "proAudioPlayerDB";
+        const STORE_NAME = "audioFiles";
+        let db;
+
+        // --- DOM Elements ---
+        const libraryView = document.getElementById("library-view");
+        const playerView = document.getElementById("player-view");
+        const fileInput = document.getElementById("file-input");
+        const audioList = document.getElementById("audio-list");
+        const audioPlayer = document.getElementById("audio-player");
+        const docEditor = document.getElementById("doc-editor");
+        const editorHighlights = document.getElementById("editor-highlights");
+        const aiSyncBtn = document.getElementById("ai-sync-btn");
+        const aiLoadingOverlay = document.getElementById("ai-loading-overlay");
+        const aiStatusText = document.getElementById("ai-status-text");
+        const copyNoteBtn = document.getElementById("copy-note-btn");
+        const clearNoteBtn = document.getElementById("clear-note-btn");
+        const backToLibraryBtn = document.getElementById("back-to-library-btn");
+        const playPauseBtn = document.getElementById("play-pause-btn");
+        const playPauseIcon = document.getElementById("play-pause-icon");
+        const loopBtn = document.getElementById("loop-btn");
+        const rewindBtn = document.getElementById("rewind-btn");
+        const forwardBtn = document.getElementById("forward-btn");
+        const timeline = document.getElementById("timeline");
+        const timelineProgress = document.getElementById("timeline-progress");
+        const seekTooltip = document.getElementById("seek-tooltip");
+        const currentTimeEl = document.getElementById("current-time");
+        const durationEl = document.getElementById("duration");
+        const speedControl = document.getElementById("speed-control");
+        const speedBtn = document.getElementById("speed-btn");
+        const speedOptions = document.getElementById("speed-options");
+        const playerTrackTitle = document.getElementById("player-track-title");
+        const volumeBtn = document.getElementById("volume-btn");
+        const volumeIcon = document.getElementById("volume-icon");
+        const volumeSlider = document.getElementById("volume-slider");
+        const volumePercentage = document.getElementById("volume-percentage");
+        const undoBtn = document.getElementById("undo-btn");
+        const redoBtn = document.getElementById("redo-btn");
+        const apiKeyModal = document.getElementById("api-key-modal");
+        const openApiModalBtn = document.getElementById("open-api-modal-btn");
+        const closeApiModalBtn = document.getElementById("close-api-modal-btn");
+        const apiKeyInput = document.getElementById("api-key-input");
+        const saveApiKeysBtn = document.getElementById("save-api-keys-btn");
+        const confirmModal = document.getElementById("confirm-modal");
+        const confirmModalText = document.getElementById("confirm-modal-text");
+        const confirmOkBtn = document.getElementById("confirm-ok-btn");
+        const confirmCancelBtn = document.getElementById("confirm-cancel-btn");
+        const toast = document.getElementById("toast");
+        const aiSyncModal = document.getElementById("ai-sync-modal");
+        const closeAiSyncModalBtn = document.getElementById(
+          "close-ai-sync-modal-btn"
+        );
+        const aiSyncFromEditorBtn = document.getElementById(
+          "ai-sync-from-editor-btn"
+        );
+        const aiSyncFromFileBtn = document.getElementById(
+          "ai-sync-from-file-btn"
+        );
+        const resumePrompt = document.getElementById("resume-prompt");
+        const resumeTime = document.getElementById("resume-time");
+        const resumeContinueBtn = document.getElementById(
+          "resume-continue-btn"
+        );
+        const resumeRestartBtn = document.getElementById("resume-restart-btn");
+
+        // --- State Variables ---
+        let currentAudioFile = null;
+        let lastVolume = 1;
+        let undoStack = [];
+        let redoStack = [];
+        let isUndoingOrRedoing = false;
+        let timedMetadata = [];
+        let confirmCallback = null;
+
+        // --- All Functions are defined here ---
+        function initDB() {
+          return new Promise((resolve, reject) => {
+            const request = indexedDB.open(DB_NAME, 6); // Version for timedMetadata
+            request.onerror = (e) =>
+              reject("Lỗi khi mở IndexedDB: " + e.target.error);
+            request.onupgradeneeded = (e) => {
+              const db = e.target.result;
+              if (!db.objectStoreNames.contains(STORE_NAME)) {
+                db.createObjectStore(STORE_NAME, {
+                  keyPath: "id",
+                  autoIncrement: true,
+                });
+              }
+            };
+            request.onsuccess = (e) => {
+              db = e.target.result;
+              resolve(db);
+            };
+          });
+        }
+
+        function getApiKeys() {
+          const keysString = localStorage.getItem("gemini-api-keys") || "";
+          return keysString
+            .split("\n")
+            .map((k) => k.trim())
+            .filter(Boolean);
+        }
+
+        function addAudio(file) {
+          return new Promise((resolve, reject) => {
+            const transaction = db.transaction([STORE_NAME], "readwrite");
+            const store = transaction.objectStore(STORE_NAME);
+            const request = store.add({
+              name: file.name,
+              type: file.type,
+              blob: file,
+              docContent: "",
+              timedMetadata: [],
+            });
+            request.onsuccess = resolve;
+            request.onerror = (e) =>
+              reject("Lỗi khi thêm file: " + e.target.error);
+          });
+        }
+
+        function deleteAudio(id) {
+          return new Promise((resolve, reject) => {
+            const transaction = db.transaction([STORE_NAME], "readwrite");
+            const store = transaction.objectStore(STORE_NAME);
+            const request = store.delete(id);
+            request.onsuccess = resolve;
+            request.onerror = (e) =>
+              reject("Lỗi khi xóa file: " + e.target.error);
+          });
+        }
+
+        function updateAudioData(id, newData) {
+          return new Promise((resolve, reject) => {
+            const transaction = db.transaction([STORE_NAME], "readwrite");
+            const store = transaction.objectStore(STORE_NAME);
+            const getRequest = store.get(id);
+            getRequest.onsuccess = (e) => {
+              const data = e.target.result;
+              if (data) {
+                Object.assign(data, newData);
+                const putRequest = store.put(data);
+                putRequest.onsuccess = resolve;
+                putRequest.onerror = reject;
+              } else {
+                reject("Không tìm thấy file để cập nhật");
+              }
+            };
+            getRequest.onerror = reject;
+          });
+        }
+
+        function getAllAudios() {
+          return new Promise((resolve, reject) => {
+            const transaction = db.transaction([STORE_NAME], "readonly");
+            const store = transaction.objectStore(STORE_NAME);
+            const request = store.getAll();
+            request.onsuccess = (e) => resolve(e.target.result);
+            request.onerror = (e) =>
+              reject("Lỗi khi lấy file: " + e.target.error);
+          });
+        }
+
+        function formatTime(seconds) {
+          if (isNaN(seconds) || seconds < 0) return "00:00";
+          const totalSeconds = Math.floor(seconds);
+          const hours = Math.floor(totalSeconds / 3600);
+          const minutes = Math.floor((totalSeconds % 3600) / 60);
+          const secs = totalSeconds % 60;
+          const pad = (num) => String(num).padStart(2, "0");
+          return `${hours > 0 ? pad(hours) + ":" : ""}${pad(minutes)}:${pad(
+            secs
+          )}`;
+        }
+
+        async function renderLibrary() {
+          try {
+            const audios = await getAllAudios();
+            audioList.innerHTML = "";
+            if (audios.length === 0) {
+              audioList.innerHTML =
+                '<p class="text-slate-400 text-center italic">Thư viện của bạn trống.</p>';
+              return;
+            }
+            audios.forEach((audio) => {
+              const item = document.createElement("div");
+              item.className =
+                "audio-item p-3 rounded-lg cursor-pointer flex justify-between items-center transition-colors";
+              item.innerHTML = `
+                    <div class="flex items-center overflow-hidden mr-4 flex-grow">
+                       <i class="fas fa-music mr-4 text-violet-400 flex-shrink-0"></i>
+                       <span class="truncate">${audio.name}</span>
+                       ${
+                         audio.timedMetadata && audio.timedMetadata.length > 0
+                           ? '<i class="fas fa-check-circle text-green-500 ml-2 flex-shrink-0" title="Đã đồng bộ AI"></i>'
+                           : ""
+                       }
+                    </div>
+                    <div class="flex items-center flex-shrink-0">
+                        <i class="fas fa-play text-slate-500"></i>
+                        <button class="delete-audio-btn ml-4 text-slate-500 hover:text-red-500" data-id="${
+                          audio.id
+                        }" title="Xóa file"><i class="fas fa-trash"></i></button>
+                    </div>
+                `;
+              item
+                .querySelector(".flex-grow")
+                .addEventListener("click", () => playAudio(audio));
+              audioList.appendChild(item);
+            });
+          } catch (error) {
+            console.error(error);
+            showToast("Không thể tải thư viện.", "error");
+          }
+        }
+
+        function showPlayerView() {
+          libraryView.classList.add("hidden");
+          playerView.classList.remove("hidden");
+          playerView.classList.add("flex");
+        }
+
+        function showLibraryView() {
+          audioPlayer.pause();
+          if (audioPlayer.src) URL.revokeObjectURL(audioPlayer.src);
+          audioPlayer.removeAttribute("src");
+          docEditor.value = "";
+          currentAudioFile = null;
+          playerView.classList.add("hidden");
+          playerView.classList.remove("flex");
+          libraryView.classList.remove("hidden");
+          libraryView.classList.add("flex");
+          renderLibrary();
+        }
+
+        function playAudio(audioFile) {
+          currentAudioFile = audioFile;
+          const audioURL = URL.createObjectURL(audioFile.blob);
+          audioPlayer.src = audioURL;
+          playerTrackTitle.textContent = audioFile.name;
+          playerTrackTitle.title = audioFile.name;
+
+          const initialContent = audioFile.docContent || "";
+          docEditor.value = initialContent;
+          timedMetadata = audioFile.timedMetadata || [];
+
+          undoStack = [initialContent];
+          redoStack = [];
+          updateUndoRedoButtons();
+          showPlayerView();
+        }
+
+        function togglePlay() {
+          if (audioPlayer.paused) audioPlayer.play();
+          else audioPlayer.pause();
+        }
+
+        function debounce(func, delay) {
+          let timeout;
+          const debounced = function (...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), delay);
+          };
+          debounced.cancel = function () {
+            clearTimeout(timeout);
+          };
+          return debounced;
+        }
+
+        const handleDocSave = debounce(() => {
+          if (!currentAudioFile) return;
+          updateAudioData(currentAudioFile.id, {
+            docContent: docEditor.value,
+          }).catch((err) => console.error("Lỗi khi lưu:", err));
+        }, 1500);
+
+        const handleUndoPush = debounce(() => {
+          const currentText = docEditor.value;
+          const lastState = undoStack[undoStack.length - 1];
+          if (currentText !== lastState) {
+            undoStack.push(currentText);
+            if (undoStack.length > 100) undoStack.shift();
+            updateUndoRedoButtons();
+          }
+        }, 500);
+
+        function updateUndoRedoButtons() {
+          undoBtn.disabled = undoStack.length <= 1;
+          redoBtn.disabled = redoStack.length === 0;
+        }
+
+        function setVolume(level) {
+          const volumeLevel = Math.max(0, Math.min(1, parseFloat(level)));
+          audioPlayer.volume = volumeLevel;
+          updateVolumeUI(volumeLevel);
+          localStorage.setItem("audio-volume", volumeLevel);
+        }
+
+        function updateVolumeUI(level) {
+          volumeSlider.value = level;
+          volumePercentage.textContent = `${Math.round(level * 100)}%`;
+          if (level == 0) volumeIcon.className = "fas fa-volume-xmark";
+          else if (level < 0.5) volumeIcon.className = "fas fa-volume-low";
+          else volumeIcon.className = "fas fa-volume-high";
+        }
+
+        function toggleMute() {
+          if (audioPlayer.volume > 0) {
+            lastVolume = audioPlayer.volume;
+            setVolume(0);
+          } else {
+            setVolume(lastVolume > 0 ? lastVolume : 1);
+          }
+        }
+
+        function handleTimelineUpdate(e) {
+          const rect = timeline.getBoundingClientRect();
+          const clientX = e.clientX || e.touches[0].clientX;
+          if (clientX === undefined) return;
+          audioPlayer.currentTime =
+            (Math.min(Math.max(0, clientX - rect.left), rect.width) /
+              rect.width) *
+            audioPlayer.duration;
+        }
+
+        function showToast(message, type = "info", duration = 3000) {
+          toast.textContent = message;
+          toast.className = `show ${type}`;
+          setTimeout(() => {
+            toast.className = toast.className.replace("show", "");
+          }, duration);
+        }
+
+        function showConfirm(message, onConfirm) {
+          confirmModalText.textContent = message;
+          confirmModal.classList.remove("hidden");
+          confirmModal.classList.add("flex");
+          confirmCallback = onConfirm;
+        }
+
+        confirmCancelBtn.addEventListener("click", () => {
+          confirmModal.classList.add("hidden");
+          confirmModal.classList.remove("flex");
+          confirmCallback = null;
+        });
+
+        confirmOkBtn.addEventListener("click", () => {
+          if (confirmCallback) {
+            confirmCallback();
+          }
+          confirmModal.classList.add("hidden");
+          confirmModal.classList.remove("flex");
+          confirmCallback = null;
+        });
+
+        // --- Event Listeners ---
+        openApiModalBtn.addEventListener("click", () => {
+          apiKeyInput.value = localStorage.getItem("gemini-api-keys") || "";
+          apiKeyModal.classList.remove("hidden");
+          apiKeyModal.classList.add("flex");
+        });
+        closeApiModalBtn.addEventListener("click", () => {
+          apiKeyModal.classList.add("hidden");
+          apiKeyModal.classList.remove("flex");
+        });
+        saveApiKeysBtn.addEventListener("click", () => {
+          localStorage.setItem("gemini-api-keys", apiKeyInput.value);
+          apiKeyModal.classList.add("hidden");
+          apiKeyModal.classList.remove("flex");
+          showToast("API Keys đã được lưu.", "success");
+        });
+
+        docEditor.addEventListener("input", () => {
+          if (isUndoingOrRedoing) return;
+          redoStack = [];
+          handleUndoPush();
+          handleDocSave();
+          updateUndoRedoButtons();
+        });
+
+        window.addEventListener("beforeunload", () => {
+          if (currentAudioFile) {
+            handleDocSave.cancel();
+            updateAudioData(currentAudioFile.id, {
+              docContent: docEditor.value,
+            });
+          }
+        });
+
+        fileInput.addEventListener("change", async (e) => {
+          const file = e.target.files[0];
+          if (file) {
+            try {
+              await addAudio(file);
+              renderLibrary();
+              showToast(`Đã thêm: ${file.name}`, "success");
+            } catch (error) {
+              console.error(error);
+              showToast("Không thể lưu file audio.", "error");
+            } finally {
+              e.target.value = "";
+            }
+          }
+        });
+
+        // --- AI Sync Logic ---
+        async function startAiSyncProcess(contextText) {
+          aiLoadingOverlay.classList.remove("hidden");
+          aiLoadingOverlay.classList.add("flex");
+
+          try {
+            aiStatusText.textContent = "Đang chuẩn bị audio...";
+            const base64Audio = await new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.readAsDataURL(currentAudioFile.blob);
+              reader.onloadend = () => resolve(reader.result.split(",")[1]);
+              reader.onerror = reject;
+            });
+            const mimeType = currentAudioFile.blob.type;
+            let prompt = `Đây là một tệp âm thanh và một bản ghi văn bản của nó. Nhiệm vụ của bạn là tạo ra một tệp JSON chứa siêu dữ liệu thời gian cho mỗi câu trong bản ghi. JSON phải là một mảng các đối tượng, mỗi đối tượng chứa 'start' (thời gian bắt đầu câu tính bằng giây), 'end' (thời gian kết thúc câu tính bằng giây) và 'text' (nội dung câu). Phân tích âm thanh và văn bản một cách cẩn thận để đảm bảo các mốc thời gian khớp chính xác với lời nói.\n\n---VĂN BẢN---\n${contextText}\n---KẾT THÚC VĂN BẢN---`;
+
+            aiStatusText.textContent = "Đang gửi đến Gemini AI...";
+            const apiKey = getApiKeys()[0];
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+            const payload = {
+              contents: [
+                {
+                  parts: [
+                    { text: prompt },
+                    { inlineData: { mimeType, data: base64Audio } },
+                  ],
+                },
+              ],
+              generationConfig: { responseMimeType: "application/json" },
+            };
+
+            const response = await fetch(apiUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+              const errorBody = await response
+                .json()
+                .catch(() => ({ error: { message: response.statusText } }));
+              throw new Error(
+                `Lỗi API: ${errorBody.error?.message || response.statusText}`
+              );
+            }
+
+            const apiResult = await response.json();
+            const jsonText =
+              apiResult.candidates?.[0]?.content?.parts?.[0]?.text;
+            const newTimedMetadata = JSON.parse(jsonText);
+
+            if (Array.isArray(newTimedMetadata)) {
+              timedMetadata = newTimedMetadata;
+              await updateAudioData(currentAudioFile.id, { timedMetadata });
+              showToast("Đồng bộ Audio và văn bản thành công!", "success");
+            } else {
+              throw new Error("AI không trả về dữ liệu hợp lệ.");
+            }
+          } catch (error) {
+            console.error("Lỗi khi đồng bộ AI:", error);
+            showToast(`Đã xảy ra lỗi: ${error.message}`, "error");
+          } finally {
+            aiLoadingOverlay.classList.add("hidden");
+            aiLoadingOverlay.classList.remove("flex");
+          }
+        }
+
+        aiSyncBtn.addEventListener("click", () => {
+          if (!currentAudioFile) {
+            showToast("Vui lòng chọn một file audio trước.", "info");
+            return;
+          }
+
+          const keys = getApiKeys();
+          if (keys.length === 0) {
+            showToast("Bạn chưa nhập API Key. Vui lòng vào cài đặt.", "info");
+            openApiModalBtn.click();
+            return;
+          }
+
+          aiSyncModal.classList.remove("hidden");
+          aiSyncModal.classList.add("flex");
+
+          if (docEditor.value.trim().length > 0) {
+            aiSyncFromEditorBtn.disabled = false;
+            aiSyncFromEditorBtn.classList.remove(
+              "opacity-50",
+              "cursor-not-allowed"
+            );
+          } else {
+            aiSyncFromEditorBtn.disabled = true;
+            aiSyncFromEditorBtn.classList.add(
+              "opacity-50",
+              "cursor-not-allowed"
+            );
+          }
+        });
+
+        closeAiSyncModalBtn.addEventListener("click", () => {
+          aiSyncModal.classList.add("hidden");
+          aiSyncModal.classList.remove("flex");
+        });
+
+        aiSyncFromEditorBtn.addEventListener("click", () => {
+          aiSyncModal.classList.add("hidden");
+          aiSyncModal.classList.remove("flex");
+          startAiSyncProcess(docEditor.value);
+        });
+
+        aiSyncFromFileBtn.addEventListener("click", () => {
+          const docxInput = document.createElement("input");
+          docxInput.type = "file";
+          docxInput.accept = ".docx";
+          docxInput.onchange = async (e) => {
+            const docxFile = e.target.files[0];
+            if (!docxFile) return;
+
+            aiSyncModal.classList.add("hidden");
+            aiSyncModal.classList.remove("flex");
+
+            try {
+              const arrayBuffer = await docxFile.arrayBuffer();
+              const result = await mammoth.extractRawText({ arrayBuffer });
+              const contextText = result.value.replace(/\n\s*\n/g, "\n").trim();
+
+              docEditor.value = contextText;
+              await updateAudioData(currentAudioFile.id, {
+                docContent: contextText,
+              });
+
+              startAiSyncProcess(contextText);
+            } catch (error) {
+              console.error("Lỗi khi đọc file docx:", error);
+              showToast("Không thể đọc file .docx.", "error");
+            }
+          };
+          docxInput.click();
+        });
+
+        clearNoteBtn.addEventListener("click", () => {
+          if (docEditor.value.length > 0 && currentAudioFile) {
+            handleDocSave.cancel();
+            docEditor.value = "";
+            updateAudioData(currentAudioFile.id, {
+              docContent: "",
+              timedMetadata: [],
+            }).catch((err) => console.error("Lỗi xóa:", err));
+            timedMetadata = [];
+            undoStack.push("");
+            redoStack = [];
+            updateUndoRedoButtons();
+          }
+        });
+
+        copyNoteBtn.addEventListener("click", () => {
+          if (docEditor.value.length > 0) {
+            try {
+              docEditor.select();
+              document.execCommand("copy");
+              showToast("Đã copy vào clipboard!", "success");
+            } catch (err) {
+              console.error("Lỗi copy:", err);
+              showToast("Lỗi khi copy.", "error");
+            }
+          }
+        });
+
+        undoBtn.addEventListener("click", () => {
+          if (undoStack.length <= 1) return;
+          isUndoingOrRedoing = true;
+          redoStack.push(undoStack.pop());
+          docEditor.value = undoStack[undoStack.length - 1];
+          updateUndoRedoButtons();
+          handleDocSave();
+          isUndoingOrRedoing = false;
+        });
+        redoBtn.addEventListener("click", () => {
+          if (redoStack.length === 0) return;
+          isUndoingOrRedoing = true;
+          const state = redoStack.pop();
+          undoStack.push(state);
+          docEditor.value = state;
+          updateUndoRedoButtons();
+          handleDocSave();
+          isUndoingOrRedoing = false;
+        });
+
+        backToLibraryBtn.addEventListener("click", showLibraryView);
+        playPauseBtn.addEventListener("click", togglePlay);
+        rewindBtn.addEventListener(
+          "click",
+          () => (audioPlayer.currentTime -= 10)
+        );
+        forwardBtn.addEventListener(
+          "click",
+          () => (audioPlayer.currentTime += 10)
+        );
+        loopBtn.addEventListener("click", () => {
+          audioPlayer.loop = !audioPlayer.loop;
+          loopBtn.classList.toggle("active", audioPlayer.loop);
+        });
+        speedBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          speedOptions.classList.toggle("hidden");
+          speedOptions.classList.toggle("flex");
+        });
+        speedOptions.querySelectorAll(".speed-option").forEach((option) => {
+          option.addEventListener("click", () => {
+            const speed = parseFloat(option.dataset.speed);
+            audioPlayer.playbackRate = speed;
+            speedBtn.textContent = `${speed.toFixed(speed % 1 === 0 ? 1 : 2)}x`;
+            speedOptions
+              .querySelectorAll(".speed-option")
+              .forEach((el) => el.classList.remove("active"));
+            option.classList.add("active");
+            speedOptions.classList.add("hidden");
+          });
+        });
+        document.addEventListener("click", (e) => {
+          if (!speedControl.contains(e.target)) {
+            speedOptions.classList.add("hidden");
+          }
+        });
+        volumeSlider.addEventListener("input", (e) =>
+          setVolume(e.target.value)
+        );
+        volumeBtn.addEventListener("click", toggleMute);
+        audioPlayer.addEventListener("play", () =>
+          playPauseIcon.classList.replace("fa-play", "fa-pause")
+        );
+        audioPlayer.addEventListener("pause", () =>
+          playPauseIcon.classList.replace("fa-pause", "fa-play")
+        );
+        audioPlayer.addEventListener("ended", () => {
+          if (currentAudioFile)
+            localStorage.removeItem(`audio-progress-${currentAudioFile.id}`);
+        });
+        audioPlayer.addEventListener("loadedmetadata", () => {
+          durationEl.textContent = formatTime(audioPlayer.duration);
+          const savedTime = localStorage.getItem(
+            `audio-progress-${currentAudioFile.id}`
+          );
+          if (
+            savedTime &&
+            parseFloat(savedTime) > 5 &&
+            parseFloat(savedTime) < audioPlayer.duration - 5
+          ) {
+            resumeTime.textContent = formatTime(parseFloat(savedTime));
+            resumePrompt.classList.remove("hidden");
+            resumePrompt.classList.add("flex");
+          } else {
+            audioPlayer.play();
+          }
+        });
+
+        resumeContinueBtn.addEventListener("click", () => {
+          const savedTime = localStorage.getItem(
+            `audio-progress-${currentAudioFile.id}`
+          );
+          if (savedTime) audioPlayer.currentTime = parseFloat(savedTime);
+          resumePrompt.classList.add("hidden");
+          resumePrompt.classList.remove("flex");
+          audioPlayer.play();
+        });
+
+        resumeRestartBtn.addEventListener("click", () => {
+          audioPlayer.currentTime = 0;
+          resumePrompt.classList.add("hidden");
+          resumePrompt.classList.remove("flex");
+          audioPlayer.play();
+        });
+
+        audioPlayer.addEventListener("timeupdate", () => {
+          if (audioPlayer.duration) {
+            timelineProgress.style.width = `${
+              (audioPlayer.currentTime / audioPlayer.duration) * 100
+            }%`;
+            currentTimeEl.textContent = formatTime(audioPlayer.currentTime);
+            if (currentAudioFile) {
+              localStorage.setItem(
+                `audio-progress-${currentAudioFile.id}`,
+                audioPlayer.currentTime
+              );
+            }
+
+            // Highlight logic
+            if (timedMetadata.length > 0) {
+              const currentTime = audioPlayer.currentTime;
+              const activeCue = timedMetadata.find(
+                (cue) => currentTime >= cue.start && currentTime <= cue.end
+              );
+
+              let highlightedContent = docEditor.value
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;");
+              if (activeCue) {
+                const escapedCueText = activeCue.text.replace(
+                  /[-\/\\^$*+?.()|[\]{}]/g,
+                  "\\$&"
+                );
+                highlightedContent = highlightedContent.replace(
+                  new RegExp(`(${escapedCueText})`, "gi"),
+                  `<span class="highlight-line">$1</span>`
+                );
+              }
+              editorHighlights.innerHTML = highlightedContent;
+            } else {
+              editorHighlights.innerHTML = "";
+            }
+          }
+        });
+
+        let isScrubbing = false;
+        timeline.addEventListener("mousedown", (e) => {
+          isScrubbing = true;
+          handleTimelineUpdate(e);
+        });
+        document.addEventListener("mousemove", (e) => {
+          if (isScrubbing) handleTimelineUpdate(e);
+        });
+        document.addEventListener("mouseup", () => (isScrubbing = false));
+        timeline.addEventListener("mousemove", (e) => {
+          if (!isScrubbing && audioPlayer.duration) {
+            const rect = timeline.getBoundingClientRect();
+            const position = e.clientX - rect.left;
+            seekTooltip.style.left = `${position}px`;
+            seekTooltip.textContent = formatTime(
+              (position / rect.width) * audioPlayer.duration
+            );
+            seekTooltip.style.display = "block";
+          }
+        });
+        timeline.addEventListener(
+          "mouseleave",
+          () => (seekTooltip.style.display = "none")
+        );
+
+        docEditor.addEventListener("scroll", () => {
+          editorHighlights.scrollTop = docEditor.scrollTop;
+          editorHighlights.scrollLeft = docEditor.scrollLeft;
+        });
+
+        audioList.addEventListener("click", async (e) => {
+          const deleteBtn = e.target.closest(".delete-audio-btn");
+          if (deleteBtn) {
+            const audioId = parseInt(deleteBtn.dataset.id, 10);
+            showConfirm(
+              "Bạn có chắc chắn muốn xóa file âm thanh này không?",
+              async () => {
+                try {
+                  await deleteAudio(audioId);
+                  showToast("Đã xóa file thành công.", "success");
+                  renderLibrary();
+                } catch (error) {
+                  console.error(error);
+                  showToast("Không thể xóa file.", "error");
+                }
+              }
+            );
+          }
+        });
+
+        // --- App Init ---
+        async function main() {
+          try {
+            await initDB();
+            renderLibrary();
+            setVolume(localStorage.getItem("audio-volume") || 1);
+          } catch (error) {
+            console.error(error);
+            document.body.innerHTML = `<div class="text-center text-red-400 p-4">Lỗi nghiêm trọng: Không thể khởi tạo. Vui lòng thử lại trong trình duyệt khác hoặc không dùng chế độ ẩn danh.</div>`;
+          }
+        }
+
+        main();
+      });
+    </script>
+  </body>
+</html>

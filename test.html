@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pro Audio Player + Notes (AI Sync, IndexedDB) — Refactor</title>
+    <!-- TailwindCSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+      integrity="sha512-Zv7L3uE1kS3wC1P2Gxj3mCqG6f6Uq+q0n8Qn8m8QdVtBv5T1Kc3jF2Pg7M4mC0Vjw1jDg1o7tE0wY9VxqUQ8w=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+    <!-- Mammoth for .docx parsing -->
+    <script src="https://unpkg.com/mammoth/mammoth.browser.min.js"></script>
+    <style>
+      /* Scrollbars */
+      ::-webkit-scrollbar {
+        height: 8px;
+        width: 10px;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #4b5563;
+        border-radius: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #111827;
+      }
+      /* Text selection for highlight view */
+      .cue {
+        transition: background-color 0.18s linear;
+      }
+      .cue-active {
+        background-color: rgba(59, 130, 246, 0.25);
+      }
+    </style>
+  </head>
+  <body class="bg-gray-900 text-gray-100 min-h-screen">
+    <header
+      class="sticky top-0 z-40 bg-gray-900/80 backdrop-blur border-b border-gray-800"
+    >
+      <div class="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
+        <i class="fa-solid fa-music text-indigo-400 text-xl"></i>
+        <h1 class="text-lg font-semibold tracking-tight">
+          Pro Audio Player + Notes
+          <span class="text-xs text-gray-400">(AI Sync, IndexedDB)</span>
+        </h1>
+        <div class="ml-auto flex items-center gap-2">
+          <button
+            id="openKeysBtn"
+            class="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-sm"
+          >
+            <i class="fa-solid fa-key mr-2"></i>API Keys
+          </button>
+          <a
+            href="#"
+            id="helpBtn"
+            class="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-sm"
+          >
+            <i class="fa-regular fa-circle-question mr-2"></i>Trợ giúp
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+      <!-- Library View -->
+      <section id="libraryView" class="space-y-4">
+        <div class="flex flex-wrap items-center gap-3">
+          <label
+            class="inline-flex items-center px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 cursor-pointer"
+          >
+            <i class="fa-solid fa-file-audio mr-2"></i>
+            <span>Thêm audio</span>
+            <input
+              id="audioInput"
+              type="file"
+              accept="audio/*"
+              multiple
+              class="hidden"
+            />
+          </label>
+          <label
+            class="inline-flex items-center px-3 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 cursor-pointer"
+          >
+            <i class="fa-solid fa-file-word mr-2"></i>
+            <span>Import transcript (.docx/.txt)</span>
+            <input
+              id="docInput"
+              type="file"
+              accept=".docx,.txt"
+              class="hidden"
+            />
+          </label>
+          <button
+            id="aiSyncBtn"
+            class="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500"
+          >
+            <i class="fa-solid fa-wand-magic-sparkles mr-2"></i>AI Sync
+            transcript→thời gian
+          </button>
+          <div class="text-sm text-gray-400">
+            Mẹo: có thể chọn audio trước, rồi import transcript và đồng bộ bằng
+            AI.
+          </div>
+        </div>
+
+        <div
+          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+          id="libraryGrid"
+        >
+          <!-- Cards injected here -->
+        </div>
+      </section>
+
+      <!-- Player View -->
+      <section id="playerView" class="hidden space-y-4">
+        <div class="flex items-center gap-3">
+          <button
+            id="backToLibraryBtn"
+            class="px-3 py-2 rounded-xl bg-gray-800 hover:bg-gray-700"
+          >
+            <i class="fa-solid fa-arrow-left mr-2"></i>Thư viện
+          </button>
+          <div class="text-gray-300 text-sm">
+            Nhấn Space: Play/Pause • ←/→: ±5s • [ / ]: tốc độ • ↑/↓: âm lượng
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-4">
+          <!-- Player Column -->
+          <div class="lg:col-span-2 space-y-4">
+            <div class="p-4 rounded-2xl bg-gray-800/70 border border-gray-700">
+              <div class="flex items-center gap-3 mb-3">
+                <i class="fa-solid fa-wave-square text-indigo-400"></i>
+                <h2 id="nowPlaying" class="font-semibold truncate">—</h2>
+              </div>
+
+              <audio id="audio" preload="metadata"></audio>
+
+              <div class="flex items-center gap-3 mb-2">
+                <button
+                  id="rew10"
+                  class="p-2 rounded-lg bg-gray-700 hover:bg-gray-600"
+                >
+                  <i class="fa-solid fa-rotate-left"></i>
+                </button>
+                <button
+                  id="playPause"
+                  class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500"
+                >
+                  <i class="fa-solid fa-play"></i>
+                </button>
+                <button
+                  id="fwd10"
+                  class="p-2 rounded-lg bg-gray-700 hover:bg-gray-600"
+                >
+                  <i class="fa-solid fa-rotate-right"></i>
+                </button>
+                <div class="ml-auto flex items-center gap-3">
+                  <label class="flex items-center gap-2 text-sm">
+                    <i class="fa-solid fa-volume-high"></i>
+                    <input
+                      id="volume"
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                      class="accent-indigo-500"
+                    />
+                  </label>
+                  <label class="flex items-center gap-2 text-sm">
+                    <i class="fa-regular fa-clock"></i>
+                    <select id="speed" class="bg-gray-700 rounded-lg px-2 py-1">
+                      <option value="0.75">0.75x</option>
+                      <option value="0.9">0.9x</option>
+                      <option value="1" selected>1.0x</option>
+                      <option value="1.25">1.25x</option>
+                      <option value="1.5">1.5x</option>
+                      <option value="1.75">1.75x</option>
+                      <option value="2">2.0x</option>
+                    </select>
+                  </label>
+                  <label
+                    class="inline-flex items-center gap-2 text-sm select-none"
+                  >
+                    <input
+                      id="loopToggle"
+                      type="checkbox"
+                      class="accent-indigo-500"
+                    />
+                    Loop
+                  </label>
+                </div>
+              </div>
+
+              <!-- Timeline -->
+              <div
+                id="timeline"
+                class="relative h-3 rounded-full bg-gray-700 cursor-pointer select-none"
+              >
+                <div
+                  id="progress"
+                  class="absolute left-0 top-0 h-full bg-indigo-500 rounded-full"
+                  style="width: 0%"
+                ></div>
+                <div
+                  id="thumb"
+                  class="absolute -top-1 h-5 w-5 bg-white rounded-full shadow opacity-0 transition-opacity"
+                ></div>
+                <div
+                  id="tooltip"
+                  class="absolute -top-8 px-2 py-1 text-xs bg-black/80 rounded hidden"
+                >
+                  00:00
+                </div>
+              </div>
+              <div class="mt-1 text-sm text-gray-400 flex justify-between">
+                <span id="curTime">00:00</span>
+                <span id="dur">00:00</span>
+              </div>
+
+              <div
+                id="resumeBar"
+                class="hidden mt-4 p-3 rounded-xl bg-yellow-500/10 border border-yellow-600 text-yellow-200 text-sm flex items-center gap-3"
+              >
+                <i class="fa-solid fa-person-running"></i>
+                <span
+                  >Bạn đã nghe tới <b id="resumeTimeText">00:00</b>. Tiếp
+                  tục?</span
+                >
+                <div class="ml-auto flex gap-2">
+                  <button
+                    id="resumeGo"
+                    class="px-3 py-1 rounded-lg bg-yellow-600 hover:bg-yellow-500"
+                  >
+                    Tiếp tục
+                  </button>
+                  <button
+                    id="resumeDismiss"
+                    class="px-3 py-1 rounded-lg bg-gray-700 hover:bg-gray-600"
+                  >
+                    Bỏ qua
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Editor Column -->
+          <div class="lg:col-span-3 space-y-4">
+            <div class="p-4 rounded-2xl bg-gray-800/70 border border-gray-700">
+              <div class="flex items-center gap-2 mb-3">
+                <i class="fa-regular fa-file-lines text-emerald-400"></i>
+                <h3 class="font-semibold">Ghi chú / Transcript</h3>
+                <div class="ml-auto flex items-center gap-2 text-sm">
+                  <button
+                    id="copyBtn"
+                    class="px-3 py-1 rounded-lg bg-gray-700 hover:bg-gray-600"
+                  >
+                    <i class="fa-regular fa-copy mr-2"></i>Copy
+                  </button>
+                  <button
+                    id="saveNowBtn"
+                    class="px-3 py-1 rounded-lg bg-gray-700 hover:bg-gray-600"
+                  >
+                    <i class="fa-regular fa-floppy-disk mr-2"></i>Lưu ngay
+                  </button>
+                </div>
+              </div>
+              <div class="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                <textarea
+                  id="docEditor"
+                  class="w-full h-80 xl:h-[32rem] p-3 rounded-xl bg-gray-900 border border-gray-700 font-mono text-sm leading-relaxed"
+                  placeholder="Dán transcript hoặc ghi chú ở đây..."
+                ></textarea>
+                <div
+                  class="w-full h-80 xl:h-[32rem] p-3 rounded-xl bg-gray-900 border border-gray-700 overflow-auto"
+                >
+                  <article
+                    id="highlightView"
+                    class="whitespace-pre-wrap leading-relaxed text-sm"
+                  ></article>
+                </div>
+              </div>
+              <div class="mt-2 text-xs text-gray-400">
+                Highlight phản ánh câu đang phát. Bạn có thể chỉnh sửa
+                transcript ở khung trái.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- API Keys Modal -->
+    <dialog
+      id="keysModal"
+      class="rounded-2xl p-0 bg-gray-900 text-gray-100 border border-gray-700 w-[min(640px,96vw)]"
+    >
+      <form method="dialog">
+        <header
+          class="px-4 py-3 border-b border-gray-800 flex items-center gap-2"
+        >
+          <i class="fa-solid fa-key text-amber-400"></i>
+          <h4 class="font-semibold">
+            Cấu hình API Keys (Google Generative Language)
+          </h4>
+          <button
+            class="ml-auto px-2 py-1 rounded bg-gray-800 hover:bg-gray-700"
+          >
+            Đóng
+          </button>
+        </header>
+      </form>
+      <div class="p-4 space-y-3">
+        <p class="text-sm text-gray-300">
+          Bạn có thể nhập <b>nhiều</b> API key (mỗi key một dòng). Mã sẽ thử lần
+          lượt cho tới khi thành công.
+        </p>
+        <textarea
+          id="keysTextarea"
+          class="w-full h-40 p-3 rounded-xl bg-gray-950 border border-gray-700 font-mono text-xs"
+        ></textarea>
+        <div class="flex items-center justify-between text-sm">
+          <div class="flex items-center gap-2">
+            <label class="inline-flex items-center gap-2 select-none"
+              ><input
+                id="keysSessionOnly"
+                type="checkbox"
+                class="accent-indigo-500"
+              />
+              Chỉ lưu trong phiên (sessionStorage)</label
+            >
+          </div>
+          <div class="flex items-center gap-2">
+            <button
+              id="saveKeysBtn"
+              class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500"
+            >
+              Lưu
+            </button>
+            <button
+              id="clearKeysBtn"
+              class="px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600"
+            >
+              Xoá hết
+            </button>
+          </div>
+        </div>
+        <div
+          class="text-xs text-amber-300/90 bg-amber-500/10 border border-amber-500/40 rounded-lg p-3"
+        >
+          <b>Cảnh báo bảo mật:</b> Key lưu trong trình duyệt của bạn. Nếu dùng
+          trên máy lạ hoặc chia sẻ màn hình, hãy tránh nhập key, hoặc bật tuỳ
+          chọn “Chỉ lưu phiên”.
+        </div>
+      </div>
+    </dialog>
+
+    <!-- Toast -->
+    <div
+      id="toast"
+      class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 hidden"
+    ></div>
+
+    <script>
+      /******************** Utils ********************/
+      const $ = (sel, root = document) => root.querySelector(sel);
+      const $$ = (sel, root = document) =>
+        Array.from(root.querySelectorAll(sel));
+      const fmtTime = (sec) => {
+        if (!isFinite(sec)) return "00:00";
+        sec = Math.max(0, Math.floor(sec));
+        const m = String(Math.floor(sec / 60)).padStart(2, "0");
+        const s = String(sec % 60).padStart(2, "0");
+        return `${m}:${s}`;
+      };
+      const escapeHTML = (s = "") =>
+        s.replace(
+          /[&<>"']/g,
+          (c) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            }[c])
+        );
+
+      function showToast(msg, type = "info") {
+        const colors = {
+          info: "bg-gray-800 border-gray-600",
+          success: "bg-emerald-700 border-emerald-500",
+          error: "bg-rose-700 border-rose-500",
+          warn: "bg-yellow-700 border-yellow-500",
+        };
+        const el = $("#toast");
+        el.className = `fixed bottom-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl border text-sm ${
+          colors[type] || colors.info
+        }`;
+        el.textContent = msg;
+        el.classList.remove("hidden");
+        clearTimeout(el._t);
+        el._t = setTimeout(() => el.classList.add("hidden"), 2200);
+      }
+
+      // Debounce
+      const debounce = (fn, ms = 400) => {
+        let t;
+        return (...args) => {
+          clearTimeout(t);
+          t = setTimeout(() => fn(...args), ms);
+        };
+      };
+
+      // Abortable timeout for fetch
+      const fetchWithTimeout = (url, opts = {}, ms = 120000) => {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), ms);
+        return fetch(url, { ...opts, signal: controller.signal }).finally(() =>
+          clearTimeout(id)
+        );
+      };
+
+      // Safe parse JSON that may be fenced or polluted
+      function safeParseJsonMaybeFenced(text) {
+        const cleaned = String(text || "")
+          .trim()
+          .replace(/^```json\s*/i, "")
+          .replace(/^```/i, "")
+          .replace(/```\s*$/i, "")
+          .trim();
+        return JSON.parse(cleaned || "[]");
+      }
+
+      // Binary search current cue index by time
+      function findCueIndexByTime(cues, t) {
+        let lo = 0,
+          hi = cues.length - 1,
+          ans = -1;
+        while (lo <= hi) {
+          const mid = (lo + hi) >> 1;
+          const c = cues[mid];
+          if (t < c.start) hi = mid - 1;
+          else if (t > c.end) lo = mid + 1;
+          else {
+            ans = mid;
+            break;
+          }
+        }
+        return ans;
+      }
+
+      /******************** Storage (IndexedDB + LS) ********************/
+      const DB_NAME = "proAudioPlayerDB";
+      const DB_VER = 6;
+      const STORE = "audioFiles";
+
+      function openDB() {
+        return new Promise((resolve, reject) => {
+          const req = indexedDB.open(DB_NAME, DB_VER);
+          req.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains(STORE)) {
+              const os = db.createObjectStore(STORE, {
+                keyPath: "id",
+                autoIncrement: true,
+              });
+              os.createIndex("updatedAt", "updatedAt");
+            } else {
+              const os = req.transaction.objectStore(STORE);
+              if (!os.indexNames.contains("updatedAt"))
+                os.createIndex("updatedAt", "updatedAt");
+            }
+          };
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        });
+      }
+
+      function withStore(mode, fn) {
+        return openDB().then(
+          (db) =>
+            new Promise((resolve, reject) => {
+              const tx = db.transaction(STORE, mode);
+              const st = tx.objectStore(STORE);
+              fn(st, tx);
+              tx.oncomplete = () => resolve();
+              tx.onerror = () => reject(tx.error);
+            })
+        );
+      }
+
+      async function listFiles() {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE, "readonly");
+          const st = tx.objectStore(STORE);
+          const idx = st.index("updatedAt");
+          const req = idx.openCursor(null, "prev");
+          const out = [];
+          req.onsuccess = (e) => {
+            const cur = e.target.result;
+            if (!cur) return;
+            out.push(cur.value);
+            cur.continue();
+          };
+          tx.oncomplete = () => resolve(out);
+          tx.onerror = () => reject(tx.error);
+        });
+      }
+
+      function addFile(rec) {
+        rec.updatedAt = Date.now();
+        return withStore("readwrite", (st) => st.add(rec));
+      }
+
+      function updateFile(rec) {
+        rec.updatedAt = Date.now();
+        return withStore("readwrite", (st) => st.put(rec));
+      }
+
+      function deleteFile(id) {
+        return withStore("readwrite", (st) => st.delete(id));
+      }
+
+      function getFile(id) {
+        return new Promise(async (resolve, reject) => {
+          const db = await openDB();
+          const tx = db.transaction(STORE, "readonly");
+          const st = tx.objectStore(STORE);
+          const req = st.get(id);
+          req.onsuccess = () => resolve(req.result || null);
+          req.onerror = () => reject(req.error);
+        });
+      }
+
+      // Local settings
+      const LS = {
+        get volume() {
+          return Number(localStorage.getItem("vol") ?? "0.9");
+        },
+        set volume(v) {
+          localStorage.setItem("vol", String(v));
+        },
+        get speed() {
+          return Number(localStorage.getItem("speed") ?? "1");
+        },
+        set speed(v) {
+          localStorage.setItem("speed", String(v));
+        },
+        resumeKey(id) {
+          return `resume_${id}`;
+        },
+        getResume(id) {
+          const s = localStorage.getItem(this.resumeKey(id));
+          return s ? Number(s) : 0;
+        },
+        setResume(id, t) {
+          localStorage.setItem(this.resumeKey(id), String(t));
+        },
+        clearResume(id) {
+          localStorage.removeItem(this.resumeKey(id));
+        },
+      };
+
+      /******************** API Keys ********************/
+      function loadKeys() {
+        const sessionOnly = sessionStorage.getItem("keys_session_only") === "1";
+        const raw =
+          (sessionOnly ? sessionStorage : localStorage).getItem("ggl_keys") ||
+          "";
+        const keys = raw
+          .split(/\r?\n/)
+          .map((s) => s.trim())
+          .filter(Boolean);
+        return { keys, sessionOnly };
+      }
+      function saveKeys(keys, sessionOnly) {
+        sessionStorage.setItem("keys_session_only", sessionOnly ? "1" : "0");
+        if (sessionOnly) {
+          sessionStorage.setItem("ggl_keys", keys.join("\n"));
+          localStorage.removeItem("ggl_keys");
+        } else {
+          localStorage.setItem("ggl_keys", keys.join("\n"));
+          sessionStorage.removeItem("ggl_keys");
+        }
+      }
+      function clearKeys() {
+        localStorage.removeItem("ggl_keys");
+        sessionStorage.removeItem("ggl_keys");
+      }
+
+      async function callGeminiTimedMetadata({ base64Audio, transcript }) {
+        const { keys } = loadKeys();
+        if (!keys.length)
+          throw new Error("Chưa có API key. Vào API Keys để thêm.");
+
+        const systemPrompt = `Bạn là trợ lý canh hàng audio→văn bản. Trả về JSON duy nhất là mảng các đối tượng {start:number,end:number,text:string}.\n\nQuy tắc:\n- start/end tính bằng giây (float).\n- text là câu tương ứng trong transcript, có thể rút gọn tối thiểu để khớp highlight.\n- Không bọc trong \`\`\` hay giải thích thêm.\n`;
+
+        const userPrompt = `TRANSCRIPT:\n${transcript.slice(
+          0,
+          20000
+        )}\n\nHãy chia transcript thành các câu ngắn (2-12s/câu nếu có thể) và ước lượng start-end theo nội dung trong audio.`;
+
+        const payload = {
+          contents: [
+            {
+              role: "user",
+              parts: [
+                { text: systemPrompt },
+                { text: userPrompt },
+                { inlineData: { mimeType: "audio/mpeg", data: base64Audio } },
+              ],
+            },
+          ],
+        };
+
+        let lastErr;
+        for (const key of keys) {
+          try {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${encodeURIComponent(
+              key
+            )}`;
+            const res = await fetchWithTimeout(
+              url,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+              },
+              180000
+            );
+            if (!res.ok)
+              throw new Error(
+                (await res.json()).error?.message || res.statusText
+              );
+            const data = await res.json();
+            const raw =
+              data?.candidates?.[0]?.content?.parts
+                ?.map((p) => p.text)
+                .join("\n") || "[]";
+            const cues = safeParseJsonMaybeFenced(raw);
+            if (!Array.isArray(cues))
+              throw new Error("Phản hồi không phải là mảng.");
+            // normalize & sort
+            return cues
+              .map((c) => ({
+                start: Math.max(0, Number(c.start || 0)),
+                end: Math.max(0, Number(c.end || 0)),
+                text: String(c.text || "").trim(),
+              }))
+              .filter((c) => c.end > c.start)
+              .sort((a, b) => a.start - b.start);
+          } catch (e) {
+            lastErr = e;
+          }
+        }
+        throw lastErr || new Error("Không gọi được API.");
+      }
+
+      /******************** App State ********************/
+      let current = {
+        id: null,
+        rec: null,
+        objectURL: null,
+        timed: [],
+        lastCueIdx: -1,
+      };
+
+      /******************** Library Rendering ********************/
+      async function renderLibrary() {
+        const grid = $("#libraryGrid");
+        grid.innerHTML =
+          '<div class="col-span-full text-sm text-gray-400">Đang tải...</div>';
+        const files = await listFiles();
+        if (!files.length) {
+          grid.innerHTML = `<div class="col-span-full p-6 text-center rounded-2xl bg-gray-800/60 border border-gray-700">
+        <div class="text-gray-300">Chưa có audio nào. Hãy bấm <b>Thêm audio</b> để bắt đầu.</div>
+      </div>`;
+          return;
+        }
+
+        grid.innerHTML = "";
+        for (const f of files) {
+          const hasTranscript = f.docContent && f.docContent.trim().length > 0;
+          const hasTimed =
+            Array.isArray(f.timedMetadata) && f.timedMetadata.length > 0;
+          const card = document.createElement("div");
+          card.className =
+            "p-4 rounded-2xl bg-gray-800/60 border border-gray-700 flex flex-col gap-3";
+          card.innerHTML = `
+        <div class="flex items-center gap-3">
+          <i class="fa-solid fa-file-audio text-indigo-400"></i>
+          <div class="min-w-0">
+            <div class="font-semibold truncate">${escapeHTML(
+              f.name || "Không tên"
+            )}</div>
+            <div class="text-xs text-gray-400">Cập nhật: ${new Date(
+              f.updatedAt || Date.now()
+            ).toLocaleString()}</div>
+          </div>
+          <div class="ml-auto flex items-center gap-2">
+            ${
+              hasTranscript
+                ? '<span class="text-emerald-400 text-xs">Transcript</span>'
+                : ""
+            }
+            ${hasTimed ? '<span class="text-sky-400 text-xs">Timed</span>' : ""}
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button data-act="play" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500"><i class="fa-solid fa-play mr-2"></i>Phát</button>
+          <button data-act="ai" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500"><i class="fa-solid fa-wand-magic-sparkles mr-2"></i>AI Sync</button>
+          <button data-act="delete" class="ml-auto px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500"><i class="fa-regular fa-trash-can mr-2"></i>Xoá</button>
+        </div>`;
+          // handlers
+          card.querySelector('[data-act="play"]').onclick = () =>
+            openPlayer(f.id);
+          card.querySelector('[data-act="ai"]').onclick = () =>
+            startAISyncForId(f.id);
+          card.querySelector('[data-act="delete"]').onclick = async () => {
+            if (confirm("Xoá tệp này?")) {
+              await deleteFile(f.id);
+              showToast("Đã xoá", "success");
+              renderLibrary();
+            }
+          };
+          grid.appendChild(card);
+        }
+      }
+
+      /******************** Player ********************/
+      const audioEl = $("#audio");
+      const playPauseBtn = $("#playPause");
+      const rew10Btn = $("#rew10");
+      const fwd10Btn = $("#fwd10");
+      const volSlider = $("#volume");
+      const speedSel = $("#speed");
+      const loopToggle = $("#loopToggle");
+      const timeline = $("#timeline");
+      const progress = $("#progress");
+      const thumb = $("#thumb");
+      const tooltip = $("#tooltip");
+      const curTime = $("#curTime");
+      const dur = $("#dur");
+      const nowPlaying = $("#nowPlaying");
+      const docEditor = $("#docEditor");
+      const highlightView = $("#highlightView");
+      const copyBtn = $("#copyBtn");
+      const saveNowBtn = $("#saveNowBtn");
+      const resumeBar = $("#resumeBar");
+      const resumeText = $("#resumeTimeText");
+      const resumeGo = $("#resumeGo");
+      const resumeDismiss = $("#resumeDismiss");
+
+      let isScrubbing = false;
+      let wasPaused = false;
+
+      async function openPlayer(id) {
+        const rec = await getFile(id);
+        if (!rec) {
+          showToast("Không tìm thấy bản ghi.", "error");
+          return;
+        }
+
+        // Switch view
+        $("#libraryView").classList.add("hidden");
+        $("#playerView").classList.remove("hidden");
+
+        // Title
+        nowPlaying.textContent = rec.name || "Không tên";
+
+        // Revoke old ObjectURL if any
+        if (current.objectURL) {
+          URL.revokeObjectURL(current.objectURL);
+          current.objectURL = null;
+        }
+
+        // Load audio
+        const objURL = URL.createObjectURL(rec.blob);
+        audioEl.src = objURL;
+        current = {
+          id: rec.id,
+          rec,
+          objectURL: objURL,
+          timed: Array.isArray(rec.timedMetadata) ? rec.timedMetadata : [],
+          lastCueIdx: -1,
+        };
+
+        audioEl.loop = !!localStorage.getItem("loop") || false;
+        loopToggle.checked = audioEl.loop;
+
+        audioEl.volume = LS.volume;
+        volSlider.value = String(LS.volume);
+
+        audioEl.playbackRate = LS.speed;
+        speedSel.value = String(LS.speed);
+
+        // Editor
+        docEditor.value = rec.docContent || "";
+        renderHighlightView();
+
+        // Resume
+        const resumeAt = LS.getResume(rec.id);
+        if (resumeAt > 1) {
+          resumeText.textContent = fmtTime(resumeAt);
+          resumeBar.classList.remove("hidden");
+        } else resumeBar.classList.add("hidden");
+      }
+
+      function renderHighlightView() {
+        const text = docEditor.value || "";
+        // naive split by lines; we will wrap each cue's text later by matching indices when possible
+        const escaped = escapeHTML(text);
+        // pre-split into paragraphs to keep performance reasonable
+        highlightView.innerHTML = escaped; // base render
+        applyCueHighlight(-1, -1); // clear any active
+      }
+
+      function applyCueHighlight(activeIdx, prevIdx) {
+        // Re-render only when cue changes; we wrap minimal using Range-like replace by searching substring near previous region.
+        // For robustness (duplicate sentences), we fallback to marking by index slices if rec.timedMetadata has charIndex info (not available here), else highlight all matches of text.
+        highlightView.normalize();
+        // First, clear previous highlights if any
+        if (prevIdx !== -1) {
+          $$(".cue-active", highlightView).forEach((el) =>
+            el.classList.remove("cue-active")
+          );
+        }
+        if (activeIdx === -1) return;
+
+        const cue = current.timed[activeIdx];
+        if (!cue || !cue.text) return;
+
+        // Find and wrap occurrences of cue.text — keep lightweight to avoid huge DOM churn
+        // Strategy: search textContent for cue.text (escaped), then wrap first match found after previous position
+        const needle = cue.text.trim();
+        if (!needle) return;
+
+        const walker = document.createTreeWalker(
+          highlightView,
+          NodeFilter.SHOW_TEXT,
+          null
+        );
+        let accum = 0,
+          found = false;
+        while (walker.nextNode()) {
+          const node = walker.currentNode;
+          const val = node.nodeValue;
+          const idx = val.indexOf(needle);
+          if (idx !== -1) {
+            const before = document.createTextNode(val.slice(0, idx));
+            const match = document.createElement("span");
+            match.className = "cue cue-active";
+            match.textContent = val.slice(idx, idx + needle.length);
+            const after = document.createTextNode(
+              val.slice(idx + needle.length)
+            );
+            node.replaceWith(before, match, after);
+            match.scrollIntoView({ block: "center", behavior: "smooth" });
+            found = true;
+            break;
+          }
+          accum += val.length;
+        }
+
+        // If not found (transcript mismatch), do nothing — avoid aggressive global replace
+      }
+
+      // Time handlers
+      audioEl.addEventListener("loadedmetadata", () => {
+        dur.textContent = fmtTime(audioEl.duration);
+      });
+
+      audioEl.addEventListener("timeupdate", () => {
+        const t = audioEl.currentTime || 0;
+        curTime.textContent = fmtTime(t);
+        const pct = Math.max(0, Math.min(1, t / (audioEl.duration || 1)));
+        progress.style.width = (pct * 100).toFixed(3) + "%";
+        const x = pct * timeline.clientWidth;
+        thumb.style.left = `${x - 10}px`;
+
+        // Save resume every ~2s
+        if (!audioEl.paused && Math.floor(t) % 2 === 0) {
+          LS.setResume(current.id, t);
+        }
+
+        // Cue update (only when changed)
+        if (current.timed && current.timed.length) {
+          const idx = findCueIndexByTime(current.timed, t);
+          if (idx !== current.lastCueIdx) {
+            applyCueHighlight(idx, current.lastCueIdx);
+            current.lastCueIdx = idx;
+          }
+        }
+      });
+
+      audioEl.addEventListener("ended", () => {
+        LS.clearResume(current.id);
+      });
+
+      playPauseBtn.addEventListener("click", async () => {
+        if (audioEl.paused) {
+          await audioEl.play();
+          playPauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+        } else {
+          audioEl.pause();
+          playPauseBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+        }
+      });
+      rew10Btn.onclick = () =>
+        (audioEl.currentTime = Math.max(0, (audioEl.currentTime || 0) - 5));
+      fwd10Btn.onclick = () =>
+        (audioEl.currentTime = Math.min(
+          audioEl.duration || 0,
+          (audioEl.currentTime || 0) + 5
+        ));
+
+      volSlider.addEventListener("input", (e) => {
+        audioEl.volume = Number(e.target.value);
+        LS.volume = audioEl.volume;
+      });
+      speedSel.addEventListener("change", (e) => {
+        audioEl.playbackRate = Number(e.target.value);
+        LS.speed = audioEl.playbackRate;
+      });
+      loopToggle.addEventListener("change", (e) => {
+        audioEl.loop = e.target.checked;
+        localStorage.setItem("loop", e.target.checked ? "1" : "");
+      });
+
+      // Keyboard shortcuts
+      document.addEventListener("keydown", (e) => {
+        const inText =
+          e.target === docEditor ||
+          e.target.tagName === "INPUT" ||
+          e.target.tagName === "TEXTAREA";
+        if (inText) return;
+        if (e.code === "Space") {
+          e.preventDefault();
+          playPauseBtn.click();
+        } else if (e.code === "ArrowLeft") {
+          rew10Btn.click();
+        } else if (e.code === "ArrowRight") {
+          fwd10Btn.click();
+        } else if (e.key === "[") {
+          speedSel.selectedIndex = Math.max(0, speedSel.selectedIndex - 1);
+          speedSel.dispatchEvent(new Event("change"));
+        } else if (e.key === "]") {
+          speedSel.selectedIndex = Math.min(
+            speedSel.options.length - 1,
+            speedSel.selectedIndex + 1
+          );
+          speedSel.dispatchEvent(new Event("change"));
+        } else if (e.code === "ArrowUp") {
+          e.preventDefault();
+          volSlider.value = Math.min(1, Number(volSlider.value) + 0.05).toFixed(
+            2
+          );
+          volSlider.dispatchEvent(new Event("input"));
+        } else if (e.code === "ArrowDown") {
+          e.preventDefault();
+          volSlider.value = Math.max(0, Number(volSlider.value) - 0.05).toFixed(
+            2
+          );
+          volSlider.dispatchEvent(new Event("input"));
+        }
+      });
+
+      // Timeline interactions (mouse)
+      function pctFromEvent(e) {
+        const rect = timeline.getBoundingClientRect();
+        const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+        return Math.max(0, Math.min(1, x / rect.width));
+      }
+      function handleTimelineMove(e) {
+        const pct = pctFromEvent(e);
+        const t = pct * (audioEl.duration || 0);
+        tooltip.textContent = fmtTime(t);
+        tooltip.style.left = `${
+          pct * (timeline.clientWidth - tooltip.offsetWidth)
+        }px`;
+        progress.style.width = `${pct * 100}%`;
+        thumb.style.left = `${pct * timeline.clientWidth - 10}px`;
+      }
+      function handleTimelineCommit(e) {
+        const pct = pctFromEvent(e);
+        audioEl.currentTime = pct * (audioEl.duration || 0);
+      }
+
+      timeline.addEventListener("mousemove", (e) => {
+        if (!audioEl.duration) return;
+        tooltip.classList.remove("hidden");
+        thumb.style.opacity = "1";
+        handleTimelineMove(e);
+      });
+      timeline.addEventListener("mouseleave", () => {
+        tooltip.classList.add("hidden");
+        thumb.style.opacity = "0";
+      });
+
+      timeline.addEventListener("mousedown", (e) => {
+        if (!audioEl.duration) return;
+        isScrubbing = true;
+        wasPaused = audioEl.paused;
+        audioEl.pause();
+        handleTimelineMove(e);
+      });
+      document.addEventListener("mousemove", (e) => {
+        if (isScrubbing) handleTimelineMove(e);
+      });
+      document.addEventListener("mouseup", (e) => {
+        if (!isScrubbing) return;
+        isScrubbing = false;
+        handleTimelineCommit(e);
+        if (!wasPaused) audioEl.play();
+      });
+
+      // Touch support
+      timeline.addEventListener(
+        "touchstart",
+        (e) => {
+          if (!audioEl.duration) return;
+          isScrubbing = true;
+          wasPaused = audioEl.paused;
+          audioEl.pause();
+          handleTimelineMove(e);
+        },
+        { passive: true }
+      );
+      timeline.addEventListener(
+        "touchmove",
+        (e) => {
+          if (isScrubbing) handleTimelineMove(e);
+        },
+        { passive: true }
+      );
+      document.addEventListener(
+        "touchend",
+        (e) => {
+          if (isScrubbing) {
+            isScrubbing = false;
+            handleTimelineCommit(e.changedTouches ? e.changedTouches[0] : e);
+            if (!wasPaused) audioEl.play();
+          }
+        },
+        { passive: true }
+      );
+
+      // Editor save (debounced)
+      const saveDocDebounced = debounce(async () => {
+        if (!current.id) return;
+        const rec = await getFile(current.id);
+        if (!rec) return;
+        rec.docContent = docEditor.value;
+        await updateFile(rec);
+        showToast("Đã lưu ghi chú", "success");
+      }, 700);
+
+      docEditor.addEventListener("input", () => {
+        saveDocDebounced();
+        // re-render view only on demand? Keep lightweight: update content and re-apply active highlight if any changed
+        renderHighlightView();
+      });
+
+      copyBtn.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(docEditor.value || "");
+          showToast("Đã copy", "success");
+        } catch {
+          showToast("Không copy được", "error");
+        }
+      });
+
+      saveNowBtn.addEventListener("click", async () => {
+        try {
+          await (async () => {
+            if (!current.id) return;
+            const rec = await getFile(current.id);
+            rec.docContent = docEditor.value;
+            await updateFile(rec);
+          })();
+          showToast("Đã lưu", "success");
+        } catch {
+          showToast("Lỗi lưu", "error");
+        }
+      });
+
+      resumeGo.onclick = () => {
+        const t = LS.getResume(current.id);
+        if (t > 0) {
+          audioEl.currentTime = t;
+        }
+        resumeBar.classList.add("hidden");
+      };
+      resumeDismiss.onclick = () => {
+        LS.clearResume(current.id);
+        resumeBar.classList.add("hidden");
+      };
+
+      $("#backToLibraryBtn").onclick = () => {
+        if (current.objectURL) {
+          URL.revokeObjectURL(current.objectURL);
+          current.objectURL = null;
+        }
+        audioEl.pause();
+        $("#playerView").classList.add("hidden");
+        $("#libraryView").classList.remove("hidden");
+        renderLibrary();
+      };
+
+      /******************** Importers ********************/
+      $("#audioInput").addEventListener("change", async (e) => {
+        const files = Array.from(e.target.files || []);
+        if (!files.length) return;
+        for (const f of files) {
+          await addFile({
+            name: f.name,
+            blob: f,
+            docContent: "",
+            timedMetadata: [],
+          });
+        }
+        showToast(`Đã thêm ${files.length} tệp`, "success");
+        e.target.value = "";
+        renderLibrary();
+      });
+
+      $("#docInput").addEventListener("change", async (e) => {
+        const f = e.target.files?.[0];
+        if (!f) return;
+        try {
+          let text = "";
+          if (f.name.toLowerCase().endsWith(".docx")) {
+            const arrayBuffer = await f.arrayBuffer();
+            const res = await window.mammoth.extractRawText({ arrayBuffer });
+            text = res.value || "";
+          } else {
+            text = await f.text();
+          }
+          if ($("#playerView").classList.contains("hidden")) {
+            showToast("Transcript sẽ áp vào tệp khi bạn mở Player.", "warn");
+          }
+          docEditor.value = text.trim();
+          renderHighlightView();
+          saveNowBtn.click();
+          showToast("Đã import transcript", "success");
+        } catch (err) {
+          console.error(err);
+          showToast("Không đọc được file transcript", "error");
+        }
+        e.target.value = "";
+      });
+
+      async function startAISyncForId(id) {
+        const rec = await getFile(id);
+        if (!rec) {
+          showToast("Không tìm thấy tệp", "error");
+          return;
+        }
+        const transcript =
+          rec.id === current.id ? docEditor.value : rec.docContent || "";
+        if (!transcript.trim()) {
+          showToast("Chưa có transcript để đồng bộ.", "warn");
+          return;
+        }
+
+        showToast("Đang gọi AI, vui lòng chờ...", "info");
+        const base64Audio = await blobToBase64(rec.blob);
+        try {
+          const cues = await callGeminiTimedMetadata({
+            base64Audio,
+            transcript,
+          });
+          rec.timedMetadata = cues;
+          await updateFile(rec);
+          if (rec.id === current.id) {
+            current.timed = cues;
+            current.lastCueIdx = -1;
+            renderHighlightView();
+          }
+          showToast(`AI Sync xong: ${cues.length} đoạn`, "success");
+        } catch (err) {
+          console.error(err);
+          showToast("AI Sync lỗi: " + err.message, "error");
+        }
+      }
+
+      $("#aiSyncBtn").onclick = async () => {
+        if (!current.id) {
+          showToast("Mở 1 tệp trong Player trước đã.", "warn");
+          return;
+        }
+        await startAISyncForId(current.id);
+      };
+
+      function blobToBase64(blob) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const dataUrl = reader.result; // data:audio/...;base64,xxxx
+            const base64 = String(dataUrl).split(",")[1] || "";
+            resolve(base64);
+          };
+          reader.onerror = () => reject(reader.error);
+          reader.readAsDataURL(blob);
+        });
+      }
+
+      /******************** Keys Modal ********************/
+      const keysModal = $("#keysModal");
+      $("#openKeysBtn").onclick = () => {
+        const { keys, sessionOnly } = loadKeys();
+        $("#keysTextarea").value = keys.join("\n");
+        $("#keysSessionOnly").checked = !!sessionOnly;
+        keysModal.showModal();
+      };
+      $("#saveKeysBtn").onclick = () => {
+        const keys = $("#keysTextarea")
+          .value.split(/\r?\n/)
+          .map((s) => s.trim())
+          .filter(Boolean);
+        const sessionOnly = $("#keysSessionOnly").checked;
+        saveKeys(keys, sessionOnly);
+        showToast("Đã lưu API keys", "success");
+        keysModal.close();
+      };
+      $("#clearKeysBtn").onclick = () => {
+        clearKeys();
+        $("#keysTextarea").value = "";
+        showToast("Đã xoá keys");
+      };
+
+      $("#helpBtn").onclick = (e) => {
+        e.preventDefault();
+        alert(
+          "Hướng dẫn nhanh:\n1) Thêm audio vào thư viện.\n2) Mở Player, dán transcript vào khung trái (hoặc import .docx).\n3) Bấm AI Sync để tạo thời gian cho từng câu.\n4) Khi phát, câu đang nói sẽ được highlight ở khung phải."
+        );
+      };
+
+      /******************** Init ********************/
+      (async function init() {
+        try {
+          volSlider.value = String(LS.volume);
+          speedSel.value = String(LS.speed);
+        } catch {}
+        await renderLibrary();
+      })();
+    </script>
+  </body>
+</html>

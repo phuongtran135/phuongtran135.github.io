@@ -1,72 +1,143 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
   <head>
     <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    />
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap"
-      rel="stylesheet"
-    />
+    <title>Trang Web Gộp - Không Xung Đột</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        background-color: #f0f2f5;
+        color: #333;
+        /* Ngăn cuộn trên trang chính, để cho iframe tự cuộn */
+        overflow: hidden;
+      }
 
-    <link rel="stylesheet" href="./main.css" />
-    <title>❤️</title>
+      /* --- CSS cho Header và Thanh Điều Hướng (Tabs) --- */
+      header {
+        background-color: #ffffff;
+        padding: 15px 30px;
+        border-bottom: 1px solid #ddd;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        position: relative; /* Bỏ sticky để không che iframe */
+        z-index: 1000;
+      }
+
+      nav {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+      }
+
+      .tab-link {
+        padding: 10px 20px;
+        cursor: pointer;
+        border: none;
+        background-color: transparent;
+        font-size: 18px;
+        font-weight: bold;
+        color: #555;
+        border-bottom: 3px solid transparent;
+        transition: all 0.3s ease;
+      }
+
+      .tab-link:hover {
+        color: #007bff;
+      }
+
+      .tab-link.active {
+        color: #007bff;
+        border-bottom: 3px solid #007bff;
+      }
+
+      /* --- CSS cho Nội dung các Tab (iFrames) --- */
+      main {
+        /* Không cần padding hay container vì iframe sẽ chiếm toàn bộ không gian */
+      }
+
+      .iframe-content {
+        display: none; /* Mặc định ẩn tất cả iframe */
+        border: none; /* Xóa đường viền mặc định của iframe */
+        width: 100%;
+        /* Chiều cao của iframe sẽ bằng 100% chiều cao của viewport trừ đi chiều cao của header */
+        height: calc(100vh - 75px); /* Bạn có thể điều chỉnh 75px cho phù hợp */
+      }
+
+      .iframe-content.active {
+        display: block; /* Chỉ hiện thị iframe có class 'active' */
+      }
+    </style>
   </head>
   <body>
-    <div class="startForm">
-      <div class="startLetter">
-        <div class="contentLetter"></div>
-        <img class="myAI" src="" alt="" />
-        <div class="sticker"></div>
-        <button class="recieve"><i class="fa-solid fa-gift"></i></button>
-        <audio
-          hidden
-          id="music-audio"
-          src="https://firebasestorage.googleapis.com/v0/b/manga-2416d.appspot.com/o/pasrlive.mp3?alt=media&token=8f544b78-6b66-414c-9e05-61934e1a95b1&_gl=1*17vkt0l*_ga*MjE0MzkyOTE0Mi4xNjk3Nzg2NjM4*_ga_CW55HF8NVT*MTY5Nzc4NjYzNy4xLjEuMTY5Nzc4NjY4Ni4xMS4wLjA."
-        ></audio>
-      </div>
-    </div>
+    <header>
+      <nav id="tab-navigation">
+        <!-- Sử dụng data-tab để liên kết nút với iframe tương ứng -->
+        <button class="tab-link active" data-tab="frame1">Page 1</button>
+        <button class="tab-link" data-tab="frame2">Dịch Truyện</button>
+        <button class="tab-link" data-tab="frame3">Phân Tích Truyện</button>
+        <button class="tab-link" data-tab="frame4">Nghe Audio</button>
+      </nav>
+    </header>
 
-    <div class="backgroundParty">
-      <img
-        class="balloon1 balloon"
-        src="./img/PNGkhothietke.net-02776.png"
-        alt=""
-      />
-      <img
-        class="balloon2 balloon"
-        src="./img/PNGkhothietke.net-02776.png"
-        alt=""
-      />
-      <!-- <img
-        class="bannerParty"
-        src="./img/makeupspa-kit-theme-happy-birthday-bunting-paper-banner-party-supply-261454.png"
-        alt=""
-      /> -->
-      <img
-        class="bannerParty"
-        src="https://img.freepik.com/premium-photo/anime-nature-abstract-art-background-image_492154-547.jpg"
-        width="50%"
-        alt=""
-        style="border-radius: 10px"
-      />
-      <div class="letterForm">
-        <input type="checkbox" id="mess" />
-        <div class="content">
-          <div class="mainContent"></div>
-          <div class="img1"><img class="img" src="" alt="" /></div>
-        </div>
-        <label class="designBox" for="mess"></label>
-      </div>
-    </div>
+    <main>
+      <!-- 
+            =================================
+            QUAN TRỌNG:
+            - Đặt các file html của bạn (ví dụ: page1.html, page2.html, page3.html)
+              VÀO CÙNG THƯ MỤC với file index.html này.
+            - Đảm bảo thuộc tính "src" bên dưới trỏ đúng đến tên file của bạn.
+            =================================
+        -->
+      <iframe
+        id="frame1"
+        class="iframe-content active"
+        src="index3.html"
+        title="Nội dung trang 1"
+      ></iframe>
+      <iframe
+        id="frame2"
+        class="iframe-content"
+        src="ai-translate.html"
+        title="Nội dung trang 2"
+      ></iframe>
+      <iframe
+        id="frame3"
+        class="iframe-content"
+        src="ai-copy.html"
+        title="Nội dung trang 3"
+      ></iframe>
+      <iframe
+        id="frame4"
+        class="iframe-content"
+        src="ai-play-audio.html"
+        title="Nội dung trang 4"
+      ></iframe>
+    </main>
 
-    <script src="./index.js"></script>
+    <script>
+      // --- PHẦN JAVASCRIPT CHUNG ---
+      // Code này xử lý việc chuyển đổi giữa các tab (iframe)
+      const tabContainer = document.getElementById("tab-navigation");
+      const tabLinks = document.querySelectorAll(".tab-link");
+      const iframeContents = document.querySelectorAll(".iframe-content");
+
+      tabContainer.addEventListener("click", function (e) {
+        // Chỉ thực hiện khi click vào một nút .tab-link
+        if (e.target.classList.contains("tab-link")) {
+          const targetFrameId = e.target.dataset.tab;
+
+          // Xóa class 'active' khỏi tất cả các nút và nội dung iframe
+          tabLinks.forEach((link) => link.classList.remove("active"));
+          iframeContents.forEach((content) =>
+            content.classList.remove("active")
+          );
+
+          // Thêm class 'active' cho nút và iframe được chọn
+          e.target.classList.add("active");
+          document.getElementById(targetFrameId).classList.add("active");
+        }
+      });
+    </script>
   </body>
 </html>
