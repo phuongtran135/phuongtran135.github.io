@@ -3,133 +3,185 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Trang Web Gộp - Không Xung Đột</title>
+    <title>AI Audio - Thế Giới Truyện Tranh và Âm Thanh</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+      integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+
     <style>
-      body {
-        font-family: Arial, sans-serif;
-        margin: 0;
-        background-color: #f0f2f5;
-        color: #333;
-        /* Ngăn cuộn trên trang chính, để cho iframe tự cuộn */
-        overflow: hidden;
+      :root {
+        --background-dark: #121212;
+        --surface-dark: #1e1e1e;
+        --primary-color: #3b82f6;
+        --text-primary: #e0e0e0;
+        --text-secondary: #a0a0a0;
+        --border-color: #333333;
       }
 
-      /* --- CSS cho Header và Thanh Điều Hướng (Tabs) --- */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Poppins", Arial, sans-serif;
+        background-color: var(--background-dark);
+        color: var(--text-primary);
+        overflow: hidden; /* Ngăn cuộn trang chính */
+      }
+
+      /* --- Header và Thanh Điều Hướng --- */
       header {
-        background-color: #ffffff;
-        padding: 15px 30px;
-        border-bottom: 1px solid #ddd;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        position: relative; /* Bỏ sticky để không che iframe */
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background-color: var(--surface-dark);
+        padding: 15px 40px;
+        border-bottom: 1px solid var(--border-color);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         z-index: 1000;
+        height: 80px; /* Tăng chiều cao header */
+      }
+
+      .logo-container h1 {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--text-primary);
+      }
+
+      .logo-container span {
+        color: var(--primary-color);
       }
 
       nav {
         display: flex;
-        justify-content: center;
-        gap: 20px;
+        gap: 15px;
       }
 
       .tab-link {
-        padding: 10px 20px;
+        display: flex;
+        align-items: center;
+        gap: 8px; /* Khoảng cách giữa icon và chữ */
+        padding: 12px 25px;
         cursor: pointer;
         border: none;
         background-color: transparent;
-        font-size: 18px;
-        font-weight: bold;
-        color: #555;
-        border-bottom: 3px solid transparent;
-        transition: all 0.3s ease;
+        font-size: 16px;
+        font-weight: 500;
+        color: var(--text-secondary);
+        border-radius: 8px;
+        position: relative;
+        transition: background-color 0.3s ease, color 0.3s ease;
       }
 
       .tab-link:hover {
-        color: #007bff;
+        background-color: rgba(255, 255, 255, 0.05);
+        color: var(--text-primary);
       }
 
       .tab-link.active {
-        color: #007bff;
-        border-bottom: 3px solid #007bff;
+        background-color: var(--primary-color);
+        color: #ffffff;
+        font-weight: 600;
+        box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
       }
 
-      /* --- CSS cho Nội dung các Tab (iFrames) --- */
+      /* --- Nội dung iFrames --- */
       main {
-        /* Không cần padding hay container vì iframe sẽ chiếm toàn bộ không gian */
+        height: calc(
+          100vh - 80px
+        ); /* Chiều cao viewport trừ đi chiều cao header */
       }
 
       .iframe-content {
-        display: none; /* Mặc định ẩn tất cả iframe */
-        border: none; /* Xóa đường viền mặc định của iframe */
+        display: none;
+        border: none;
         width: 100%;
-        /* Chiều cao của iframe sẽ bằng 100% chiều cao của viewport trừ đi chiều cao của header */
-        height: calc(100vh - 75px); /* Bạn có thể điều chỉnh 75px cho phù hợp */
+        height: 100%;
       }
 
       .iframe-content.active {
-        display: block; /* Chỉ hiện thị iframe có class 'active' */
+        display: block;
       }
     </style>
   </head>
   <body>
     <header>
+      <div class="logo-container">
+        <h1><span>AI</span> Audio Story</h1>
+      </div>
       <nav id="tab-navigation">
-        <!-- Sử dụng data-tab để liên kết nút với iframe tương ứng -->
-        <button class="tab-link active" data-tab="frame1">Page 1</button>
-        <button class="tab-link" data-tab="frame2">
-          Dịch và Phân Tích Truyện
+        <button class="tab-link active" data-tab="frame1">
+          <i class="fa-solid fa-house"></i>
+          Trang Chủ
         </button>
-        <button class="tab-link" data-tab="frame3">Nghe Audio</button>
+        <button class="tab-link" data-tab="frame2">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+          Dịch Truyện AI
+        </button>
+        <button class="tab-link" data-tab="frame3">
+          <i class="fa-solid fa-headphones-simple"></i>
+          Thư Viện Audio
+        </button>
       </nav>
     </header>
 
     <main>
-      <!-- 
-            =================================
-            QUAN TRỌNG:
-            - Đặt các file html của bạn (ví dụ: page1.html, page2.html, page3.html)
-              VÀO CÙNG THƯ MỤC với file index.html này.
-            - Đảm bảo thuộc tính "src" bên dưới trỏ đúng đến tên file của bạn.
-            =================================
-        -->
       <iframe
         id="frame1"
         class="iframe-content active"
         src="page1.html"
-        title="Nội dung trang 1"
+        title="Nội dung trang chủ"
       ></iframe>
       <iframe
         id="frame2"
         class="iframe-content"
         src="dich-truyen/index.html"
-        title="Nội dung trang 2"
+        title="Nội dung dịch và phân tích truyện"
       ></iframe>
       <iframe
         id="frame3"
         class="iframe-content"
         src="nghe-audio/index-audio.html"
-        title="Nội dung trang 3"
+        title="Nội dung nghe audio"
       ></iframe>
     </main>
 
     <script>
-      // --- PHẦN JAVASCRIPT CHUNG ---
-      // Code này xử lý việc chuyển đổi giữa các tab (iframe)
+      // --- JAVASCRIPT XỬ LÝ CHUYỂN TAB ---
+      // Code này không cần thay đổi
       const tabContainer = document.getElementById("tab-navigation");
       const tabLinks = document.querySelectorAll(".tab-link");
       const iframeContents = document.querySelectorAll(".iframe-content");
 
       tabContainer.addEventListener("click", function (e) {
-        // Chỉ thực hiện khi click vào một nút .tab-link
-        if (e.target.classList.contains("tab-link")) {
-          const targetFrameId = e.target.dataset.tab;
+        // Sử dụng .closest() để đảm bảo click vào icon hay text đều nhận đúng button
+        const clickedTab = e.target.closest(".tab-link");
 
-          // Xóa class 'active' khỏi tất cả các nút và nội dung iframe
+        if (clickedTab) {
+          const targetFrameId = clickedTab.dataset.tab;
+
+          // Xóa class 'active' khỏi tất cả các nút và iframe
           tabLinks.forEach((link) => link.classList.remove("active"));
           iframeContents.forEach((content) =>
             content.classList.remove("active")
           );
 
           // Thêm class 'active' cho nút và iframe được chọn
-          e.target.classList.add("active");
+          clickedTab.classList.add("active");
           document.getElementById(targetFrameId).classList.add("active");
         }
       });
