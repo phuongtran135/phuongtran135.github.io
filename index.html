@@ -15,22 +15,19 @@
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
-      xintegrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
+      integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
       crossorigin="anonymous"
       referrerpolicy="no-referrer"
     />
 
     <style>
-      /* --- BIẾN MÀU SẮC VÀ THIẾT KẾ CHUNG --- */
       :root {
         --background-dark: #121212;
         --surface-dark: #1e1e1e;
-        --primary-color: #3b82f6; /* Xanh dương */
-        --primary-color-hover: #2563eb; /* Xanh dương đậm hơn */
+        --primary-color: #3b82f6;
         --text-primary: #e0e0e0;
         --text-secondary: #a0a0a0;
         --border-color: #333333;
-        --error-color: #ef4444;
       }
 
       * {
@@ -46,40 +43,7 @@
         overflow: hidden; /* Ngăn cuộn trang chính */
       }
 
-      /* --- SPINNER TẢI TRANG --- */
-      .loader-wrapper {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(18, 18, 18, 0.8);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 9999;
-        transition: opacity 0.5s ease, visibility 0.5s ease;
-        visibility: hidden;
-        opacity: 0;
-      }
-      .loader {
-        border: 8px solid var(--border-color);
-        border-top: 8px solid var(--primary-color);
-        border-radius: 50%;
-        width: 60px;
-        height: 60px;
-        animation: spin 1s linear infinite;
-      }
-      @keyframes spin {
-        0% {
-          transform: rotate(0deg);
-        }
-        100% {
-          transform: rotate(360deg);
-        }
-      }
-
-      /* --- HEADER VÀ THANH ĐIỀU HƯỚNG --- */
+      /* --- Header và Thanh Điều Hướng --- */
       header {
         display: flex;
         justify-content: space-between;
@@ -89,29 +53,28 @@
         border-bottom: 1px solid var(--border-color);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         z-index: 1000;
-        height: 80px;
+        height: 80px; /* Tăng chiều cao header */
       }
+
       .logo-container h1 {
         font-size: 24px;
         font-weight: 700;
         color: var(--text-primary);
       }
+
       .logo-container span {
         color: var(--primary-color);
       }
-      .header-right {
-        display: flex;
-        align-items: center;
-        gap: 20px;
-      }
+
       nav {
         display: flex;
         gap: 15px;
       }
+
       .tab-link {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 8px; /* Khoảng cách giữa icon và chữ */
         padding: 12px 25px;
         cursor: pointer;
         border: none;
@@ -121,219 +84,59 @@
         color: var(--text-secondary);
         border-radius: 8px;
         position: relative;
-        transition: background-color 0.3s ease, color 0.3s ease,
-          transform 0.2s ease, opacity 0.3s ease;
+        transition: background-color 0.3s ease, color 0.3s ease;
       }
-      .tab-link:hover:not([disabled]) {
+
+      .tab-link:hover {
         background-color: rgba(255, 255, 255, 0.05);
         color: var(--text-primary);
-        transform: translateY(-2px);
       }
+
       .tab-link.active {
         background-color: var(--primary-color);
         color: #ffffff;
         font-weight: 600;
         box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
       }
-      .tab-link[disabled] {
-        opacity: 0.5;
-        cursor: not-allowed;
-        pointer-events: none; /* Ngăn chặn sự kiện click */
-      }
 
-      /* --- NÚT ĐĂNG NHẬP / AUTH --- */
-      .auth-container {
-        position: relative;
-      }
-      #auth-button {
-        padding: 10px 20px;
-        border: 1px solid var(--primary-color);
-        background-color: transparent;
-        color: var(--primary-color);
-        border-radius: 8px;
-        cursor: pointer;
-        font-weight: 500;
-        transition: background-color 0.3s, color 0.3s;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 250px;
-      }
-      #auth-button:hover {
-        background-color: var(--primary-color);
-        color: #fff;
-      }
-
-      /* --- CỬA SỔ ĐĂNG NHẬP (MODAL) --- */
-      .modal-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.7);
-        z-index: 1001;
-        display: none;
-        justify-content: center;
-        align-items: center;
-      }
-      .modal-content {
-        background-color: var(--surface-dark);
-        padding: 40px;
-        border-radius: 12px;
-        border: 1px solid var(--border-color);
-        width: 90%;
-        max-width: 400px;
-        text-align: center;
-        position: relative;
-      }
-      .modal-content h2 {
-        margin-bottom: 10px;
-      }
-      .modal-close {
-        position: absolute;
-        top: 15px;
-        right: 15px;
-        background: none;
-        border: none;
-        color: var(--text-secondary);
-        font-size: 24px;
-        cursor: pointer;
-      }
-      #auth-error {
-        color: var(--error-color);
-        margin-top: 15px;
-        min-height: 20px;
-      }
-
-      .google-btn {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 15px;
-        background-color: #ffffff;
-        color: #333;
-        border: 1px solid #ccc;
-        width: 100%;
-        padding: 12px;
-        border-radius: 8px;
-        font-size: 16px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: background-color 0.3s;
-        margin-top: 25px;
-      }
-      .google-btn:hover {
-        background-color: #f2f2f2;
-      }
-      .google-btn svg {
-        width: 20px;
-        height: 20px;
-      }
-
-      /* --- NỘI DUNG IFRAME --- */
+      /* --- Nội dung iFrames --- */
       main {
-        height: calc(100vh - 80px - 50px);
-        position: relative;
+        height: calc(
+          100vh - 80px
+        ); /* Chiều cao viewport trừ đi chiều cao header */
       }
+
       .iframe-content {
+        display: none;
         border: none;
         width: 100%;
         height: 100%;
-        position: absolute;
-        top: 0;
-        left: 0;
-        opacity: 0;
-        visibility: hidden;
-        transition: opacity 0.5s ease, visibility 0.5s ease;
       }
+
       .iframe-content.active {
-        opacity: 1;
-        visibility: visible;
-      }
-
-      /* --- FOOTER --- */
-      footer {
-        height: 50px;
-        background-color: var(--surface-dark);
-        border-top: 1px solid var(--border-color);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        font-size: 14px;
-        color: var(--text-secondary);
-      }
-
-      /* --- RESPONSIVE CHO DI ĐỘNG --- */
-      @media (max-width: 768px) {
-        header {
-          padding: 10px 15px;
-          height: auto;
-          flex-direction: column;
-          gap: 15px;
-        }
-        .logo-container {
-          order: -1;
-        } /* Đưa logo lên đầu */
-        .header-right {
-          flex-direction: column;
-          width: 100%;
-          gap: 15px;
-        }
-        nav {
-          width: 100%;
-          justify-content: space-around;
-        }
-        .tab-link {
-          padding: 10px 12px;
-          font-size: 14px;
-          flex-grow: 1;
-          justify-content: center;
-        }
-        .tab-link .fa-solid {
-          margin-right: 5px;
-        }
-        main {
-          height: calc(100vh - 150px - 50px);
-        }
-      }
-      @media (max-width: 480px) {
-        .tab-link span {
-          display: none;
-        }
-        .tab-link {
-          gap: 0;
-        }
+        display: block;
       }
     </style>
   </head>
   <body>
-    <div class="loader-wrapper" id="loader">
-      <div class="loader"></div>
-    </div>
-
     <header>
       <div class="logo-container">
         <h1><span>AI</span> Audio Story</h1>
       </div>
-      <div class="header-right">
-        <nav id="tab-navigation">
-          <button class="tab-link active" data-tab="frame1">
-            <i class="fa-solid fa-house"></i> <span>Trang Chủ</span>
-          </button>
-          <button class="tab-link" data-tab="frame2" data-requires-auth="true">
-            <i class="fa-solid fa-wand-magic-sparkles"></i>
-            <span>Dịch Truyện AI</span>
-          </button>
-          <button class="tab-link" data-tab="frame3" data-requires-auth="true">
-            <i class="fa-solid fa-headphones-simple"></i>
-            <span>Thư Viện Audio</span>
-          </button>
-        </nav>
-        <div class="auth-container">
-          <button id="auth-button">Đăng nhập</button>
-        </div>
-      </div>
+      <nav id="tab-navigation">
+        <button class="tab-link active" data-tab="frame1">
+          <i class="fa-solid fa-house"></i>
+          Trang Chủ
+        </button>
+        <button class="tab-link" data-tab="frame2">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+          Dịch Truyện AI
+        </button>
+        <button class="tab-link" data-tab="frame3">
+          <i class="fa-solid fa-headphones-simple"></i>
+          Thư Viện Audio
+        </button>
+      </nav>
     </header>
 
     <main>
@@ -357,206 +160,31 @@
       ></iframe>
     </main>
 
-    <footer>
-      <p>&copy; 2025 AI Audio Story. All Rights Reserved.</p>
-    </footer>
-
-    <!-- CỬA SỔ ĐĂNG NHẬP VỚI GOOGLE -->
-    <div class="modal-overlay" id="auth-modal">
-      <div class="modal-content">
-        <button class="modal-close" id="modal-close-button">&times;</button>
-        <h2>Chào mừng bạn</h2>
-        <p style="color: var(--text-secondary)">
-          Sử dụng tài khoản Google để tiếp tục
-        </p>
-        <button id="google-signin-button" class="google-btn">
-          <svg viewBox="0 0 48 48">
-            <path
-              fill="#EA4335"
-              d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
-            ></path>
-            <path
-              fill="#4285F4"
-              d="M46.98 24.55c0-1.57-.15-3.09-.42-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
-            ></path>
-            <path
-              fill="#FBBC05"
-              d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
-            ></path>
-            <path
-              fill="#34A853"
-              d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
-            ></path>
-            <path fill="none" d="M0 0h48v48H0z"></path>
-          </svg>
-          <span>Đăng nhập với Google</span>
-        </button>
-        <p id="auth-error"></p>
-      </div>
-    </div>
-
-    <!-- Firebase SDK Scripts -->
-    <script type="module">
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-      import {
-        getAuth,
-        onAuthStateChanged,
-        GoogleAuthProvider,
-        signInWithPopup,
-        signOut,
-      } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-
-      // --- CẤU HÌNH FIREBASE ---
-      // LƯU Ý: Thay thế bằng cấu hình Firebase của bạn
-      const firebaseConfig = {
-        apiKey: "AIzaSyDOM_Z0uHw9lguXOOCjK64S_qox3ekstPk",
-        authDomain: "ai-audio-story.firebaseapp.com",
-        projectId: "ai-audio-story",
-        storageBucket: "ai-audio-story.firebasestorage.app",
-        messagingSenderId: "495783578005",
-        appId: "1:495783578005:web:b404c18d001a9a468b8e9c",
-      };
-
-      // --- KHỞI TẠO FIREBASE & AUTH ---
-      const app = initializeApp(firebaseConfig);
-      const auth = getAuth(app);
-      const provider = new GoogleAuthProvider();
-
-      // --- DOM ELEMENTS ---
+    <script>
+      // --- JAVASCRIPT XỬ LÝ CHUYỂN TAB ---
+      // Code này không cần thay đổi
       const tabContainer = document.getElementById("tab-navigation");
       const tabLinks = document.querySelectorAll(".tab-link");
       const iframeContents = document.querySelectorAll(".iframe-content");
-      const loaderWrapper = document.getElementById("loader");
 
-      const authButton = document.getElementById("auth-button");
-      const authModal = document.getElementById("auth-modal");
-      const modalCloseButton = document.getElementById("modal-close-button");
-      const googleSignInButton = document.getElementById(
-        "google-signin-button"
-      );
-      const authError = document.getElementById("auth-error");
-
-      // --- LOGIC TẢI TRANG (SPINNER) ---
-      function showLoader(show) {
-        loaderWrapper.style.visibility = show ? "visible" : "hidden";
-        loaderWrapper.style.opacity = show ? "1" : "0";
-      }
-      function handleIframeLoad(iframe) {
-        if (
-          iframe.contentDocument &&
-          iframe.contentDocument.readyState === "complete"
-        ) {
-          showLoader(false);
-          iframe.setAttribute("data-loaded", "true");
-          return;
-        }
-        showLoader(true);
-        iframe.addEventListener(
-          "load",
-          () => {
-            showLoader(false);
-            iframe.setAttribute("data-loaded", "true");
-          },
-          { once: true }
-        );
-      }
-
-      // --- LOGIC CHUYỂN TAB ---
       tabContainer.addEventListener("click", function (e) {
+        // Sử dụng .closest() để đảm bảo click vào icon hay text đều nhận đúng button
         const clickedTab = e.target.closest(".tab-link");
-        if (
-          clickedTab &&
-          !clickedTab.classList.contains("active") &&
-          !clickedTab.disabled
-        ) {
+
+        if (clickedTab) {
           const targetFrameId = clickedTab.dataset.tab;
-          const targetIframe = document.getElementById(targetFrameId);
-          if (targetIframe.getAttribute("data-loaded") !== "true") {
-            handleIframeLoad(targetIframe);
-          }
+
+          // Xóa class 'active' khỏi tất cả các nút và iframe
           tabLinks.forEach((link) => link.classList.remove("active"));
           iframeContents.forEach((content) =>
             content.classList.remove("active")
           );
+
+          // Thêm class 'active' cho nút và iframe được chọn
           clickedTab.classList.add("active");
-          targetIframe.classList.add("active");
+          document.getElementById(targetFrameId).classList.add("active");
         }
       });
-
-      // --- LOGIC AUTHENTICATION (ĐĂNG NHẬP) ---
-
-      // Mở/đóng modal
-      function toggleModal(show) {
-        authModal.style.display = show ? "flex" : "none";
-        if (show) authError.textContent = ""; // Xóa lỗi cũ khi mở modal
-      }
-
-      authButton.addEventListener("click", () => {
-        if (auth.currentUser) {
-          // Nếu đang đăng nhập thì logout
-          signOut(auth);
-        } else {
-          // Nếu chưa đăng nhập thì mở modal
-          toggleModal(true);
-        }
-      });
-      modalCloseButton.addEventListener("click", () => toggleModal(false));
-      authModal.addEventListener("click", (e) => {
-        // Đóng khi click bên ngoài
-        if (e.target === authModal) toggleModal(false);
-      });
-
-      // Xử lý đăng nhập với Google
-      googleSignInButton.addEventListener("click", () => {
-        signInWithPopup(auth, provider).catch((error) => {
-          console.error("Lỗi đăng nhập Google:", error);
-          authError.textContent =
-            "Không thể đăng nhập với Google. Vui lòng thử lại.";
-        });
-      });
-
-      // Lắng nghe thay đổi trạng thái đăng nhập
-      onAuthStateChanged(auth, (user) => {
-        if (user) {
-          // Người dùng đã đăng nhập
-          authButton.textContent = `Đăng xuất (${
-            user.displayName || user.email
-          })`;
-          toggleModal(false); // Đóng modal nếu đang mở
-          // Mở khóa các tab yêu cầu đăng nhập
-          document
-            .querySelectorAll('[data-requires-auth="true"]')
-            .forEach((tab) => {
-              tab.disabled = false;
-            });
-        } else {
-          // Người dùng đã đăng xuất
-          authButton.textContent = "Đăng nhập";
-          // Khóa các tab yêu cầu đăng nhập
-          document
-            .querySelectorAll('[data-requires-auth="true"]')
-            .forEach((tab) => {
-              tab.disabled = true;
-              // Nếu tab bị khóa đang active, chuyển về trang chủ
-              if (tab.classList.contains("active")) {
-                tab.classList.remove("active");
-                document
-                  .querySelector('[data-tab="frame1"]')
-                  .classList.add("active");
-                document
-                  .getElementById(tab.dataset.tab)
-                  .classList.remove("active");
-                document.getElementById("frame1").classList.add("active");
-              }
-            });
-        }
-      });
-
-      // --- XỬ LÝ TẢI TRANG BAN ĐẦU ---
-      const initialIframe = document.querySelector(".iframe-content.active");
-      if (initialIframe) {
-        handleIframeLoad(initialIframe);
-      }
     </script>
   </body>
 </html>
