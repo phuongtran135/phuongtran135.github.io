@@ -1,0 +1,155 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap");
+html,
+body {
+  height: 100%;
+}
+body {
+  background-color: #0f172a;
+  color: #e2e8f0;
+  font-family: "Inter", sans-serif;
+}
+.audio-item:hover {
+  background-color: #334155;
+}
+
+/* Custom timeline styles */
+.timeline-container {
+  height: 8px;
+  background-color: #334155;
+  cursor: pointer;
+  position: relative;
+  border-radius: 9999px;
+}
+.timeline-progress {
+  height: 100%;
+  background-color: #a78bfa;
+  position: relative;
+  border-radius: 9999px;
+}
+.timeline-progress::after {
+  content: "";
+  position: absolute;
+  right: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  background-color: white;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(167, 139, 250, 0.5);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.timeline-container:hover .timeline-progress::after {
+  opacity: 1;
+}
+.seek-tooltip {
+  position: absolute;
+  bottom: 20px;
+  transform: translateX(-50%);
+  background-color: #1e293b;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  display: none;
+  pointer-events: none;
+}
+
+#loop-btn.active {
+  color: #a78bfa;
+}
+.speed-option.active {
+  color: #a78bfa;
+  font-weight: bold;
+}
+
+/* Custom Volume Slider */
+input[type="range"].volume-slider {
+  -webkit-appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+input[type="range"].volume-slider::-webkit-slider-runnable-track {
+  height: 6px;
+  background: #334155;
+  border-radius: 5px;
+}
+input[type="range"].volume-slider::-moz-range-track {
+  height: 6px;
+  background: #334155;
+  border-radius: 5px;
+}
+input[type="range"].volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  margin-top: -5px;
+  height: 16px;
+  width: 16px;
+  border-radius: 50%;
+  background: #e2e8f0;
+}
+input[type="range"].volume-slider::-moz-range-thumb {
+  height: 16px;
+  width: 16px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  border: none;
+}
+
+/* Custom Doc Editor */
+#doc-editor-container {
+  position: relative;
+  flex-grow: 1;
+  background-color: #1e293b;
+}
+#doc-editor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  padding: 1rem 1.5rem;
+  font-size: 1rem;
+  line-height: 1.625;
+  font-family: "Inter", sans-serif;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  border: none;
+  outline: none;
+  resize: none;
+  background-color: transparent;
+  color: #cbd5e1;
+  caret-color: #a78bfa;
+  z-index: 10;
+}
+#editor-highlights {
+  color: transparent;
+  pointer-events: none;
+}
+
+/* Toast Notification */
+#toast {
+  position: fixed;
+  bottom: -100px;
+  right: 20px;
+  padding: 1rem 1.5rem;
+  border-radius: 0.5rem;
+  color: white;
+  font-weight: 600;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  transition: bottom 0.5s ease-in-out;
+  z-index: 100;
+}
+#toast.show {
+  bottom: 20px;
+}
+#toast.success {
+  background-color: #10b981;
+}
+#toast.error {
+  background-color: #ef4444;
+}
+#toast.info {
+  background-color: #3b82f6;
+}

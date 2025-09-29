@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trình Phát Audio & Ghi Chú</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.7.0/mammoth.browser.min.js"></script>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body
+    class="bg-slate-900 flex items-center justify-center p-[30px] box-border"
+  >
+    <div
+      id="app-container"
+      class="w-full h-full bg-slate-800 rounded-2xl shadow-2xl overflow-hidden flex relative"
+    >
+      <!-- Chế độ xem Thư viện (Mặc định) -->
+      <div
+        id="library-view"
+        class="w-full h-full flex items-center justify-center p-4"
+      >
+        <div class="w-full max-w-md p-4 sm:p-6 relative">
+          <h1
+            class="text-2xl sm:text-3xl font-bold mb-6 text-violet-400 text-center"
+          >
+            Thư viện Audio
+          </h1>
+          <label
+            for="file-input"
+            class="mb-4 w-full bg-violet-600 hover:bg-violet-700 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 inline-block text-center cursor-pointer"
+          >
+            <i class="fas fa-plus mr-2"></i> Thêm Audio Mới
+          </label>
+          <input type="file" id="file-input" accept="audio/*" class="hidden" />
+          <div
+            id="audio-list"
+            class="space-y-3 max-h-[60vh] overflow-y-auto pr-2"
+          ></div>
+        </div>
+      </div>
+
+      <!-- Chế độ xem Player & Editor (Bị ẩn ban đầu) -->
+      <div
+        id="player-view"
+        class="hidden w-full h-full flex flex-col lg:flex-row"
+      >
+        <!-- Cột Trái: Player -->
+        <div
+          class="w-full lg:w-[420px] lg:flex-shrink-0 h-auto lg:h-full flex flex-col relative lg:border-r lg:border-slate-700"
+        >
+          <button
+            id="back-to-library-btn"
+            class="absolute top-4 left-4 z-20 bg-black bg-opacity-30 text-white rounded-full w-10 h-10 flex items-center justify-center hover:bg-opacity-50 transition-all"
+          >
+            <i class="fas fa-arrow-left"></i>
+          </button>
+          <div
+            class="aspect-square w-full bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center p-8 relative"
+          >
+            <i class="fas fa-music text-9xl text-violet-500 opacity-50"></i>
+          </div>
+          <audio id="audio-player" class="hidden"></audio>
+          <div
+            class="p-4 sm:p-6 space-y-4 flex-grow flex flex-col justify-center"
+          >
+            <div>
+              <p
+                id="player-track-title"
+                class="text-xl font-bold text-center truncate"
+                title="Track title"
+              ></p>
+            </div>
+            <div class="space-y-2">
+              <div id="timeline" class="timeline-container w-full group">
+                <div class="seek-tooltip" id="seek-tooltip">00:00</div>
+                <div id="timeline-progress" class="timeline-progress"></div>
+              </div>
+              <div
+                class="flex justify-between items-center text-xs font-mono text-slate-400"
+              >
+                <span id="current-time">00:00</span>
+                <span id="duration">00:00</span>
+              </div>
+            </div>
+            <div
+              class="flex items-center justify-center space-x-6 text-3xl sm:text-4xl text-slate-300"
+            >
+              <button
+                id="rewind-btn"
+                class="hover:text-white transition-colors"
+              >
+                <i class="fas fa-backward-step"></i>
+              </button>
+              <button
+                id="play-pause-btn"
+                class="w-16 h-16 sm:w-20 sm:h-20 bg-violet-600 rounded-full flex items-center justify-center hover:bg-violet-500 transition-transform transform hover:scale-110 text-4xl shadow-lg"
+              >
+                <i id="play-pause-icon" class="fas fa-play"></i>
+              </button>
+              <button
+                id="forward-btn"
+                class="hover:text-white transition-colors"
+              >
+                <i class="fas fa-forward-step"></i>
+              </button>
+            </div>
+            <div
+              class="flex items-center justify-between text-slate-400 pt-2 text-lg"
+            >
+              <div class="w-1/3 flex items-center gap-2 sm:gap-4 group">
+                <button id="volume-btn">
+                  <i id="volume-icon" class="fas fa-volume-high"></i>
+                </button>
+                <div
+                  class="flex-grow flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <input
+                    type="range"
+                    id="volume-slider"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    class="volume-slider w-full"
+                  />
+                  <span
+                    id="volume-percentage"
+                    class="text-xs w-10 text-center font-mono"
+                    >100%</span
+                  >
+                </div>
+              </div>
+              <div class="w-1/3 flex justify-center items-center">
+                <button id="loop-btn"><i class="fas fa-repeat"></i></button>
+              </div>
+              <div class="w-1/3 text-right relative" id="speed-control">
+                <button
+                  id="speed-btn"
+                  class="font-mono text-slate-400 hover:text-white transition-colors w-16 text-center"
+                >
+                  1.0x
+                </button>
+                <div
+                  id="speed-options"
+                  class="absolute bottom-full right-0 mb-2 w-24 bg-slate-700 rounded-md shadow-lg hidden flex-col-reverse overflow-hidden z-20"
+                >
+                  <button
+                    class="speed-option w-full text-center py-2 px-4 hover:bg-slate-600 transition-colors"
+                    data-speed="0.5"
+                  >
+                    0.5x
+                  </button>
+                  <button
+                    class="speed-option w-full text-center py-2 px-4 hover:bg-slate-600 transition-colors"
+                    data-speed="0.75"
+                  >
+                    0.75x
+                  </button>
+                  <button
+                    class="speed-option w-full text-center py-2 px-4 hover:bg-slate-600 transition-colors active"
+                    data-speed="1.0"
+                  >
+                    1.0x
+                  </button>
+                  <button
+                    class="speed-option w-full text-center py-2 px-4 hover:bg-slate-600 transition-colors"
+                    data-speed="1.25"
+                  >
+                    1.25x
+                  </button>
+                  <button
+                    class="speed-option w-full text-center py-2 px-4 hover:bg-slate-600 transition-colors"
+                    data-speed="1.5"
+                  >
+                    1.5x
+                  </button>
+                  <button
+                    class="speed-option w-full text-center py-2 px-4 hover:bg-slate-600 transition-colors"
+                    data-speed="2.0"
+                  >
+                    2.0x
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cột Phải: Editor -->
+        <div class="w-full lg:flex-grow h-full flex flex-col min-w-0">
+          <div
+            class="p-2 sm:p-4 bg-slate-900/50 border-b border-slate-700 flex justify-between items-center gap-2 flex-wrap"
+          >
+            <h2 class="text-lg font-bold text-slate-300">Ghi chú</h2>
+            <div class="flex items-center gap-2">
+              <button
+                id="undo-btn"
+                title="Hoàn tác"
+                class="bg-slate-600 hover:bg-slate-700 text-white font-bold py-1 px-3 rounded-lg text-sm disabled:opacity-50"
+                disabled
+              >
+                <i class="fas fa-undo"></i>
+              </button>
+              <button
+                id="redo-btn"
+                title="Làm lại"
+                class="bg-slate-600 hover:bg-slate-700 text-white font-bold py-1 px-3 rounded-lg text-sm disabled:opacity-50"
+                disabled
+              >
+                <i class="fas fa-redo"></i>
+              </button>
+              <button
+                id="upload-docx-btn"
+                title="Tải lên ghi chú từ file Docx"
+                class="bg-sky-600 hover:bg-sky-700 text-white font-bold py-1 px-3 rounded-lg text-sm"
+              >
+                <i class="fas fa-file-word"></i>
+              </button>
+              <button
+                id="copy-note-btn"
+                title="Copy toàn bộ"
+                class="bg-slate-600 hover:bg-slate-700 text-white font-bold py-1 px-3 rounded-lg text-sm"
+              >
+                <i class="fas fa-copy"></i>
+              </button>
+              <button
+                id="clear-note-btn"
+                title="Xóa toàn bộ"
+                class="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded-lg text-sm"
+              >
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
+          <div id="doc-editor-container">
+            <div id="editor-highlights"></div>
+            <textarea
+              id="doc-editor"
+              placeholder="Dán nội dung phiên âm vào đây..."
+            ></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div
+        id="resume-prompt"
+        class="absolute inset-0 bg-black bg-opacity-80 flex-col items-center justify-center hidden z-40 p-4 text-center"
+      >
+        <p class="text-xl mb-6 text-gray-300">
+          Bạn đã nghe đến
+          <span id="resume-time" class="font-bold text-violet-400"></span>.
+        </p>
+        <div class="flex space-x-6">
+          <button
+            id="resume-continue-btn"
+            class="bg-violet-600 hover:bg-violet-700 text-white font-bold py-3 px-6 rounded-lg"
+          >
+            Nghe tiếp
+          </button>
+          <button
+            id="resume-restart-btn"
+            class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg"
+          >
+            Nghe lại từ đầu
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Custom Confirm Modal -->
+    <div
+      id="confirm-modal"
+      class="fixed inset-0 bg-black bg-opacity-70 hidden items-center justify-center z-50 p-4"
+    >
+      <div class="bg-slate-800 rounded-lg shadow-xl w-full max-w-md">
+        <div class="p-6 text-center space-y-4">
+          <p id="confirm-modal-text" class="text-lg"></p>
+        </div>
+        <div class="p-4 bg-slate-700/50 flex justify-end gap-4 rounded-b-lg">
+          <button
+            id="confirm-cancel-btn"
+            class="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-lg"
+          >
+            Hủy
+          </button>
+          <button
+            id="confirm-ok-btn"
+            class="bg-violet-600 hover:bg-violet-700 text-white font-bold py-2 px-4 rounded-lg"
+          >
+            Đồng ý
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast"></div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
