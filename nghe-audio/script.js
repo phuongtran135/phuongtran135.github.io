@@ -32,6 +32,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const volumeIcon = document.getElementById("volume-icon");
   const volumeSlider = document.getElementById("volume-slider");
   const volumePercentage = document.getElementById("volume-percentage");
+  const volumeContainer = document.getElementById("volume-container");
+  const volumeSliderContainer = document.getElementById(
+    "volume-slider-container"
+  );
   const undoBtn = document.getElementById("undo-btn");
   const redoBtn = document.getElementById("redo-btn");
   const confirmModal = document.getElementById("confirm-modal");
@@ -41,14 +45,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const toast = document.getElementById("toast");
   const resumePrompt = document.getElementById("resume-prompt");
   const resumeTime = document.getElementById("resume-time");
-  const resumeContinueBtn = document.getElementById(
-    "resume-continue-btn"
-  );
+  const resumeContinueBtn = document.getElementById("resume-continue-btn");
   const resumeRestartBtn = document.getElementById("resume-restart-btn");
 
   // --- State Variables ---
   let currentAudioFile = null;
-  let lastVolume = 1;
   let undoStack = [];
   let redoStack = [];
   let isUndoingOrRedoing = false;
@@ -90,6 +91,41 @@ document.addEventListener("DOMContentLoaded", () => {
       request.onerror = (e) =>
         reject("Lỗi khi thêm file: " + e.target.error);
     });
+  }
+
+  async function handleFileUploads(files) {
+    const audioFiles = Array.from(files).filter((file) =>
+      file.type.startsWith("audio/")
+    );
+
+    if (audioFiles.length < files.length) {
+      showToast("Một số file không phải là audio và đã được bỏ qua.", "info");
+    }
+
+    if (audioFiles.length === 0) {
+      if (files.length > 0) {
+        showToast("Không tìm thấy file audio hợp lệ.", "error");
+      }
+      return;
+    }
+
+    showToast(`Đang xử lý ${audioFiles.length} file...`, "info", 5000);
+
+    let successCount = 0;
+    for (const file of audioFiles) {
+      try {
+        await addAudio(file);
+        successCount++;
+      } catch (error) {
+        console.error(error);
+        showToast(`Không thể lưu file: ${file.name}`, "error");
+      }
+    }
+
+    if (successCount > 0) {
+      showToast(`Đã thêm thành công ${successCount} file.`, "success");
+      renderLibrary(); // Render only once
+    }
   }
 
   function deleteAudio(id) {
@@ -166,9 +202,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     </div>
                     <div class="flex items-center flex-shrink-0">
                         <i class="fas fa-play text-slate-500"></i>
-                        <button class="delete-audio-btn ml-4 text-slate-500 hover:text-red-500" data-id="${
-                          audio.id
-                        }" title="Xóa file"><i class="fas fa-trash"></i></button>
+                        <button class="delete-audio-btn ml-4 text-slate-500 hover:text-red-500" data-id="${audio.id}" title="Xóa file"><i class="fas fa-trash"></i></button>
                     </div>
                 `;
         item
@@ -271,15 +305,6 @@ document.addEventListener("DOMContentLoaded", () => {
     else volumeIcon.className = "fas fa-volume-high";
   }
 
-  function toggleMute() {
-    if (audioPlayer.volume > 0) {
-      lastVolume = audioPlayer.volume;
-      setVolume(0);
-    } else {
-      setVolume(lastVolume > 0 ? lastVolume : 1);
-    }
-  }
-
   function handleTimelineUpdate(e) {
     const rect = timeline.getBoundingClientRect();
     const clientX = e.clientX || e.touches[0].clientX;
@@ -338,20 +363,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  fileInput.addEventListener("change", async (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      try {
-        await addAudio(file);
-        renderLibrary();
-        showToast(`Đã thêm: ${file.name}`, "success");
-      } catch (error) {
-        console.error(error);
-        showToast("Không thể lưu file audio.", "error");
-      } finally {
-        e.target.value = "";
-      }
+  fileInput.addEventListener("change", (e) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      handleFileUploads(files);
     }
+    e.target.value = ""; // Reset input
   });
 
   clearNoteBtn.addEventListener("click", () => {
@@ -399,18 +416,13 @@ document.addEventListener("DOMContentLoaded", () => {
         const newContent = result.value.replace(/\n\s*\n/g, "\n").trim();
 
         docEditor.value = newContent;
-
-        // Save the new content
-        handleDocSave.cancel(); // Cancel any pending save
+        handleDocSave.cancel();
         await updateAudioData(currentAudioFile.id, {
           docContent: newContent,
         });
-
-        // Update undo stack
         undoStack.push(newContent);
         redoStack = [];
         updateUndoRedoButtons();
-
         showToast("Đã tải ghi chú từ file Docx thành công.", "success");
       } catch (error) {
         console.error("Lỗi khi đọc file docx:", error);
@@ -442,14 +454,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   backToLibraryBtn.addEventListener("click", showLibraryView);
   playPauseBtn.addEventListener("click", togglePlay);
-  rewindBtn.addEventListener(
-    "click",
-    () => (audioPlayer.currentTime -= 10)
-  );
-  forwardBtn.addEventListener(
-    "click",
-    () => (audioPlayer.currentTime += 10)
-  );
+  rewindBtn.addEventListener("click", () => (audioPlayer.currentTime -= 10));
+  forwardBtn.addEventListener("click", () => (audioPlayer.currentTime += 10));
   loopBtn.addEventListener("click", () => {
     audioPlayer.loop = !audioPlayer.loop;
     loopBtn.classList.toggle("active", audioPlayer.loop);
@@ -471,15 +477,25 @@ document.addEventListener("DOMContentLoaded", () => {
       speedOptions.classList.add("hidden");
     });
   });
+
+  volumeSlider.addEventListener("input", (e) => setVolume(e.target.value));
+
+  volumeBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    volumeSliderContainer.classList.toggle("opacity-0");
+    volumeSliderContainer.classList.toggle("pointer-events-none");
+  });
+
   document.addEventListener("click", (e) => {
     if (!speedControl.contains(e.target)) {
       speedOptions.classList.add("hidden");
     }
+    if (!volumeContainer.contains(e.target)) {
+      volumeSliderContainer.classList.add("opacity-0");
+      volumeSliderContainer.classList.add("pointer-events-none");
+    }
   });
-  volumeSlider.addEventListener("input", (e) =>
-    setVolume(e.target.value)
-  );
-  volumeBtn.addEventListener("click", toggleMute);
+
   audioPlayer.addEventListener("play", () =>
     playPauseIcon.classList.replace("fa-play", "fa-pause")
   );
@@ -582,6 +598,53 @@ document.addEventListener("DOMContentLoaded", () => {
           }
         }
       );
+    }
+  });
+
+  // --- Drag and Drop file upload ---
+  const dropZone = libraryView;
+  const dropZoneContent = dropZone.querySelector(".w-full.max-w-md");
+
+  dropZone.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dropZone.classList.add("bg-slate-700");
+    if (dropZoneContent) {
+      dropZoneContent.classList.add(
+        "border-2",
+        "border-dashed",
+        "border-violet-400"
+      );
+    }
+  });
+
+  dropZone.addEventListener("dragleave", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dropZone.classList.remove("bg-slate-700");
+    if (dropZoneContent) {
+      dropZoneContent.classList.remove(
+        "border-2",
+        "border-dashed",
+        "border-violet-400"
+      );
+    }
+  });
+
+  dropZone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dropZone.classList.remove("bg-slate-700");
+    if (dropZoneContent) {
+      dropZoneContent.classList.remove(
+        "border-2",
+        "border-dashed",
+        "border-violet-400"
+      );
+    }
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      handleFileUploads(files);
     }
   });
 

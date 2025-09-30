@@ -1,9 +1,9 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap");
-html,
-body {
+html {
   height: 100%;
 }
 body {
+  min-height: 100%;
   background-color: #0f172a;
   color: #e2e8f0;
   font-family: "Inter", sans-serif;
@@ -102,6 +102,7 @@ input[type="range"].volume-slider::-moz-range-thumb {
   position: relative;
   flex-grow: 1;
   background-color: #1e293b;
+  min-height: 300px; /* Thêm chiều cao tối thiểu */
 }
 #doc-editor {
   position: absolute;

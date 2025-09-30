@@ -3,188 +3,458 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AI Audio - Thế Giới Truyện Tranh và Âm Thanh</title>
-
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
-
+    <title>AI Audio Story - Nền Tảng Sáng Tạo Tương Lai</title>
+    <!-- Frameworks & Libraries -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
-      integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
-      crossorigin="anonymous"
-      referrerpolicy="no-referrer"
     />
-
-    <style>
-      :root {
-        --background-dark: #121212;
-        --surface-dark: #1e1e1e;
-        --primary-color: #3b82f6;
-        --text-primary: #e0e0e0;
-        --text-secondary: #a0a0a0;
-        --border-color: #333333;
-      }
-
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-
-      body {
-        font-family: "Poppins", Arial, sans-serif;
-        background-color: var(--background-dark);
-        color: var(--text-primary);
-        overflow: hidden; /* Ngăn cuộn trang chính */
-      }
-
-      /* --- Header và Thanh Điều Hướng --- */
-      header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        background-color: var(--surface-dark);
-        padding: 15px 40px;
-        border-bottom: 1px solid var(--border-color);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        z-index: 1000;
-        height: 80px; /* Tăng chiều cao header */
-      }
-
-      .logo-container h1 {
-        font-size: 24px;
-        font-weight: 700;
-        color: var(--text-primary);
-      }
-
-      .logo-container span {
-        color: var(--primary-color);
-      }
-
-      nav {
-        display: flex;
-        gap: 15px;
-      }
-
-      .tab-link {
-        display: flex;
-        align-items: center;
-        gap: 8px; /* Khoảng cách giữa icon và chữ */
-        padding: 12px 25px;
-        cursor: pointer;
-        border: none;
-        background-color: transparent;
-        font-size: 16px;
-        font-weight: 500;
-        color: var(--text-secondary);
-        border-radius: 8px;
-        position: relative;
-        transition: background-color 0.3s ease, color 0.3s ease;
-      }
-
-      .tab-link:hover {
-        background-color: rgba(255, 255, 255, 0.05);
-        color: var(--text-primary);
-      }
-
-      .tab-link.active {
-        background-color: var(--primary-color);
-        color: #ffffff;
-        font-weight: 600;
-        box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
-      }
-
-      /* --- Nội dung iFrames --- */
-      main {
-        height: calc(
-          100vh - 80px
-        ); /* Chiều cao viewport trừ đi chiều cao header */
-      }
-
-      .iframe-content {
-        display: none;
-        border: none;
-        width: 100%;
-        height: 100%;
-      }
-
-      .iframe-content.active {
-        display: block;
-      }
-    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <!-- External CSS -->
+    <link rel="stylesheet" href="style.css" />
   </head>
+
   <body>
-    <header>
-      <div class="logo-container">
-        <h1><span>AI</span> Audio Story</h1>
-      </div>
-      <nav id="tab-navigation">
-        <button class="tab-link active" data-tab="frame1">
-          <i class="fa-solid fa-house"></i>
-          Trang Chủ
-        </button>
-        <button class="tab-link" data-tab="frame2">
-          <i class="fa-solid fa-wand-magic-sparkles"></i>
-          Dịch Truyện AI
-        </button>
-        <button class="tab-link" data-tab="frame3">
-          <i class="fa-solid fa-headphones-simple"></i>
-          Thư Viện Audio
-        </button>
+    <div class="h-screen w-screen">
+      <!-- HEADER -->
+      <header>
+        <div
+          class="container mx-auto flex justify-between items-center h-full px-4"
+        >
+          <div class="text-2xl font-bold text-white tracking-wider z-50">
+            <i class="fas fa-robot text-indigo-400"></i> AI
+            <span class="text-indigo-400">Audio Story</span>
+          </div>
+          <!-- Desktop Navigation -->
+          <nav
+            id="tab-navigation"
+            class="hidden md:flex items-center space-x-2 h-full"
+          >
+            <button
+              class="tab-link active h-full px-4 flex items-center gap-2 text-lg font-semibold relative transition-colors"
+              data-tab="home-content"
+            >
+              <i class="fa-solid fa-house"></i><span>Trang Chủ</span>
+            </button>
+            <button
+              class="tab-link h-full px-4 flex items-center gap-2 text-lg font-semibold text-text-secondary relative transition-colors"
+              data-tab="dich-don-frame"
+            >
+              <i class="fa-solid fa-wand-magic-sparkles"></i
+              ><span>Dịch Đơn Lẻ</span>
+            </button>
+            <button
+              class="tab-link h-full px-4 flex items-center gap-2 text-lg font-semibold text-text-secondary relative transition-colors"
+              data-tab="dich-bo-frame"
+            >
+              <i class="fa-solid fa-book-bookmark"></i><span>Dịch Theo Bộ</span>
+            </button>
+            <button
+              class="tab-link h-full px-4 flex items-center gap-2 text-lg font-semibold text-text-secondary relative transition-colors"
+              data-tab="audio-frame"
+            >
+              <i class="fa-solid fa-headphones-simple"></i
+              ><span>Thư Viện Audio</span>
+            </button>
+          </nav>
+          <!-- Mobile Navigation Button -->
+          <button id="hamburger-button" class="md:hidden z-50 hamburger-icon">
+            <div class="space-y-2">
+              <span class="line line-1 block w-8 h-0.5 bg-white"></span>
+              <span class="line line-2 block w-8 h-0.5 bg-white"></span>
+              <span class="line line-3 block w-8 h-0.5 bg-white"></span>
+            </div>
+          </button>
+        </div>
+      </header>
+      <!-- Mobile Navigation Panel -->
+      <nav id="mobile-menu" class="mobile-menu md:hidden">
+        <div class="flex flex-col items-center justify-center h-full space-y-8">
+          <button class="text-2xl text-text-secondary" data-tab="home-content">
+            Trang Chủ
+          </button>
+          <button
+            class="text-2xl text-text-secondary"
+            data-tab="dich-don-frame"
+          >
+            Dịch Đơn Lẻ
+          </button>
+          <button class="text-2xl text-text-secondary" data-tab="dich-bo-frame">
+            Dịch Theo Bộ
+          </button>
+          <button class="text-2xl text-text-secondary" data-tab="audio-frame">
+            Thư Viện Audio
+          </button>
+        </div>
       </nav>
-    </header>
 
-    <main>
-      <iframe
-        id="frame1"
-        class="iframe-content active"
-        src="page1.html"
-        title="Nội dung trang chủ"
-      ></iframe>
-      <iframe
-        id="frame2"
-        class="iframe-content"
-        src="dich-truyen/index.html"
-        title="Nội dung dịch và phân tích truyện"
-      ></iframe>
-      <iframe
-        id="frame3"
-        class="iframe-content"
-        src="nghe-audio/index-audio.html"
-        title="Nội dung nghe audio"
-      ></iframe>
-    </main>
+      <!-- MAIN CONTENT -->
+      <main class="page-container relative">
+        <div id="home-content" class="page-content active">
+          <!-- Hero Section -->
+          <div
+            class="hero-section flex flex-col justify-center items-center text-center px-4"
+          >
+            <!-- Particle Canvas -->
+            <canvas id="particle-canvas"></canvas>
+            <div class="gradient-blob blob-1"></div>
+            <div class="gradient-blob blob-2"></div>
+            <div class="relative z-10 reveal visible">
+              <h1
+                class="text-4xl md:text-5xl font-extrabold text-text-primary leading-tight mb-4"
+              >
+                Nền Tảng AI Sáng Tạo Nội Dung
+              </h1>
+              <p
+                class="text-base md:text-lg text-text-secondary max-w-3xl mx-auto mb-10"
+              >
+                Công cụ toàn diện cho dịch thuật và sản xuất audio, được tối ưu
+                hóa để mang lại hiệu suất vượt trội.
+              </p>
+              <div>
+                <button
+                  class="bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold py-3 px-8 rounded-full text-base hover:opacity-90 transition-all duration-300 transform hover:scale-105"
+                  onclick="document.querySelector('[data-tab=dich-don-frame]').click()"
+                >
+                  Bắt đầu ngay
+                </button>
+              </div>
+            </div>
+          </div>
 
-    <script>
-      // --- JAVASCRIPT XỬ LÝ CHUYỂN TAB ---
-      // Code này không cần thay đổi
-      const tabContainer = document.getElementById("tab-navigation");
-      const tabLinks = document.querySelectorAll(".tab-link");
-      const iframeContents = document.querySelectorAll(".iframe-content");
+          <div class="bg-bg-secondary py-24 sm:py-32">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8 space-y-24">
+              <!-- Features Section -->
+              <section id="features" class="reveal">
+                <div class="text-center mb-16">
+                  <h2 class="text-3xl md:text-4xl font-bold text-white">
+                    Bộ Công Cụ Toàn Diện
+                  </h2>
+                  <p class="text-lg text-text-secondary mt-4 max-w-2xl mx-auto">
+                    Mọi thứ bạn cần, được tích hợp liền mạch.
+                  </p>
+                </div>
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  <div
+                    class="feature-card p-8 rounded-2xl reveal"
+                    style="transition-delay: 0.1s"
+                  >
+                    <div
+                      class="text-4xl bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-violet-400 mb-4"
+                    >
+                      <i class="fas fa-file-alt"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-white">
+                      Dịch Truyện Đơn Lẻ
+                    </h3>
+                    <p class="text-text-secondary">
+                      AI xử lý file docx, srt hoặc văn bản thô, cung cấp bản
+                      dịch chất lượng cao và các công cụ phân tích chuyên sâu.
+                    </p>
+                  </div>
+                  <div
+                    class="feature-card p-8 rounded-2xl reveal"
+                    style="transition-delay: 0.2s"
+                  >
+                    <div
+                      class="text-4xl bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-violet-400 mb-4"
+                    >
+                      <i class="fas fa-layer-group"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-white">
+                      Dịch Truyện Theo Bộ
+                    </h3>
+                    <p class="text-text-secondary">
+                      Tự động hóa quy trình dịch hàng loạt. AI tạo bối cảnh toàn
+                      truyện, đảm bảo tính nhất quán tuyệt đối giữa các chương.
+                    </p>
+                  </div>
+                  <div
+                    class="feature-card p-8 rounded-2xl reveal"
+                    style="transition-delay: 0.3s"
+                  >
+                    <div
+                      class="text-4xl bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-violet-400 mb-4"
+                    >
+                      <i class="fas fa-headphones-alt"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-white">
+                      Thư Viện Audio
+                    </h3>
+                    <p class="text-text-secondary">
+                      Trình phát audio chuyên nghiệp tích hợp trình ghi chú
+                      thông minh. Quản lý các file audio của bạn ngay trên trình
+                      duyệt.
+                    </p>
+                  </div>
+                </div>
+              </section>
 
-      tabContainer.addEventListener("click", function (e) {
-        // Sử dụng .closest() để đảm bảo click vào icon hay text đều nhận đúng button
-        const clickedTab = e.target.closest(".tab-link");
+              <!-- Advantages Section -->
+              <section id="advantages" class="reveal">
+                <div class="text-center mb-16">
+                  <h2 class="text-3xl md:text-4xl font-bold text-white">
+                    Ưu điểm Vượt trội
+                  </h2>
+                  <p class="text-lg text-text-secondary mt-4 max-w-2xl mx-auto">
+                    Công nghệ tiên tiến mang lại trải nghiệm khác biệt.
+                  </p>
+                </div>
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  <!-- Advantage Card 1 -->
+                  <div
+                    class="advantage-card p-8 rounded-2xl reveal text-center"
+                    style="transition-delay: 0.1s"
+                  >
+                    <div class="text-4xl text-indigo-400 mb-4">
+                      <i class="fas fa-shield-halved"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-white">
+                      Bảo Mật Tối Đa
+                    </h3>
+                    <p class="text-text-secondary">
+                      Toàn bộ dữ liệu và API keys được xử lý và lưu trữ cục bộ
+                      trên trình duyệt của bạn, không có gì được gửi đến máy
+                      chủ.
+                    </p>
+                  </div>
+                  <!-- Advantage Card 2 -->
+                  <div
+                    class="advantage-card p-8 rounded-2xl reveal text-center"
+                    style="transition-delay: 0.2s"
+                  >
+                    <div class="text-4xl text-indigo-400 mb-4">
+                      <i class="fas fa-bolt"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-white">
+                      Hiệu Năng Vượt Trội
+                    </h3>
+                    <p class="text-text-secondary">
+                      Hỗ trợ dịch đa luồng và xoay vòng API key tự động, giúp
+                      bạn hoàn thành công việc nhanh hơn và không bị gián đoạn.
+                    </p>
+                  </div>
+                  <!-- Advantage Card 3 -->
+                  <div
+                    class="advantage-card p-8 rounded-2xl reveal text-center"
+                    style="transition-delay: 0.3s"
+                  >
+                    <div class="text-4xl text-indigo-400 mb-4">
+                      <i class="fas fa-brain"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-white">
+                      Chất Lượng Dịch Cao
+                    </h3>
+                    <p class="text-text-secondary">
+                      AI có khả năng tự nhận diện bối cảnh, đảm bảo bản dịch
+                      nhất quán về thuật ngữ, tên riêng và văn phong toàn
+                      truyện.
+                    </p>
+                  </div>
+                </div>
+              </section>
 
-        if (clickedTab) {
-          const targetFrameId = clickedTab.dataset.tab;
+              <!-- Guide Section -->
+              <section id="guide" class="reveal">
+                <div class="text-center mb-16">
+                  <h2 class="text-3xl md:text-4xl font-bold text-white">
+                    Giới Thiệu & Hướng Dẫn
+                  </h2>
+                  <p class="text-lg text-text-secondary mt-4 max-w-2xl mx-auto">
+                    Tất cả thông tin bạn cần để bắt đầu hành trình sáng tạo.
+                  </p>
+                </div>
+                <div
+                  id="accordion-container"
+                  class="max-w-4xl mx-auto space-y-4"
+                >
+                  <!-- Item 1: Giới thiệu tổng quan -->
+                  <div class="accordion-item">
+                    <div
+                      class="accordion-header p-6 flex justify-between items-center"
+                    >
+                      <h3 class="text-lg font-semibold text-white">
+                        AI Audio Story là gì?
+                      </h3>
+                      <i
+                        class="fas fa-chevron-down accordion-icon text-text-secondary"
+                      ></i>
+                    </div>
+                    <div
+                      class="accordion-content px-6 text-text-secondary leading-relaxed"
+                    >
+                      <p>
+                        AI Audio Story là một bộ công cụ mạnh mẽ, tất cả trong
+                        một, được thiết kế để cách mạng hóa quy trình sáng tạo
+                        và dịch thuật nội dung. Nền tảng của chúng tôi kết hợp
+                        sức mạnh của trí tuệ nhân tạo tiên tiến với giao diện
+                        người dùng trực quan, giúp bạn tự động hóa các tác vụ
+                        phức tạp và tập trung vào điều quan trọng nhất: chất
+                        lượng nội dung.
+                      </p>
+                    </div>
+                  </div>
 
-          // Xóa class 'active' khỏi tất cả các nút và iframe
-          tabLinks.forEach((link) => link.classList.remove("active"));
-          iframeContents.forEach((content) =>
-            content.classList.remove("active")
-          );
+                  <!-- Item 2: Hướng dẫn chi tiết -->
+                  <div class="accordion-item">
+                    <div
+                      class="accordion-header p-6 flex justify-between items-center"
+                    >
+                      <h3 class="text-lg font-semibold text-white">
+                        Hành Trình Sáng Tạo Cùng AI
+                      </h3>
+                      <i
+                        class="fas fa-chevron-down accordion-icon text-text-secondary"
+                      ></i>
+                    </div>
+                    <div
+                      class="accordion-content px-6 text-text-secondary leading-relaxed space-y-8"
+                    >
+                      <!-- Step 0 -->
+                      <div class="step-container">
+                        <div class="flex items-center gap-4">
+                          <div class="step-icon">
+                            <i class="fas fa-key"></i>
+                          </div>
+                          <div>
+                            <h4 class="font-bold text-base text-text-primary">
+                              Bước 0: Chuẩn bị "Nhiên liệu" (API Key)
+                            </h4>
+                            <p>
+                              Giống như một cỗ máy, AI cần năng lượng để hoạt
+                              động. "Năng lượng" ở đây chính là API Key của bạn
+                              từ Google AI Studio.
+                            </p>
+                          </div>
+                        </div>
+                        <div class="step-details">
+                          <p>
+                            <strong class="text-indigo-400">Cách làm:</strong>
+                            Tại bất kỳ công cụ nào, nhấn vào nút "Quản lý API
+                            Keys", dán key của bạn vào và lưu lại. Bạn có thể
+                            thêm nhiều key để hệ thống tự động luân phiên, tránh
+                            gián đoạn công việc.
+                          </p>
+                          <p class="mt-2 text-sm italic">
+                            Mẹo: Toàn bộ key và dữ liệu của bạn được lưu trữ an
+                            toàn ngay trên trình duyệt, đảm bảo riêng tư tuyệt
+                            đối.
+                          </p>
+                        </div>
+                      </div>
+                      <!-- Step 1 -->
+                      <div class="step-container">
+                        <div class="flex items-center gap-4">
+                          <div class="step-icon">
+                            <i class="fas fa-rocket"></i>
+                          </div>
+                          <div>
+                            <h4 class="font-bold text-base text-text-primary">
+                              Bước 1: Chọn "Phi thuyền" (Công cụ)
+                            </h4>
+                            <p>
+                              Mỗi công cụ là một "phi thuyền" chuyên dụng cho
+                              từng loại nhiệm vụ khác nhau.
+                            </p>
+                          </div>
+                        </div>
+                        <div class="step-details">
+                          <ul class="list-none space-y-3">
+                            <li>
+                              <strong class="text-indigo-400"
+                                >Dịch Đơn Lẻ:</strong
+                              >
+                              Phi thuyền tốc độ cao cho các nhiệm vụ dịch tức
+                              thời một chương truyện, một file phụ đề hoặc văn
+                              bản ngắn.
+                            </li>
+                            <li>
+                              <strong class="text-indigo-400"
+                                >Dịch Theo Bộ:</strong
+                              >
+                              Hạm đội hùng mạnh cho các "chiến dịch" lớn. AI sẽ
+                              tự tổng hợp bối cảnh từ tất cả các chương để đảm
+                              bảo bản dịch nhất quán từ đầu đến cuối.
+                            </li>
+                            <li>
+                              <strong class="text-indigo-400"
+                                >Thư Viện Audio:</strong
+                              >
+                              "Trạm điều khiển" nơi bạn có thể nghe lại và ghi
+                              chú trên các file audio, hoàn hảo cho khâu kiểm
+                              duyệt cuối cùng.
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+                      <!-- Step 2 -->
+                      <div class="step-container">
+                        <div class="flex items-center gap-4">
+                          <div class="step-icon">
+                            <i class="fas fa-star-of-life"></i>
+                          </div>
+                          <div>
+                            <h4 class="font-bold text-base text-text-primary">
+                              Bước 2: Bắt đầu "Chuyến du hành"
+                            </h4>
+                            <p>
+                              Với nhiên liệu và phi thuyền đã sẵn sàng, hãy bắt
+                              đầu công việc của bạn.
+                            </p>
+                          </div>
+                        </div>
+                        <div class="step-details">
+                          <p>
+                            <strong class="text-indigo-400"
+                              >Quy trình chung:</strong
+                            >
+                            Tải lên file (hoặc dán văn bản) -> Chọn ngôn ngữ ->
+                            Nhấn nút Dịch/Xử lý. AI sẽ lo phần còn lại.
+                          </p>
+                          <p class="mt-2">
+                            <strong class="text-indigo-400"
+                              >Khám phá thêm:</strong
+                            >
+                            Đừng ngần ngại thử các tính năng phụ trợ như "Kiểm
+                            tra chất lượng", "Gợi ý tên",... Chúng là những công
+                            cụ hỗ trợ đắc lực trên hành trình của bạn.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
 
-          // Thêm class 'active' cho nút và iframe được chọn
-          clickedTab.classList.add("active");
-          document.getElementById(targetFrameId).classList.add("active");
-        }
-      });
-    </script>
+        <!-- IFRAMES -->
+        <iframe
+          id="dich-don-frame"
+          class="page-content"
+          src="dich-truyen/index.html"
+        ></iframe>
+        <iframe
+          id="dich-bo-frame"
+          class="page-content"
+          src="dich-theo-bo/index.html"
+        ></iframe>
+        <iframe
+          id="audio-frame"
+          class="page-content"
+          src="nghe-audio/index-audio.html"
+        ></iframe>
+      </main>
+    </div>
+
+    <!-- External JS -->
+    <script src="script.js"></script>
   </body>
 </html>

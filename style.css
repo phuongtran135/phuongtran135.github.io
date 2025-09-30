@@ -1,0 +1,226 @@
+/* --- Bảng màu và thiết lập cơ bản --- */
+:root {
+    --bg-primary: #020617;      /* slate-950 */
+    --bg-secondary: #0F172A;    /* slate-900 */
+    --surface-color: #1E293B;   /* slate-800 */
+    --primary-accent: #4F46E5;   /* indigo-600 */
+    --secondary-accent: #7C3AED; /* violet-600 */
+    --text-primary: #F8FAFC;     /* slate-50 */
+    --text-secondary: #94A3B8;  /* slate-400 */
+    --border-color: #334155;     /* slate-700 */
+    --header-height: 70px;
+}
+html { 
+    scroll-behavior: smooth; 
+    font-size: 15px; /* Điều chỉnh cỡ chữ gốc */
+}
+body {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  overflow: hidden; /* Ngăn cuộn trang chính */
+  line-height: 1.6;
+}
+
+/* --- Header & Navigation --- */
+header {
+    background-color: rgba(2, 6, 23, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border-color);
+    height: var(--header-height);
+    z-index: 100;
+    position: fixed;
+    width: 100%;
+}
+.tab-link::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary-accent), var(--secondary-accent));
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.tab-link:hover::after, .tab-link.active::after { 
+    transform: scaleX(1); 
+}
+.tab-link.active { 
+    color: var(--text-primary); 
+}
+
+/* --- Page Management --- */
+.page-container { 
+    padding-top: var(--header-height); 
+    height: 100vh; 
+}
+.page-content { 
+    display: none; 
+    height: 100%; 
+    width: 100%; 
+    opacity: 0; 
+    animation: fadeIn 0.5s forwards; 
+}
+@keyframes fadeIn { to { opacity: 1; } }
+.page-content.active { 
+    display: block; 
+}
+iframe.page-content { 
+    border: none;
+    background-color: var(--bg-secondary); /* Áp dụng background cho iframe */
+}
+
+/* --- Homepage Styles --- */
+#home-content { 
+    overflow-y: auto; 
+}
+.hero-section { 
+    min-height: calc(100vh - var(--header-height)); 
+    position: relative; 
+    overflow: hidden; 
+}
+/* Particle Canvas Style */
+#particle-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 5; /* Nằm trên gradient blobs, dưới nội dung */
+}
+/* Z-index for Hero Content */
+.hero-section .relative {
+    position: relative;
+    z-index: 10; /* Đảm bảo nội dung chữ luôn nổi lên trên */
+}
+
+/* Hiệu ứng nền Gradient chuyển động */
+.gradient-blob {
+    position: absolute;
+    width: 600px; 
+    height: 600px;
+    background: linear-gradient(180deg, var(--primary-accent), var(--secondary-accent));
+    border-radius: 9999px; 
+    filter: blur(150px);
+    opacity: 0.15; 
+    z-index: 0; /* Nằm ở lớp dưới cùng */
+    animation: move-blob 20s infinite alternate;
+}
+.blob-1 { top: -20%; left: -20%; }
+.blob-2 { bottom: -20%; right: -20%; animation-delay: -10s; }
+@keyframes move-blob {
+    from { transform: translate(-20%, 20%) rotate(0deg) scale(1); }
+    to { transform: translate(20%, -20%) rotate(360deg) scale(1.2); }
+}
+
+/* Thẻ tính năng với viền gradient */
+.feature-card {
+    background: linear-gradient(var(--bg-secondary), var(--bg-secondary)) padding-box,
+                linear-gradient(135deg, var(--primary-accent), var(--secondary-accent)) border-box;
+    border: 2px solid transparent;
+    transition: transform 0.3s ease;
+}
+.feature-card:hover { 
+    transform: translateY(-8px); 
+}
+
+/* NEW: Advantage Card Styles */
+.advantage-card {
+    background-color: var(--surface-color);
+    border: 1px solid var(--border-color);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.advantage-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+}
+
+/* --- Accordion (Guide Section) Styles --- */
+.accordion-item {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    overflow: hidden;
+}
+.accordion-header { 
+    cursor: pointer; 
+}
+.accordion-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.5s ease-out, padding 0.5s ease-out;
+}
+.accordion-item.active .accordion-content { 
+    max-height: 1000px; /* Tăng max-height để chứa nội dung mới */
+    padding-bottom: 1.5rem; 
+}
+.accordion-icon { 
+    transition: transform 0.3s ease; 
+}
+.accordion-item.active .accordion-icon { 
+    transform: rotate(180deg); 
+}
+/* New Guide Step Styles */
+.step-container {
+    border-left: 3px solid var(--primary-accent);
+    padding-left: 1.5rem;
+}
+.step-icon {
+    width: 50px;
+    height: 50px;
+    flex-shrink: 0;
+    background-color: var(--surface-color);
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    color: var(--primary-accent);
+}
+.step-details {
+    margin-top: 0.75rem;
+    padding: 1rem;
+    background-color: rgba(0,0,0,0.2);
+    border-radius: 0.5rem;
+}
+
+
+/* --- Reveal on Scroll Animation --- */
+.reveal {
+  opacity: 0;
+  transform: translateY(50px);
+  transition: opacity 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.reveal.visible { 
+    opacity: 1; 
+    transform: translateY(0); 
+}
+
+/* --- Responsive (Mobile Menu) --- */
+.mobile-menu {
+    position: fixed; 
+    top: var(--header-height);
+    left: 0; 
+    right: 0; 
+    bottom: 0;
+    background-color: var(--bg-primary);
+    transform: translateX(100%);
+    transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    z-index: 99;
+}
+.mobile-menu.is-open { 
+    transform: translateX(0); 
+}
+.hamburger-icon .line { 
+    transition: all 0.3s ease-in-out; 
+}
+.hamburger-icon.is-open .line-1 { 
+    transform: rotate(45deg) translate(5px, 5px); 
+}
+.hamburger-icon.is-open .line-2 { 
+    opacity: 0; 
+}
+.hamburger-icon.is-open .line-3 { 
+    transform: rotate(-45deg) translate(7px, -6px); 
+}
