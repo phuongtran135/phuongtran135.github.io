@@ -87,6 +87,11 @@ document.addEventListener('DOMContentLoaded', () => {
         projectModal: getEl('projectModal'),
         projectModalCloseBtn: getEl('projectModalCloseBtn'),
         projectList: getEl('projectList'),
+        evaluateStoryBtn: getEl('evaluateStoryBtn'),
+        evaluationModal: getEl('evaluationModal'),
+        evaluationModalCloseBtn: getEl('evaluationModalCloseBtn'),
+        evaluationOutput: getEl('evaluationOutput'),
+        reevaluateBtn: getEl('reevaluateBtn'),
     };
 
     // --- STATE MANAGEMENT ---
@@ -97,6 +102,8 @@ document.addEventListener('DOMContentLoaded', () => {
         isTranslating: false,
         contextSummary: '',
         projectName: null,
+        evaluationResult: null,
+        isEvaluating: false,
     };
     let autosaveTimeout = null;
 
@@ -148,6 +155,23 @@ Hãy trình bày kết quả một cách có cấu trúc, sử dụng tiêu đ�
 **NỘI DUNG TOÀN BỘ TRUYỆN:**
 {all_chapters_text}`;
 
+    const evaluationPromptTemplate = `Bạn là một cô gái trẻ (18-24 tuổi) rất thích đọc truyện, đặc biệt là các tiểu thuyết online như trên Zhihu. Bạn không phải là nhà phê bình, mà là một độc giả đang chia sẻ cảm nhận chân thật của mình sau khi đọc xong một câu chuyện. Toàn bộ bài đánh giá của bạn PHẢI bằng {language}.
+
+**Hướng dẫn:**
+
+1.  **Cảm nhận chung:** Bắt đầu bằng một vài câu nói về cảm nhận tổng thể của bạn. Ví dụ: "Wow, đọc xong truyện này mình thấy...", "Uhm, truyện này đọc giải trí cũng được...", v.v.
+2.  **Điểm mình thích:** Kể ra những điều khiến bạn thích thú. Cốt truyện có gay cấn không? Có nhân vật nào 'chất' không? Tình tiết nào làm bạn bất ngờ?
+3.  **Điểm mình hơi lấn cấn:** Góp ý một cách nhẹ nhàng về những điểm bạn thấy chưa ổn lắm. Có thể là một vài tình tiết hơi khó hiểu, hoặc nhân vật hành động hơi lạ.
+4.  **Vậy có nên 'nhảy hố' không?:** Đưa ra lời khuyên cuối cùng cho những người đọc khác. Dựa trên cảm nhận của bạn, truyện này có đáng để mọi người bắt đầu đọc không?
+5.  **Chấm điểm theo gu của mình:** Cho điểm trên thang 10, và nói rõ đây là điểm dựa trên sở thích cá nhân.
+6.  **Định dạng:** Sử dụng Markdown để trình bày cho dễ đọc nhé!
+
+**Nội dung truyện cần đánh giá:**
+---
+{story_text}
+---
+`;
+
     // --- UTILITY & UI FUNCTIONS ---
     const showStatus = (message, showSpinner = false) => {
         const spinner = showSpinner ? '<div class="spinner"></div>' : '';
@@ -175,12 +199,31 @@ Hãy trình bày kết quả một cách có cấu trúc, sử dụng tiêu đ�
         } catch (e) { return htmlString; }
     };
 
-    const toggleUIState = (isBusy) => {
+    const toggleTranslateUIState = (isBusy) => {
         state.isTranslating = isBusy;
         UI.generateContextBtn.disabled = isBusy;
         UI.translateAllBtn.disabled = isBusy || !state.contextSummary.trim();
         UI.translateAllBtn.querySelector('span').textContent = isBusy ? 'Đang dịch...' : 'Dịch toàn bộ';
-        document.querySelectorAll('.chapter-item button').forEach(btn => btn.disabled = isBusy);
+        document.querySelectorAll('.chapter-item button[data-action="translate-single"], .chapter-item button[data-action="remove"]').forEach(btn => btn.disabled = isBusy);
+    };
+    
+    const updateEvaluationButtonUI = () => {
+        const btn = UI.evaluateStoryBtn;
+        const icon = btn.querySelector('i');
+        const text = btn.querySelector('span');
+
+        btn.disabled = state.isEvaluating || state.chapters.length === 0;
+
+        if (state.isEvaluating) {
+            icon.className = 'fas fa-spinner fa-spin';
+            text.textContent = 'Đang đánh giá...';
+        } else if (state.evaluationResult) {
+            icon.className = 'fas fa-eye';
+            text.textContent = 'Xem đánh giá';
+        } else {
+            icon.className = 'fas fa-feather-alt';
+            text.textContent = 'Đánh giá truyện';
+        }
     };
 
     // --- API KEY MANAGEMENT ---
@@ -213,6 +256,7 @@ Hãy trình bày kết quả một cách có cấu trúc, sử dụng tiêu đ�
                         name: state.projectName,
                         chapters: state.chapters,
                         contextSummary: state.contextSummary,
+                        evaluationResult: state.evaluationResult,
                         lastSaved: new Date().toISOString()
                     };
                     await idbHelper.saveProject('projects', projectData);
@@ -235,7 +279,7 @@ Hãy trình bày kết quả một cách có cấu trúc, sử dụng tiêu đ�
 
         state.projectName = name.trim();
         try {
-            const projectData = { name: state.projectName, chapters: state.chapters, contextSummary: state.contextSummary, lastSaved: new Date().toISOString() };
+            const projectData = { name: state.projectName, chapters: state.chapters, contextSummary: state.contextSummary, evaluationResult: state.evaluationResult, lastSaved: new Date().toISOString() };
             await idbHelper.saveProject('projects', projectData);
             updateProjectNameDisplay();
             showNotification(`Đã lưu dự án "${state.projectName}"!`);
@@ -252,6 +296,7 @@ Hãy trình bày kết quả một cách có cấu trúc, sử dụng tiêu đ�
                 state.chapters = project.chapters;
                 state.contextSummary = project.contextSummary;
                 state.projectName = project.name;
+                state.evaluationResult = project.evaluationResult || null;
                 UI.contextSummaryEl.value = state.contextSummary;
                 selectChapter(state.chapters[0]?.id || null);
                 UI.projectModal.classList.add('hidden');
@@ -314,6 +359,7 @@ Hãy trình bày kết quả một cách có cấu trúc, sử dụng tiêu đ�
     const addChapter = (name, content) => {
         const newChapter = { id: Date.now(), name, originalContent: content, translatedContent: '', status: 'pending' };
         state.chapters.push(newChapter);
+        state.evaluationResult = null;
         renderChapterList();
         if (!state.selectedChapterId) selectChapter(newChapter.id);
         triggerAutosave();
@@ -336,6 +382,7 @@ Hãy trình bày kết quả một cách có cấu trúc, sử dụng tiêu đ�
             state.selectedChapterId = null;
             state.contextSummary = '';
             state.projectName = null;
+            state.evaluationResult = null;
             UI.contextSummaryEl.value = '';
             selectChapter(null);
         }
@@ -374,6 +421,7 @@ Hãy trình bày kết quả một cách có cấu trúc, sử dụng tiêu đ�
         UI.generateContextBtn.disabled = state.isTranslating || !hasChapters;
         UI.translateAllBtn.disabled = state.isTranslating || !state.contextSummary.trim();
         UI.chapterList.innerHTML = state.chapters.map(createChapterHTML).join('');
+        updateEvaluationButtonUI();
     };
     
     // --- TRANSLATION & CONTEXT LOGIC ---
@@ -399,7 +447,7 @@ Hãy trình bày kết quả một cách có cấu trúc, sử dụng tiêu đ�
     };
 
     const handleGenerateDetailedContext = async () => {
-        toggleUIState(true);
+        toggleTranslateUIState(true);
         showStatus("Đang phân tích toàn bộ truyện để tạo bối cảnh...", true);
         try {
             const allChaptersText = state.chapters.map(c => `CHƯƠNG ${c.name}:\n${c.originalContent}`).join('\n\n---\n\n');
@@ -414,7 +462,7 @@ Hãy trình bày kết quả một cách có cấu trúc, sử dụng tiêu đ�
             showNotification(`Lỗi khi tạo bối cảnh: ${error.message}`, 'error');
             showStatus(`Lỗi: ${error.message}`);
         } finally {
-            toggleUIState(false);
+            toggleTranslateUIState(false);
             renderChapterList();
             updateFullscreenButtonsVisibility();
         }
@@ -456,17 +504,60 @@ Hãy trình bày kết quả một cách có cấu trúc, sử dụng tiêu đ�
     };
     
     const handleTranslateAll = async () => {
-        toggleUIState(true);
+        toggleTranslateUIState(true);
         for (const chapter of state.chapters) {
             if (['pending', 'error'].includes(chapter.status)) {
                 await translateChapter(chapter.id);
             }
         }
-        toggleUIState(false);
+        toggleTranslateUIState(false);
         showNotification('Đã hoàn tất dịch toàn bộ truyện!', 'info');
         showStatus('Hoàn tất dịch toàn bộ.');
     };
     
+    // --- EVALUATION LOGIC ---
+    const handleEvaluateStory = async (isReevaluation = false) => {
+        if (state.isEvaluating) return;
+    
+        if (state.chapters.length === 0) {
+            showNotification("Vui lòng tải lên ít nhất một chương để đánh giá.", 'error');
+            return;
+        }
+    
+        if (isReevaluation) {
+            UI.evaluationModal.classList.add('hidden');
+        }
+    
+        state.isEvaluating = true;
+        updateEvaluationButtonUI();
+        showStatus("AI đang đọc toàn bộ truyện để đánh giá...", true);
+    
+        try {
+            const allChaptersText = state.chapters.map(c => `CHƯƠNG ${c.name}:\n${c.originalContent}`).join('\n\n---\n\n');
+            const prompt = evaluationPromptTemplate
+                .replace('{language}', UI.languageSelect.value)
+                .replace('{story_text}', allChaptersText);
+            
+            const evaluationResult = await callGenericGeminiAPI(prompt);
+            state.evaluationResult = evaluationResult.trim();
+            UI.evaluationOutput.textContent = state.evaluationResult;
+            
+            showNotification("Đánh giá truyện hoàn tất!");
+            showStatus("Sẵn sàng.");
+            triggerAutosave();
+            
+            UI.evaluationModal.classList.remove('hidden');
+    
+        } catch (error) {
+            state.evaluationResult = null;
+            showNotification(`Lỗi khi đánh giá truyện: ${error.message}`, 'error');
+            showStatus(`Lỗi: ${error.message}`);
+        } finally {
+            state.isEvaluating = false;
+            updateEvaluationButtonUI();
+        }
+    };
+
     // --- EVENT HANDLERS ---
     const handleFileUpload = async ({ target }) => {
         const files = target.files;
@@ -505,6 +596,7 @@ Hãy trình bày kết quả một cách có cấu trúc, sử dụng tiêu đ�
                 }
                 if (state.chapters.length === 0) {
                     state.contextSummary = '';
+                    state.evaluationResult = null;
                     UI.contextSummaryEl.value = '';
                 }
                 renderChapterList();
@@ -615,6 +707,20 @@ Hãy trình bày kết quả một cách có cấu trúc, sử dụng tiêu đ�
             if (target.closest('#clearAllBtn')) clearAllChapters();
         });
         UI.generateContextBtn.addEventListener('click', handleGenerateDetailedContext);
+        
+        // Evaluation
+        UI.evaluateStoryBtn.addEventListener('click', () => {
+            if (state.evaluationResult && !state.isEvaluating) {
+                UI.evaluationOutput.textContent = state.evaluationResult;
+                UI.evaluationModal.classList.remove('hidden');
+            } else {
+                handleEvaluateStory();
+            }
+        });
+        UI.reevaluateBtn.addEventListener('click', () => handleEvaluateStory(true));
+        UI.evaluationModalCloseBtn.addEventListener('click', () => {
+            UI.evaluationModal.classList.add('hidden');
+        });
         
         // Fullscreen
         document.querySelectorAll('.view-controls button[data-action="fullscreen"]').forEach(btn => {
