@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trợ lý Affiliate Shopee với Gemini</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Thư viện mammoth.js để đọc file .docx -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <!-- Thư viện marked.js để hiển thị markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap");
+      body {
+        font-family: "Be Vietnam Pro", sans-serif;
+      }
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: #2d3748;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #4a5568;
+        border-radius: 3px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #718096;
+      }
+      #api-key-drawer {
+        transition: transform 0.3s ease-in-out;
+      }
+      .spinner {
+        border-top-color: #3498db;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      /* Cải thiện hiển thị markdown */
+      .prose h3 {
+        margin-top: 1.5em;
+        margin-bottom: 0.5em;
+      }
+      .prose p,
+      .prose ul {
+        margin-top: 0.5em;
+        margin-bottom: 0.5em;
+      }
+    </style>
+  </head>
+  <body
+    class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 antialiased"
+  >
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-5xl">
+      <!-- Header -->
+      <header class="flex justify-between items-center mb-6">
+        <h1
+          class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white"
+        >
+          Trợ lý Affiliate Shopee
+        </h1>
+        <button
+          id="settings-btn"
+          class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+        >
+          <i data-lucide="settings" class="w-6 h-6"></i>
+        </button>
+      </header>
+
+      <!-- API Key Drawer -->
+      <div
+        id="api-key-drawer"
+        class="fixed top-0 right-0 h-full w-full sm:w-96 bg-white dark:bg-gray-800 shadow-xl z-50 p-6 transform translate-x-full"
+      >
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-xl font-semibold">Cài đặt API Key</h2>
+          <button
+            id="close-drawer-btn"
+            class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
+          >
+            <i data-lucide="x" class="w-6 h-6"></i>
+          </button>
+        </div>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+          Nhập một hoặc nhiều API Key của Gemini, mỗi key một dòng. Hệ thống sẽ
+          tự động chuyển đổi nếu có lỗi. Lấy API Key của bạn tại
+          <a
+            href="https://aistudio.google.com/api-keys"
+            target="_blank"
+            class="text-blue-500 hover:underline"
+            >aistudio.google.com</a
+          >.
+        </p>
+        <textarea
+          id="api-keys-input"
+          class="w-full h-40 p-3 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors custom-scrollbar"
+          placeholder="dán API key vào đây..."
+        ></textarea>
+        <div class="flex gap-4 mt-4">
+          <button
+            id="save-keys-btn"
+            class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-all transform hover:scale-105"
+          >
+            Lưu
+          </button>
+          <button
+            id="clear-keys-btn"
+            class="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700 transition-all transform hover:scale-105"
+          >
+            Xóa
+          </button>
+        </div>
+        <p id="api-status" class="text-sm mt-4 text-center"></p>
+      </div>
+      <div
+        id="drawer-overlay"
+        class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden"
+      ></div>
+
+      <main class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 sm:p-8">
+        <!-- Input Section -->
+        <div class="mb-6">
+          <h2 class="text-xl font-semibold mb-3">Nội dung truyện</h2>
+          <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+            <textarea
+              id="story-content"
+              class="w-full h-48 p-3 bg-transparent border-0 rounded-lg focus:ring-0 custom-scrollbar"
+              placeholder="Dán nội dung truyện của bạn vào đây..."
+            ></textarea>
+            <div class="flex items-center justify-between mt-2">
+              <label
+                for="docx-upload"
+                class="cursor-pointer inline-flex items-center px-4 py-2 bg-gray-200 dark:bg-gray-600 text-sm font-medium rounded-md hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+              >
+                <i data-lucide="file-up" class="w-4 h-4 mr-2"></i>
+                Tải lên file .docx
+              </label>
+              <input
+                type="file"
+                id="docx-upload"
+                class="hidden"
+                accept=".docx"
+              />
+              <span
+                id="file-name"
+                class="text-sm text-gray-500 dark:text-gray-400"
+              ></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Button -->
+        <div class="text-center">
+          <button
+            id="analyze-btn"
+            class="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-3 rounded-lg font-bold text-lg hover:from-purple-700 hover:to-blue-700 transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <span id="btn-text">Phân tích</span>
+            <div
+              id="btn-spinner"
+              class="spinner w-6 h-6 rounded-full border-4 border-t-4 border-gray-200 hidden mx-auto"
+            ></div>
+          </button>
+        </div>
+
+        <!-- Output Section -->
+        <div id="output-section" class="mt-8 hidden">
+          <h2
+            class="text-xl font-semibold mb-4 border-b pb-2 border-gray-200 dark:border-gray-700"
+          >
+            Gợi ý sản phẩm Affiliate
+          </h2>
+          <div
+            id="analysis-result"
+            class="prose prose-sm sm:prose-base dark:prose-invert max-w-none prose-p:my-2 prose-li:my-1 prose-h3:mt-4 prose-h3:mb-2"
+          >
+            <!-- Kết quả từ Gemini sẽ được hiển thị ở đây -->
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        lucide.createIcons();
+
+        const settingsBtn = document.getElementById("settings-btn");
+        const closeDrawerBtn = document.getElementById("close-drawer-btn");
+        const apiKeyDrawer = document.getElementById("api-key-drawer");
+        const drawerOverlay = document.getElementById("drawer-overlay");
+        const apiKeysInput = document.getElementById("api-keys-input");
+        const saveKeysBtn = document.getElementById("save-keys-btn");
+        const clearKeysBtn = document.getElementById("clear-keys-btn");
+        const apiStatus = document.getElementById("api-status");
+
+        const storyContent = document.getElementById("story-content");
+        const docxUpload = document.getElementById("docx-upload");
+        const fileNameSpan = document.getElementById("file-name");
+        const analyzeBtn = document.getElementById("analyze-btn");
+        const btnText = document.getElementById("btn-text");
+        const btnSpinner = document.getElementById("btn-spinner");
+        const outputSection = document.getElementById("output-section");
+        const analysisResult = document.getElementById("analysis-result");
+
+        let apiKeys = [];
+        let currentKeyIndex = 0;
+
+        // --- API Key Management ---
+
+        const loadApiKeys = () => {
+          const storedKeys = localStorage.getItem("geminiApiKeys");
+          if (storedKeys) {
+            apiKeys = storedKeys.split("\n").filter((key) => key.trim() !== "");
+            apiKeysInput.value = storedKeys;
+          }
+          updateApiStatus();
+        };
+
+        const saveApiKeys = () => {
+          const keys = apiKeysInput.value;
+          localStorage.setItem("geminiApiKeys", keys);
+          apiKeys = keys.split("\n").filter((key) => key.trim() !== "");
+          currentKeyIndex = 0;
+          updateApiStatus();
+          toggleDrawer(false);
+        };
+
+        const clearApiKeys = () => {
+          localStorage.removeItem("geminiApiKeys");
+          apiKeysInput.value = "";
+          apiKeys = [];
+          updateApiStatus();
+          toggleDrawer(false);
+        };
+
+        const updateApiStatus = () => {
+          if (apiKeys.length > 0) {
+            apiStatus.textContent = `Đã lưu ${apiKeys.length} API Key.`;
+            apiStatus.className = "text-sm mt-4 text-center text-green-500";
+            analyzeBtn.disabled = false;
+          } else {
+            apiStatus.textContent =
+              "Chưa có API Key. Vui lòng nhập để sử dụng.";
+            apiStatus.className = "text-sm mt-4 text-center text-red-500";
+            analyzeBtn.disabled = true;
+          }
+        };
+
+        const getNextApiKey = () => {
+          if (apiKeys.length === 0) return null;
+          const key = apiKeys[currentKeyIndex];
+          currentKeyIndex = (currentKeyIndex + 1) % apiKeys.length;
+          return key;
+        };
+
+        // --- Drawer UI ---
+
+        const toggleDrawer = (show) => {
+          if (show) {
+            apiKeyDrawer.classList.remove("translate-x-full");
+            drawerOverlay.classList.remove("hidden");
+          } else {
+            apiKeyDrawer.classList.add("translate-x-full");
+            drawerOverlay.classList.add("hidden");
+          }
+        };
+
+        settingsBtn.addEventListener("click", () => toggleDrawer(true));
+        closeDrawerBtn.addEventListener("click", () => toggleDrawer(false));
+        drawerOverlay.addEventListener("click", () => toggleDrawer(false));
+        saveKeysBtn.addEventListener("click", saveApiKeys);
+        clearKeysBtn.addEventListener("click", clearApiKeys);
+
+        // --- File Handling ---
+
+        docxUpload.addEventListener("change", (event) => {
+          const file = event.target.files[0];
+          if (!file) return;
+
+          fileNameSpan.textContent = `Đang tải: ${file.name}`;
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            mammoth
+              .extractRawText({ arrayBuffer: e.target.result })
+              .then((result) => {
+                storyContent.value = result.value;
+                fileNameSpan.textContent = `Đã tải: ${file.name}`;
+              })
+              .catch((err) => {
+                console.error("Lỗi đọc file docx:", err);
+                fileNameSpan.textContent = "Lỗi khi đọc file.";
+              });
+          };
+          reader.readAsArrayBuffer(file);
+        });
+
+        // --- Core Logic: Gemini API Call ---
+
+        const analyzeContent = async () => {
+          const content = storyContent.value.trim();
+          if (!content) {
+            displayError("Vui lòng nhập nội dung truyện để phân tích.");
+            return;
+          }
+          if (apiKeys.length === 0) {
+            displayError("Vui lòng nhập API Key trong phần cài đặt.");
+            toggleDrawer(true);
+            return;
+          }
+
+          setLoading(true);
+          outputSection.classList.add("hidden");
+
+          const systemPrompt = `Bạn là một trợ lý marketing affiliate thông minh, chi tiết và **đặc biệt cẩn trọng về an toàn sản phẩm**. Nhiệm vụ của bạn là đọc kỹ một đoạn văn bản và xác định các đồ vật vật lý được đề cập.
+
+**QUY TẮC AN TOÀN QUAN TRỌNG NHẤT:**
+* **TUYỆT ĐỐI KHÔNG gợi ý** các sản phẩm có nguy cơ ảnh hưởng đến sức khỏe nếu chất lượng kém. Cụ thể là:
+    * Thực phẩm, đồ ăn, đồ uống.
+    * Thuốc, thực phẩm chức năng, vitamin.
+    * Mỹ phẩm, kem dưỡng da, son môi, hoặc bất cứ thứ gì bôi trực tiếp lên cơ thể.
+* **CHỈ GỢI Ý** những sản phẩm an toàn như: đồ gia dụng, đồ trang trí, quần áo, phụ kiện, sách, đồ điện tử... những thứ mà nếu có bị lỗi cũng không gây hại cho sức khỏe người dùng.
+
+Với MỖI sản phẩm an toàn bạn tìm thấy, hãy thực hiện các bước sau:
+1.  **Trích dẫn:** Lấy ra câu văn hoặc đoạn văn ngắn có chứa tên đồ vật đó từ nội dung gốc.
+2.  **Xác định từ khóa:** Rút ra từ khóa tìm kiếm chính xác và hiệu quả nhất cho sản phẩm đó.
+3.  **Tạo link Shopee:** Tạo link tìm kiếm trên Shopee Việt Nam, **sắp xếp theo "Bán chạy nhất"**. Định dạng: \`https://shopee.vn/search?keyword=từ+khóa+đã+mã+hóa&sortBy=sales\`.
+4.  **Đưa ra lời khuyên:** Nhắc nhở người dùng kiểm tra kỹ lượt bán và đánh giá (4-5 sao) trước khi chọn sản phẩm.
+
+Hãy trả về kết quả dưới dạng markdown, được cấu trúc rõ ràng cho từng sản phẩm.
+
+Ví dụ, nếu nội dung là "Cô gái ngồi bên bàn gỗ, đọc cuốn sách cũ.", bạn phải phân tích như sau:
+
+### 🪑 Bàn gỗ
+* **Trích dẫn từ nội dung:** "Cô gái ngồi bên bàn gỗ..."
+* **Từ khóa tìm kiếm:** bàn gỗ, bàn làm việc gỗ
+* **Link Shopee (Bán chạy):** [Tìm 'bàn gỗ' trên Shopee](https://shopee.vn/search?keyword=b%C3%A0n%20g%E1%BB%97&sortBy=sales)
+* **Lưu ý:** Hãy kiểm tra và ưu tiên sản phẩm có đánh giá tốt và nhiều lượt mua.
+
+### 📖 Cuốn sách cũ
+* **Trích dẫn từ nội dung:** "...đọc cuốn sách cũ."
+* **Từ khóa tìm kiếm:** sách cũ, sách văn học cũ
+* **Link Shopee (Bán chạy):** [Tìm 'sách cũ' trên Shopee](https://shopee.vn/search?keyword=s%C3%A1ch%20c%C5%A9&sortBy=sales)
+* **Lưu ý:** Hãy kiểm tra và ưu tiên sản phẩm có đánh giá tốt và nhiều lượt mua.
+`;
+
+          const userPrompt = `Dưới đây là nội dung truyện, hãy phân tích và đưa ra gợi ý sản phẩm:\n\n---\n\n${content}`;
+
+          let success = false;
+          const totalKeys = apiKeys.length;
+
+          for (let i = 0; i < totalKeys; i++) {
+            const apiKey = getNextApiKey();
+            if (!apiKey) continue;
+
+            try {
+              const response = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`,
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    contents: [{ parts: [{ text: userPrompt }] }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                    generationConfig: {
+                      temperature: 0.4,
+                      maxOutputTokens: 2048,
+                    },
+                  }),
+                }
+              );
+
+              if (response.ok) {
+                const result = await response.json();
+                const generatedText =
+                  result.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (generatedText) {
+                  displayResult(generatedText);
+                  success = true;
+                  break;
+                }
+              }
+              console.log(
+                `API Key ${
+                  i + 1
+                } không hoạt động hoặc đã hết hạn, đang thử key tiếp theo...`
+              );
+            } catch (error) {
+              console.error(`Lỗi khi gọi API với key ${i + 1}:`, error);
+            }
+          }
+
+          if (!success) {
+            displayError(
+              "Tất cả API Key đều không hoạt động hoặc đã xảy ra lỗi. Vui lòng kiểm tra lại API Key trong phần cài đặt."
+            );
+          }
+
+          setLoading(false);
+        };
+
+        const addCopyButtons = () => {
+          const links = analysisResult.querySelectorAll("a");
+          links.forEach((link) => {
+            const copyBtn = document.createElement("button");
+            copyBtn.innerHTML = `<i data-lucide="copy" class="w-4 h-4 inline-block -mt-1"></i>`;
+            copyBtn.title = "Sao chép link";
+            copyBtn.className =
+              "ml-2 text-xs bg-gray-200 dark:bg-gray-600 p-1 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors inline-flex items-center justify-center";
+
+            copyBtn.onclick = (e) => {
+              e.preventDefault();
+              const textToCopy = link.href;
+
+              const textArea = document.createElement("textarea");
+              textArea.value = textToCopy;
+              textArea.style.position = "fixed";
+              textArea.style.top = "-9999px";
+              textArea.style.left = "-9999px";
+              document.body.appendChild(textArea);
+              textArea.focus();
+              textArea.select();
+
+              try {
+                document.execCommand("copy");
+                copyBtn.innerHTML = `<i data-lucide="check" class="w-4 h-4 text-green-500"></i>`;
+              } catch (err) {
+                console.error("Không thể sao chép link:", err);
+                copyBtn.innerHTML = `<i data-lucide="x" class="w-4 h-4 text-red-500"></i>`;
+              }
+
+              document.body.removeChild(textArea);
+
+              setTimeout(() => {
+                copyBtn.innerHTML = `<i data-lucide="copy" class="w-4 h-4"></i>`;
+                lucide.createIcons();
+              }, 2000);
+            };
+
+            link.insertAdjacentElement("afterend", copyBtn);
+          });
+          lucide.createIcons();
+        };
+
+        const displayResult = (markdownText) => {
+          analysisResult.innerHTML = marked.parse(markdownText, {
+            gfm: true,
+            breaks: true,
+          });
+          outputSection.classList.remove("hidden");
+          addCopyButtons();
+        };
+
+        const displayError = (errorMessage) => {
+          analysisResult.innerHTML = `<p class="text-red-500 font-medium">${errorMessage}</p>`;
+          outputSection.classList.remove("hidden");
+        };
+
+        const setLoading = (isLoading) => {
+          if (isLoading) {
+            analyzeBtn.disabled = true;
+            btnText.classList.add("hidden");
+            btnSpinner.classList.remove("hidden");
+          } else {
+            analyzeBtn.disabled = false;
+            btnText.classList.remove("hidden");
+            btnSpinner.classList.add("hidden");
+          }
+        };
+
+        analyzeBtn.addEventListener("click", analyzeContent);
+
+        // --- Initialization ---
+        loadApiKeys();
+      });
+    </script>
+  </body>
+</html>

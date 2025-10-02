@@ -25,52 +25,73 @@
       <!-- HEADER -->
       <header>
         <div
-          class="container mx-auto flex justify-between items-center h-full px-4"
+          class="container relative mx-auto flex justify-between items-center h-full px-4"
         >
+          <!-- Split logo into two parts: icon for login, text for home -->
           <div class="text-2xl font-bold text-white tracking-wider z-50">
-            <i class="fas fa-robot text-indigo-400"></i> AI
-            <span class="text-indigo-400">Audio Story</span>
+            <i id="admin-login-icon" class="fas fa-robot text-indigo-400"></i>
+            <span id="logo-text-button" class="cursor-pointer"> AI
+                <span class="text-indigo-400">Audio Story</span>
+            </span>
           </div>
-          <!-- Desktop Navigation -->
-          <nav
-            id="tab-navigation"
-            class="hidden md:flex items-center space-x-2 h-full"
-          >
-            <button
-              class="tab-link active h-full px-4 flex items-center gap-2 text-lg font-semibold relative transition-colors"
-              data-tab="home-content"
+          
+          <div class="flex items-center">
+            <!-- Desktop Navigation -->
+            <nav
+              id="tab-navigation"
+              class="hidden md:flex items-center space-x-2 h-full"
             >
-              <i class="fa-solid fa-house"></i><span>Trang Chủ</span>
+              <button
+                class="tab-link active h-full px-4 flex items-center gap-2 text-lg font-semibold relative transition-colors"
+                data-tab="home-content"
+              >
+                <i class="fa-solid fa-house"></i><span>Trang Chủ</span>
+              </button>
+              <button
+                class="tab-link h-full px-4 flex items-center gap-2 text-lg font-semibold text-text-secondary relative transition-colors"
+                data-tab="dich-don-frame"
+              >
+                <i class="fa-solid fa-wand-magic-sparkles"></i
+                ><span>Dịch Đơn Lẻ</span>
+              </button>
+              <button
+                class="tab-link h-full px-4 flex items-center gap-2 text-lg font-semibold text-text-secondary relative transition-colors"
+                data-tab="dich-bo-frame"
+              >
+                <i class="fa-solid fa-book-bookmark"></i><span>Dịch Theo Bộ</span>
+              </button>
+              <button
+                class="tab-link h-full px-4 flex items-center gap-2 text-lg font-semibold text-text-secondary relative transition-colors"
+                data-tab="audio-frame"
+              >
+                <i class="fa-solid fa-headphones-simple"></i
+                ><span>Thư Viện Audio</span>
+              </button>
+              <button
+                class="tab-link h-full px-4 flex items-center gap-2 text-lg font-semibold text-text-secondary relative transition-colors admin-feature"
+                data-tab="tao-phu-de-frame"
+              >
+                <i class="fa-solid fa-closed-captioning"></i
+                ><span>Tạo Phụ Đề</span>
+              </button>
+              <!-- Admin tab for Product Suggestions -->
+              <button
+                class="tab-link h-full px-4 flex items-center gap-2 text-lg font-semibold text-text-secondary relative transition-colors admin-feature"
+                data-tab="goi-y-san-pham-frame"
+              >
+                <i class="fa-solid fa-lightbulb"></i><span>Gợi ý sản phẩm</span>
+              </button>
+            </nav>
+
+            <!-- Mobile Navigation Button -->
+            <button id="hamburger-button" class="md:hidden z-50 hamburger-icon">
+              <div class="space-y-2">
+                <span class="line line-1 block w-8 h-0.5 bg-white"></span>
+                <span class="line line-2 block w-8 h-0.5 bg-white"></span>
+                <span class="line line-3 block w-8 h-0.5 bg-white"></span>
+              </div>
             </button>
-            <button
-              class="tab-link h-full px-4 flex items-center gap-2 text-lg font-semibold text-text-secondary relative transition-colors"
-              data-tab="dich-don-frame"
-            >
-              <i class="fa-solid fa-wand-magic-sparkles"></i
-              ><span>Dịch Đơn Lẻ</span>
-            </button>
-            <button
-              class="tab-link h-full px-4 flex items-center gap-2 text-lg font-semibold text-text-secondary relative transition-colors"
-              data-tab="dich-bo-frame"
-            >
-              <i class="fa-solid fa-book-bookmark"></i><span>Dịch Theo Bộ</span>
-            </button>
-            <button
-              class="tab-link h-full px-4 flex items-center gap-2 text-lg font-semibold text-text-secondary relative transition-colors"
-              data-tab="audio-frame"
-            >
-              <i class="fa-solid fa-headphones-simple"></i
-              ><span>Thư Viện Audio</span>
-            </button>
-          </nav>
-          <!-- Mobile Navigation Button -->
-          <button id="hamburger-button" class="md:hidden z-50 hamburger-icon">
-            <div class="space-y-2">
-              <span class="line line-1 block w-8 h-0.5 bg-white"></span>
-              <span class="line line-2 block w-8 h-0.5 bg-white"></span>
-              <span class="line line-3 block w-8 h-0.5 bg-white"></span>
-            </div>
-          </button>
+          </div>
         </div>
       </header>
       <!-- Mobile Navigation Panel -->
@@ -90,6 +111,19 @@
           </button>
           <button class="text-2xl text-text-secondary" data-tab="audio-frame">
             Thư Viện Audio
+          </button>
+          <button
+            class="text-2xl text-text-secondary admin-feature"
+            data-tab="tao-phu-de-frame"
+          >
+            Tạo Phụ Đề
+          </button>
+           <!-- Mobile admin tab for Product Suggestions -->
+          <button
+            class="text-2xl text-text-secondary admin-feature"
+            data-tab="goi-y-san-pham-frame"
+          >
+            Gợi ý sản phẩm
           </button>
         </div>
       </nav>
@@ -130,7 +164,7 @@
 
           <div class="bg-bg-secondary py-24 sm:py-32">
             <div class="container mx-auto px-4 sm:px-6 lg:px-8 space-y-24">
-              <!-- Features Section -->
+              <!-- Sections remain the same... -->
               <section id="features" class="reveal">
                 <div class="text-center mb-16">
                   <h2 class="text-3xl md:text-4xl font-bold text-white">
@@ -451,9 +485,20 @@
           class="page-content"
           src="nghe-audio/index-audio.html"
         ></iframe>
+        <iframe
+          id="tao-phu-de-frame"
+          class="page-content"
+          src="tao-phu-de/index.html"
+        ></iframe>
+        <!-- Iframe for Product Suggestions -->
+        <iframe
+          id="goi-y-san-pham-frame"
+          class="page-content"
+          src="goi-y-san-pham/index.html"
+        ></iframe>
       </main>
     </div>
-
+    
     <!-- External JS -->
     <script src="script.js"></script>
   </body>
