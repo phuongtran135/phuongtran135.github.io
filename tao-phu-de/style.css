@@ -1,0 +1,97 @@
+/* CSS cho hiệu ứng */
+body {
+    font-family: 'Inter', sans-serif;
+    scroll-behavior: smooth;
+}
+
+@import url('https://rsms.me/inter/inter.css');
+
+/* Tùy chỉnh thanh cuộn */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #1a202c; /* bg-gray-800 */
+}
+
+::-webkit-scrollbar-thumb {
+    background: #4a5568; /* bg-gray-600 */
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #718096; /* bg-gray-500 */
+}
+
+/* Toast notification */
+.toast {
+    visibility: hidden;
+    min-width: 250px;
+    margin-left: -125px;
+    color: #fff;
+    text-align: center;
+    border-radius: 8px;
+    padding: 16px;
+    position: fixed;
+    z-index: 100;
+    left: 50%;
+    bottom: 30px;
+    opacity: 0;
+    transition: visibility 0s, opacity 0.5s linear;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.toast.show {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* Modal dialog */
+.modal-backdrop {
+    transition: opacity 0.3s ease;
+}
+
+.modal-content {
+    transition: transform 0.3s ease;
+}
+
+/* Loader animation */
+.loader {
+    border: 5px solid #2d3748; /* gray-700 */
+    border-radius: 50%;
+    border-top: 5px solid #4299e1; /* blue-400 */
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Custom styles for details summary */
+details>summary {
+    list-style: none;
+}
+details>summary::-webkit-details-marker {
+    display: none;
+}
+
+/* Thread status box styles */
+.thread-status-box {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    transition: background-color 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}

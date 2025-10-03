@@ -1,1554 +1,286 @@
 <!DOCTYPE html>
 <html lang="vi">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Tools Suite - Công cụ AI chuyên nghiệp</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Thư viện mammoth.js để đọc file .docx -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
-    <link
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-      rel="stylesheet"
-    />
-    <style>
-      /* CSS cho hiệu ứng */
-      body {
-        font-family: "Inter", sans-serif;
-        scroll-behavior: smooth;
-      }
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
 
-      @import url("https://rsms.me/inter/inter.css");
+<body class="bg-gray-900 text-gray-200">
 
-      /* Tùy chỉnh thanh cuộn */
-      ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
-      }
-
-      ::-webkit-scrollbar-track {
-        background: #1a202c; /* bg-gray-800 */
-      }
-
-      ::-webkit-scrollbar-thumb {
-        background: #4a5568; /* bg-gray-600 */
-        border-radius: 10px;
-      }
-
-      ::-webkit-scrollbar-thumb:hover {
-        background: #718096; /* bg-gray-500 */
-      }
-
-      /* Toast notification */
-      .toast {
-        visibility: hidden;
-        min-width: 250px;
-        margin-left: -125px;
-        color: #fff;
-        text-align: center;
-        border-radius: 8px;
-        padding: 16px;
-        position: fixed;
-        z-index: 100;
-        left: 50%;
-        bottom: 30px;
-        opacity: 0;
-        transition: visibility 0s, opacity 0.5s linear;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-      }
-
-      .toast.show {
-        visibility: visible;
-        opacity: 1;
-      }
-
-      /* Modal dialog */
-      .modal-backdrop {
-        transition: opacity 0.3s ease;
-      }
-
-      .modal-content {
-        transition: transform 0.3s ease;
-      }
-
-      /* Loader animation */
-      .loader {
-        border: 5px solid #2d3748; /* gray-700 */
-        border-radius: 50%;
-        border-top: 5px solid #4299e1; /* blue-400 */
-        width: 50px;
-        height: 50px;
-        animation: spin 1s linear infinite;
-      }
-
-      @keyframes spin {
-        0% {
-          transform: rotate(0deg);
-        }
-        100% {
-          transform: rotate(360deg);
-        }
-      }
-
-      /* Custom styles for details summary */
-      details > summary {
-        list-style: none;
-      }
-      details > summary::-webkit-details-marker {
-        display: none;
-      }
-    </style>
-  </head>
-
-  <body class="bg-gray-900 text-gray-200">
     <div class="container mx-auto p-4 md:p-8 max-w-7xl">
-      <header class="text-center mb-12">
-        <h1 class="text-4xl md:text-5xl font-bold text-white">
-          <i class="fas fa-magic-wand-sparkles mr-2 text-blue-400"></i>AI Tools
-          Suite
-        </h1>
-        <p class="text-gray-400 mt-2 text-lg">
-          Công cụ tạo phụ đề và dịch thuật chuyên nghiệp.
-        </p>
-      </header>
+        <header class="text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-bold text-white">
+                <i class="fas fa-magic-wand-sparkles mr-2 text-blue-400"></i>AI Tools Suite
+            </h1>
+            <p class="text-gray-400 mt-2 text-lg">Công cụ tạo phụ đề và dịch thuật chuyên nghiệp.</p>
+        </header>
 
-      <!-- Khu vực quản lý API Key -->
-      <div
-        class="mb-10 bg-gray-800 p-4 rounded-xl shadow-lg border border-gray-700"
-      >
-        <details>
-          <summary
-            class="cursor-pointer font-semibold text-lg flex justify-between items-center text-gray-200"
-          >
-            <span
-              ><i class="fas fa-key mr-2 text-yellow-400"></i>Quản lý API Key
-              Gemini</span
-            >
-            <span class="transform transition-transform duration-300">
-              <i class="fas fa-chevron-down"></i>
-            </span>
-          </summary>
-          <div class="mt-4 border-t border-gray-700 pt-4">
-            <p class="text-sm text-gray-400 mb-2">
-              Nhập API Key của bạn từ
-              <a
-                href="https://aistudio.google.com/api-keys"
-                target="_blank"
-                class="text-blue-400 hover:underline"
-                >Google AI Studio</a
-              >. Mỗi key một dòng. Hệ thống sẽ tự động sử dụng và chuyển đổi khi
-              cần thiết.
-            </p>
-            <div id="api-status" class="mb-2 text-sm"></div>
-            <textarea
-              id="api-keys-input"
-              class="w-full p-3 border border-gray-600 rounded-md h-24 bg-gray-700 text-gray-200 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-              placeholder="dán API key vào đây..."
-            ></textarea>
-            <div class="flex items-center justify-between mt-3">
-              <button
-                id="save-api-keys"
-                class="bg-blue-600 text-white px-5 py-2 rounded-md hover:bg-blue-700 transition duration-300 flex items-center font-semibold"
-              >
-                <i class="fas fa-save mr-2"></i>Lưu Keys
-              </button>
-              <button
-                id="clear-db"
-                class="bg-red-600 text-white px-5 py-2 rounded-md hover:bg-red-700 transition duration-300 flex items-center font-semibold"
-              >
-                <i class="fas fa-trash-alt mr-2"></i>Dọn dẹp bộ nhớ
-              </button>
-            </div>
-            <div id="saved-keys-list" class="mt-4">
-              <h4 class="font-semibold text-gray-200">API Keys đã lưu:</h4>
-              <ul id="keys-ul" class="mt-2 text-sm text-gray-400">
-                <!-- Keys sẽ được hiển thị ở đây -->
-              </ul>
-            </div>
-          </div>
-        </details>
-      </div>
-
-      <!-- Công cụ tạo phụ đề -->
-      <section id="subtitle-generator" class="mb-16">
-        <h2
-          class="text-3xl font-bold text-center mb-8 text-white border-b-2 border-blue-500 pb-3"
-        >
-          Trình tạo Phụ đề
-        </h2>
-        <main class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <!-- Cột nhập liệu -->
-          <div
-            class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700"
-          >
-            <h3
-              class="text-xl font-bold mb-4 border-b border-gray-700 pb-3 text-gray-100"
-            >
-              1. Nhập liệu Phụ đề
-            </h3>
-
-            <div class="mb-6">
-              <label
-                for="audio-file"
-                class="block font-semibold mb-2 text-gray-300"
-                ><i class="fas fa-file-audio mr-2 text-purple-400"></i>Tải lên
-                file Audio (wav, mp3)</label
-              >
-              <div
-                class="border-2 border-dashed border-gray-600 rounded-lg p-6 text-center cursor-pointer hover:border-blue-500 hover:bg-gray-700/50 transition bg-gray-800/50"
-              >
-                <input
-                  type="file"
-                  id="audio-file"
-                  accept=".wav,.mp3"
-                  class="hidden"
-                />
-                <label for="audio-file" class="cursor-pointer">
-                  <i class="fas fa-upload text-3xl text-gray-500 mb-2"></i>
-                  <p id="audio-file-name" class="text-gray-400">
-                    Nhấn để chọn file hoặc kéo thả vào đây
-                  </p>
-                </label>
-              </div>
-            </div>
-
-            <div>
-              <label
-                for="text-content"
-                class="block font-semibold mb-2 text-gray-300"
-                ><i class="fas fa-file-alt mr-2 text-green-400"></i>Nội dung văn
-                bản</label
-              >
-              <div class="flex items-center space-x-2 mb-2">
-                <span class="text-sm text-gray-400">Dán nội dung vào đây:</span>
-                <label
-                  for="docx-file"
-                  class="text-sm text-blue-400 hover:underline cursor-pointer"
-                >
-                  hoặc tải lên từ file .docx
-                  <input
-                    type="file"
-                    id="docx-file"
-                    accept=".docx"
-                    class="hidden"
-                  />
-                </label>
-              </div>
-              <textarea
-                id="text-content"
-                class="w-full p-3 border border-gray-600 rounded-md h-64 bg-gray-700 text-gray-200 placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
-                placeholder="Nhập hoặc dán nội dung văn bản của bạn..."
-              ></textarea>
-            </div>
-
-            <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <button
-                id="generate-vi-en-btn"
-                class="w-full bg-gradient-to-r from-blue-600 to-purple-700 text-white font-bold py-3 px-4 rounded-lg hover:opacity-90 transition transform hover:scale-105 duration-300 flex items-center justify-center text-lg shadow-md"
-              >
-                <i class="fas fa-cogs mr-3"></i>
-                <span>Tạo Việt -> Anh</span>
-              </button>
-              <button
-                id="generate-ja-ko-btn"
-                class="w-full bg-gradient-to-r from-green-600 to-teal-700 text-white font-bold py-3 px-4 rounded-lg hover:opacity-90 transition transform hover:scale-105 duration-300 flex items-center justify-center text-lg shadow-md"
-              >
-                <i class="fas fa-cogs mr-3"></i>
-                <span>Tạo Nhật -> Hàn</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Cột kết quả -->
-          <div
-            class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700"
-          >
-            <h3
-              class="text-xl font-bold mb-4 border-b border-gray-700 pb-3 text-gray-100"
-            >
-              2. Kết quả Phụ đề
-            </h3>
-            <div id="result-container" class="space-y-6">
-              <div>
-                <div class="flex justify-between items-center mb-2">
-                  <h4 class="font-semibold text-gray-200">
-                    <i class="fas fa-language mr-2"></i>Tiếng Việt (.srt)
-                  </h4>
-                  <div class="flex items-center space-x-2">
-                    <button
-                      data-lang="vi"
-                      class="regenerate-btn bg-gray-700 text-gray-300 px-3 py-1 rounded-md text-sm hover:bg-gray-600 transition hidden"
-                    >
-                      <i class="fas fa-sync-alt"></i>
-                    </button>
-                    <button
-                      data-target="srt-vi"
-                      class="copy-btn bg-gray-700 text-gray-300 px-3 py-1 rounded-md text-sm hover:bg-gray-600 transition"
-                    >
-                      <i class="fas fa-copy"></i>
-                    </button>
-                    <button
-                      data-lang="vi"
-                      class="download-btn bg-gray-700 text-gray-300 px-3 py-1 rounded-md text-sm hover:bg-gray-600 transition"
-                    >
-                      <i class="fas fa-download"></i>
-                    </button>
-                  </div>
+        <!-- Khu vực quản lý API Key -->
+        <div class="mb-10 bg-gray-800 p-4 rounded-xl shadow-lg border border-gray-700">
+            <details>
+                <summary class="cursor-pointer font-semibold text-lg flex justify-between items-center text-gray-200">
+                    <span><i class="fas fa-key mr-2 text-yellow-400"></i>Quản lý API Key Gemini</span>
+                    <span class="transform transition-transform duration-300">
+                       <i class="fas fa-chevron-down"></i>
+                    </span>
+                </summary>
+                <div class="mt-4 border-t border-gray-700 pt-4">
+                    <p class="text-sm text-gray-400 mb-2">
+                        Nhập API Key của bạn từ <a href="https://aistudio.google.com/api-keys" target="_blank" class="text-blue-400 hover:underline">Google AI Studio</a>. Mỗi key một dòng.
+                        Hệ thống sẽ tự động sử dụng và chuyển đổi khi cần thiết.
+                    </p>
+                     <div id="api-status" class="mb-2 text-sm"></div>
+                    <textarea id="api-keys-input" class="w-full p-3 border border-gray-600 rounded-md h-24 bg-gray-700 text-gray-200 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="dán API key vào đây..."></textarea>
+                    <div class="flex items-center justify-between mt-3">
+                        <button id="save-api-keys" class="bg-blue-600 text-white px-5 py-2 rounded-md hover:bg-blue-700 transition duration-300 flex items-center font-semibold">
+                            <i class="fas fa-save mr-2"></i>Lưu Keys
+                        </button>
+                         <button id="clear-db" class="bg-red-600 text-white px-5 py-2 rounded-md hover:bg-red-700 transition duration-300 flex items-center font-semibold">
+                            <i class="fas fa-trash-alt mr-2"></i>Dọn dẹp bộ nhớ
+                        </button>
+                    </div>
+                    <div id="saved-keys-list" class="mt-4">
+                        <h4 class="font-semibold text-gray-200">API Keys đã lưu:</h4>
+                        <ul id="keys-ul" class="mt-2 text-sm text-gray-400">
+                            <!-- Keys sẽ được hiển thị ở đây -->
+                        </ul>
+                    </div>
                 </div>
-                <textarea
-                  id="srt-vi"
-                  readonly
-                  class="w-full p-3 border border-gray-700 rounded-md h-40 bg-gray-900 text-gray-300 font-mono text-sm"
-                ></textarea>
-              </div>
-
-              <div>
-                <div class="flex justify-between items-center mb-2">
-                  <h4 class="font-semibold text-gray-200 flex items-center">
-                    <i class="fas fa-language mr-2"></i
-                    ><span>Tiếng Anh (.srt)</span
-                    ><i
-                      id="en-loader"
-                      class="fas fa-spinner fa-spin ml-2 hidden"
-                    ></i>
-                  </h4>
-                  <div class="flex items-center space-x-2">
-                    <button
-                      data-lang="en"
-                      class="regenerate-btn bg-gray-700 text-gray-300 px-3 py-1 rounded-md text-sm hover:bg-gray-600 transition hidden"
-                    >
-                      <i class="fas fa-sync-alt"></i>
-                    </button>
-                    <button
-                      data-target="srt-en"
-                      class="copy-btn bg-gray-700 text-gray-300 px-3 py-1 rounded-md text-sm hover:bg-gray-600 transition"
-                    >
-                      <i class="fas fa-copy"></i>
-                    </button>
-                    <button
-                      data-lang="en"
-                      class="download-btn bg-gray-700 text-gray-300 px-3 py-1 rounded-md text-sm hover:bg-gray-600 transition"
-                    >
-                      <i class="fas fa-download"></i>
-                    </button>
-                  </div>
-                </div>
-                <textarea
-                  id="srt-en"
-                  readonly
-                  class="w-full p-3 border border-gray-700 rounded-md h-40 bg-gray-900 text-gray-300 font-mono text-sm"
-                ></textarea>
-                <p id="en-status" class="text-xs text-gray-500 mt-1 h-4"></p>
-              </div>
-
-              <div>
-                <div class="flex justify-between items-center mb-2">
-                  <h4 class="font-semibold text-gray-200 flex items-center">
-                    <i class="fas fa-language mr-2"></i
-                    ><span>Tiếng Nhật (.srt)</span
-                    ><i
-                      id="ja-loader"
-                      class="fas fa-spinner fa-spin ml-2 hidden"
-                    ></i>
-                  </h4>
-                  <div class="flex items-center space-x-2">
-                    <button
-                      data-lang="ja"
-                      class="regenerate-btn bg-gray-700 text-gray-300 px-3 py-1 rounded-md text-sm hover:bg-gray-600 transition hidden"
-                    >
-                      <i class="fas fa-sync-alt"></i>
-                    </button>
-                    <button
-                      data-target="srt-ja"
-                      class="copy-btn bg-gray-700 text-gray-300 px-3 py-1 rounded-md text-sm hover:bg-gray-600 transition"
-                    >
-                      <i class="fas fa-copy"></i>
-                    </button>
-                    <button
-                      data-lang="ja"
-                      class="download-btn bg-gray-700 text-gray-300 px-3 py-1 rounded-md text-sm hover:bg-gray-600 transition"
-                    >
-                      <i class="fas fa-download"></i>
-                    </button>
-                  </div>
-                </div>
-                <textarea
-                  id="srt-ja"
-                  readonly
-                  class="w-full p-3 border border-gray-700 rounded-md h-40 bg-gray-900 text-gray-300 font-mono text-sm"
-                ></textarea>
-                <p id="ja-status" class="text-xs text-gray-500 mt-1 h-4"></p>
-              </div>
-
-              <div>
-                <div class="flex justify-between items-center mb-2">
-                  <h4 class="font-semibold text-gray-200 flex items-center">
-                    <i class="fas fa-language mr-2"></i
-                    ><span>Tiếng Hàn (.srt)</span
-                    ><i
-                      id="ko-loader"
-                      class="fas fa-spinner fa-spin ml-2 hidden"
-                    ></i>
-                  </h4>
-                  <div class="flex items-center space-x-2">
-                    <button
-                      data-lang="ko"
-                      class="regenerate-btn bg-gray-700 text-gray-300 px-3 py-1 rounded-md text-sm hover:bg-gray-600 transition hidden"
-                    >
-                      <i class="fas fa-sync-alt"></i>
-                    </button>
-                    <button
-                      data-target="srt-ko"
-                      class="copy-btn bg-gray-700 text-gray-300 px-3 py-1 rounded-md text-sm hover:bg-gray-600 transition"
-                    >
-                      <i class="fas fa-copy"></i>
-                    </button>
-                    <button
-                      data-lang="ko"
-                      class="download-btn bg-gray-700 text-gray-300 px-3 py-1 rounded-md text-sm hover:bg-gray-600 transition"
-                    >
-                      <i class="fas fa-download"></i>
-                    </button>
-                  </div>
-                </div>
-                <textarea
-                  id="srt-ko"
-                  readonly
-                  class="w-full p-3 border border-gray-700 rounded-md h-40 bg-gray-900 text-gray-300 font-mono text-sm"
-                ></textarea>
-                <p id="ko-status" class="text-xs text-gray-500 mt-1 h-4"></p>
-              </div>
-            </div>
-            <div
-              id="loader-container"
-              class="hidden flex-col items-center justify-center h-full text-center text-gray-400"
-            >
-              <div class="loader"></div>
-              <p id="loader-main-text" class="mt-4 text-lg">
-                AI đang xử lý, vui lòng chờ trong giây lát...
-              </p>
-              <p id="loader-details" class="text-sm mt-1 text-gray-500"></p>
-            </div>
-          </div>
-        </main>
-      </section>
-
-      <!-- Công cụ dịch thuật -->
-      <section id="translator">
-        <h2
-          class="text-3xl font-bold text-center mb-8 text-white border-b-2 border-green-500 pb-3"
-        >
-          Trình dịch thuật nội dung
-        </h2>
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <!-- Cột nhập liệu dịch thuật -->
-          <div
-            class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700"
-          >
-            <h3
-              class="text-xl font-bold mb-4 border-b border-gray-700 pb-3 text-gray-100"
-            >
-              1. Nhập liệu Dịch thuật
-            </h3>
-            <div class="space-y-4">
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label
-                    for="trans-genre"
-                    class="block font-semibold mb-2 text-gray-300"
-                    >Thể Loại Truyện</label
-                  >
-                  <select
-                    id="trans-genre-select"
-                    class="w-full p-2 border border-gray-600 rounded-md bg-gray-700 text-gray-200"
-                  >
-                    <option value="Audio Tâm Lý Tội Phạm">
-                      Audio Tâm Lý Tội Phạm
-                    </option>
-                    <option value="Audio Trinh Thám">Audio Trinh Thám</option>
-                    <option value="Audio Kinh Dị">Audio Kinh Dị</option>
-                    <option value="Audio Cổ Trang">Audio Cổ Trang</option>
-                    <option value="Truyện Audio">Truyện Audio</option>
-                    <option value="custom">Tùy chỉnh...</option>
-                  </select>
-                  <input
-                    type="text"
-                    id="trans-genre-custom"
-                    class="w-full p-2 border border-gray-600 rounded-md bg-gray-700 text-gray-200 mt-2 hidden"
-                    placeholder="Nhập thể loại tùy chỉnh"
-                  />
-                </div>
-                <div>
-                  <label
-                    for="trans-title"
-                    class="block font-semibold mb-2 text-gray-300"
-                    >Tên Truyện</label
-                  >
-                  <input
-                    type="text"
-                    id="trans-title"
-                    class="w-full p-2 border border-gray-600 rounded-md bg-gray-700 text-gray-200"
-                    placeholder="Nhập tên truyện"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label
-                  for="trans-summary"
-                  class="block font-semibold mb-2 text-gray-300"
-                  >Nội dung tóm tắt</label
-                >
-                <div class="flex items-center space-x-2 mb-2">
-                  <label
-                    for="trans-docx-file"
-                    class="text-sm text-blue-400 hover:underline cursor-pointer"
-                    >Tải lên từ file .docx</label
-                  >
-                  <input
-                    type="file"
-                    id="trans-docx-file"
-                    accept=".docx"
-                    class="hidden"
-                  />
-                </div>
-                <textarea
-                  id="trans-summary"
-                  class="w-full p-3 border border-gray-600 rounded-md h-40 bg-gray-700 text-gray-200"
-                  placeholder="Dán nội dung cần AI tóm tắt..."
-                ></textarea>
-              </div>
-
-              <div>
-                <label class="block font-semibold mb-2 text-gray-300"
-                  >Mạng xã hội</label
-                >
-                <div id="social-media-list" class="space-y-2"></div>
-                <button
-                  id="add-social-btn"
-                  class="mt-2 text-sm bg-gray-600 text-gray-200 px-3 py-1 rounded-md hover:bg-gray-500 transition"
-                >
-                  <i class="fas fa-plus"></i> Thêm mạng xã hội
-                </button>
-              </div>
-
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label
-                    for="trans-hashtags"
-                    class="block font-semibold mb-2 text-gray-300"
-                    >Hashtags (thêm)</label
-                  >
-                  <input
-                    type="text"
-                    id="trans-hashtags"
-                    class="w-full p-2 border border-gray-600 rounded-md bg-gray-700 text-gray-200"
-                    placeholder="cách nhau bằng dấu phẩy"
-                  />
-                </div>
-                <div>
-                  <label
-                    for="trans-keywords"
-                    class="block font-semibold mb-2 text-gray-300"
-                    >Keywords (thêm)</label
-                  >
-                  <input
-                    type="text"
-                    id="trans-keywords"
-                    class="w-full p-2 border border-gray-600 rounded-md bg-gray-700 text-gray-200"
-                    placeholder="cách nhau bằng dấu phẩy"
-                  />
-                </div>
-              </div>
-
-              <div class="border-t border-gray-700 pt-4">
-                <label
-                  for="trans-lang"
-                  class="block font-semibold mb-2 text-gray-300"
-                  >Dịch sang ngôn ngữ</label
-                >
-                <div class="flex items-center gap-4">
-                  <select
-                    id="trans-lang"
-                    class="w-full p-3 border border-gray-600 rounded-md bg-gray-700 text-gray-200"
-                  >
-                    <option value="vietnamese">Tiếng Việt</option>
-                    <option value="english">Tiếng Anh</option>
-                    <option value="korean">Tiếng Hàn</option>
-                    <option value="japanese">Tiếng Nhật</option>
-                  </select>
-                  <button
-                    id="translate-btn"
-                    class="w-1/2 bg-gradient-to-r from-emerald-500 to-green-600 text-white font-bold py-3 px-4 rounded-lg hover:opacity-90 transition transform hover:scale-105 duration-300 flex items-center justify-center text-lg shadow-md"
-                  >
-                    <i class="fas fa-language mr-2"></i> Dịch
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div
-            class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700"
-          >
-            <h3
-              class="text-xl font-bold mb-4 border-b border-gray-700 pb-3 text-gray-100"
-            >
-              2. Kết quả Dịch thuật
-            </h3>
-            <div class="flex justify-between items-center mb-2">
-              <h4 class="font-semibold text-gray-200">Nội dung đã định dạng</h4>
-              <div class="flex items-center space-x-2">
-                <button
-                  id="copy-translation-btn"
-                  class="bg-gray-700 text-gray-300 px-3 py-1 rounded-md text-sm hover:bg-gray-600 transition"
-                >
-                  <i class="fas fa-copy"></i> Sao chép
-                </button>
-              </div>
-            </div>
-            <div
-              id="translation-loader"
-              class="hidden items-center justify-center h-full"
-            >
-              <div class="loader"></div>
-            </div>
-            <textarea
-              id="translation-output"
-              readonly
-              class="w-full p-3 border border-gray-700 rounded-md h-[480px] bg-gray-900 font-mono text-sm text-gray-300"
-            ></textarea>
-          </div>
+            </details>
         </div>
-      </section>
+
+        <!-- Công cụ tạo phụ đề -->
+        <section id="subtitle-generator" class="mb-16">
+            <h2 class="text-3xl font-bold text-center mb-8 text-white border-b-2 border-blue-500 pb-3">Trình tạo Phụ đề</h2>
+            <main class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Cột nhập liệu -->
+                <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
+                    <h3 class="text-xl font-bold mb-4 border-b border-gray-700 pb-3 text-gray-100">1. Nhập liệu Phụ đề</h3>
+
+                    <div class="mb-6">
+                        <label for="srt-file" class="block font-semibold mb-2 text-gray-300"><i class="fas fa-clock mr-2 text-teal-400"></i>Tải lên file SRT chứa thời gian (Bắt buộc)</label>
+                        <div id="srt-drop-zone" class="border-2 border-dashed border-gray-600 rounded-lg p-6 text-center cursor-pointer hover:border-teal-500 hover:bg-gray-700/50 transition bg-gray-800/50">
+                           <input type="file" id="srt-file" accept=".srt" class="hidden">
+                           <label for="srt-file" class="cursor-pointer">
+                                <i class="fas fa-upload text-3xl text-gray-500 mb-2"></i>
+                                <p id="srt-file-name" class="text-gray-400">Nhấn để chọn file SRT làm mẫu thời gian</p>
+                           </label>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="text-content" class="block font-semibold mb-2 text-gray-300"><i class="fas fa-file-alt mr-2 text-green-400"></i>Nội dung truyện chính xác</label>
+                        <div class="flex items-center space-x-2 mb-2">
+                            <span class="text-sm text-gray-400">Dán nội dung vào đây:</span>
+                             <label for="docx-file" class="text-sm text-blue-400 hover:underline cursor-pointer">
+                                hoặc tải lên từ file .docx
+                                <input type="file" id="docx-file" accept=".docx" class="hidden">
+                            </label>
+                        </div>
+                        <textarea id="text-content" class="w-full p-3 border border-gray-600 rounded-md h-64 bg-gray-700 text-gray-200 placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition" placeholder="Nhập hoặc dán nội dung văn bản đầy đủ và chính xác của bạn..."></textarea>
+                    </div>
+                    
+                     <div class="mt-6">
+                        <button id="generate-vi-btn" class="w-full bg-gradient-to-r from-blue-600 to-purple-700 text-white font-bold py-3 px-4 rounded-lg hover:opacity-90 transition transform hover:scale-105 duration-300 flex items-center justify-center text-lg shadow-md">
+                            <i class="fas fa-play mr-3"></i>
+                            <span>Tạo Phụ đề Tiếng Việt</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Cột kết quả -->
+                <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
+                    <h3 class="text-xl font-bold mb-4 border-b border-gray-700 pb-3 text-gray-100">2. Kết quả Phụ đề</h3>
+                    <div id="result-container" class="space-y-6">
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <h4 class="font-semibold text-gray-200"><i class="fas fa-language mr-2"></i>Tiếng Việt (.srt)</h4>
+                                <div class="flex items-center space-x-2">
+                                    <button data-lang="vi" class="regenerate-btn bg-gray-700 text-gray-300 px-3 py-1 rounded-md text-sm hover:bg-gray-600 transition hidden"><i class="fas fa-sync-alt"></i></button>
+                                    <button data-target="srt-vi" class="copy-btn bg-gray-700 text-gray-300 px-3 py-1 rounded-md text-sm hover:bg-gray-600 transition"><i class="fas fa-copy"></i></button>
+                                    <button data-lang="vi" class="download-btn bg-gray-700 text-gray-300 px-3 py-1 rounded-md text-sm hover:bg-gray-600 transition"><i class="fas fa-download"></i></button>
+                                </div>
+                            </div>
+                            <textarea id="srt-vi" readonly class="w-full p-3 border border-gray-700 rounded-md h-40 bg-gray-900 text-gray-300 font-mono text-sm"></textarea>
+                        </div>
+
+                        <!-- Nút tạo các ngôn ngữ khác -->
+                        <div id="secondary-generation-options" class="hidden border-t border-b border-gray-700 my-4 py-4 space-y-3">
+                             <h4 class="font-semibold text-gray-300 text-center">Tạo các ngôn ngữ khác từ bản Tiếng Việt</h4>
+                             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                 <button data-lang="en" class="secondary-generate-btn w-full bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-gray-500 transition flex items-center justify-center">
+                                    <i class="fas fa-language mr-2"></i>
+                                    <span>Tạo Tiếng Anh</span>
+                                 </button>
+                                 <button data-lang="ja" class="secondary-generate-btn w-full bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-gray-500 transition flex items-center justify-center">
+                                    <i class="fas fa-language mr-2"></i>
+                                    <span>Tạo Tiếng Nhật</span>
+                                 </button>
+                                 <button data-lang="ko" class="secondary-generate-btn w-full bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-gray-500 transition flex items-center justify-center">
+                                    <i class="fas fa-language mr-2"></i>
+                                    <span>Tạo Tiếng Hàn</span>
+                                 </button>
+                             </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <h4 class="font-semibold text-gray-200 flex items-center"><i class="fas fa-language mr-2"></i><span>Tiếng Anh (.srt)</span><i id="en-loader" class="fas fa-spinner fa-spin ml-2 hidden"></i></h4>
+                                <div class="flex items-center space-x-2">
+                                    <button data-lang="en" class="regenerate-btn bg-gray-700 text-gray-300 px-3 py-1 rounded-md text-sm hover:bg-gray-600 transition hidden"><i class="fas fa-sync-alt"></i></button>
+                                    <button data-target="srt-en" class="copy-btn bg-gray-700 text-gray-300 px-3 py-1 rounded-md text-sm hover:bg-gray-600 transition"><i class="fas fa-copy"></i></button>
+                                    <button data-lang="en" class="download-btn bg-gray-700 text-gray-300 px-3 py-1 rounded-md text-sm hover:bg-gray-600 transition"><i class="fas fa-download"></i></button>
+                                </div>
+                            </div>
+                            <textarea id="srt-en" readonly class="w-full p-3 border border-gray-700 rounded-md h-40 bg-gray-900 text-gray-300 font-mono text-sm"></textarea>
+                            <p id="en-status" class="text-xs text-gray-500 mt-1 h-4"></p>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <h4 class="font-semibold text-gray-200 flex items-center"><i class="fas fa-language mr-2"></i><span>Tiếng Nhật (.srt)</span><i id="ja-loader" class="fas fa-spinner fa-spin ml-2 hidden"></i></h4>
+                                <div class="flex items-center space-x-2">
+                                    <button data-lang="ja" class="regenerate-btn bg-gray-700 text-gray-300 px-3 py-1 rounded-md text-sm hover:bg-gray-600 transition hidden"><i class="fas fa-sync-alt"></i></button>
+                                    <button data-target="srt-ja" class="copy-btn bg-gray-700 text-gray-300 px-3 py-1 rounded-md text-sm hover:bg-gray-600 transition"><i class="fas fa-copy"></i></button>
+                                    <button data-lang="ja" class="download-btn bg-gray-700 text-gray-300 px-3 py-1 rounded-md text-sm hover:bg-gray-600 transition"><i class="fas fa-download"></i></button>
+                                </div>
+                            </div>
+                            <textarea id="srt-ja" readonly class="w-full p-3 border border-gray-700 rounded-md h-40 bg-gray-900 text-gray-300 font-mono text-sm"></textarea>
+                            <p id="ja-status" class="text-xs text-gray-500 mt-1 h-4"></p>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <h4 class="font-semibold text-gray-200 flex items-center"><i class="fas fa-language mr-2"></i><span>Tiếng Hàn (.srt)</span><i id="ko-loader" class="fas fa-spinner fa-spin ml-2 hidden"></i></h4>
+                                <div class="flex items-center space-x-2">
+                                     <button data-lang="ko" class="regenerate-btn bg-gray-700 text-gray-300 px-3 py-1 rounded-md text-sm hover:bg-gray-600 transition hidden"><i class="fas fa-sync-alt"></i></button>
+                                    <button data-target="srt-ko" class="copy-btn bg-gray-700 text-gray-300 px-3 py-1 rounded-md text-sm hover:bg-gray-600 transition"><i class="fas fa-copy"></i></button>
+                                    <button data-lang="ko" class="download-btn bg-gray-700 text-gray-300 px-3 py-1 rounded-md text-sm hover:bg-gray-600 transition"><i class="fas fa-download"></i></button>
+                                </div>
+                            </div>
+                            <textarea id="srt-ko" readonly class="w-full p-3 border border-gray-700 rounded-md h-40 bg-gray-900 text-gray-300 font-mono text-sm"></textarea>
+                            <p id="ko-status" class="text-xs text-gray-500 mt-1 h-4"></p>
+                        </div>
+                    </div>
+                     <div id="loader-container" class="hidden flex-col items-center justify-center h-full text-center text-gray-400">
+                        <div class="loader"></div>
+                        <p id="loader-main-text" class="mt-4 text-lg">AI đang xử lý, vui lòng chờ trong giây lát...</p>
+                        <p id="loader-details" class="text-sm mt-1 text-gray-500"></p>
+                        <div id="thread-status-container" class="mt-4 w-full max-w-lg space-y-2"></div>
+                    </div>
+                </div>
+            </main>
+        </section>
+        
+        <!-- Công cụ dịch thuật -->
+        <section id="translator">
+            <h2 class="text-3xl font-bold text-center mb-8 text-white border-b-2 border-green-500 pb-3">Trình dịch thuật nội dung</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Cột nhập liệu dịch thuật -->
+                <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
+                    <h3 class="text-xl font-bold mb-4 border-b border-gray-700 pb-3 text-gray-100">1. Nhập liệu Dịch thuật</h3>
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="trans-genre" class="block font-semibold mb-2 text-gray-300">Thể Loại Truyện</label>
+                                <select id="trans-genre-select" class="w-full p-2 border border-gray-600 rounded-md bg-gray-700 text-gray-200">
+                                    <option value="Audio Tâm Lý Tội Phạm">Audio Tâm Lý Tội Phạm</option>
+                                    <option value="Audio Trinh Thám">Audio Trinh Thám</option>
+                                    <option value="Audio Kinh Dị">Audio Kinh Dị</option>
+                                    <option value="Audio Cổ Trang">Audio Cổ Trang</option>
+                                    <option value="Truyện Audio">Truyện Audio</option>
+                                    <option value="custom">Tùy chỉnh...</option>
+                                </select>
+                                <input type="text" id="trans-genre-custom" class="w-full p-2 border border-gray-600 rounded-md bg-gray-700 text-gray-200 mt-2 hidden" placeholder="Nhập thể loại tùy chỉnh">
+                            </div>
+                             <div>
+                                <label for="trans-title" class="block font-semibold mb-2 text-gray-300">Tên Truyện</label>
+                                <input type="text" id="trans-title" class="w-full p-2 border border-gray-600 rounded-md bg-gray-700 text-gray-200" placeholder="Nhập tên truyện">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="trans-summary" class="block font-semibold mb-2 text-gray-300">Nội dung tóm tắt</label>
+                            <div class="flex items-center space-x-2 mb-2">
+                               <label for="trans-docx-file" class="text-sm text-blue-400 hover:underline cursor-pointer">Tải lên từ file .docx</label>
+                               <input type="file" id="trans-docx-file" accept=".docx" class="hidden">
+                            </div>
+                            <textarea id="trans-summary" class="w-full p-3 border border-gray-600 rounded-md h-40 bg-gray-700 text-gray-200" placeholder="Dán nội dung cần AI tóm tắt..."></textarea>
+                        </div>
+                        
+                        <div>
+                             <label class="block font-semibold mb-2 text-gray-300">Mạng xã hội</label>
+                             <div id="social-media-list" class="space-y-2"></div>
+                             <button id="add-social-btn" class="mt-2 text-sm bg-gray-600 text-gray-200 px-3 py-1 rounded-md hover:bg-gray-500 transition"><i class="fas fa-plus"></i> Thêm mạng xã hội</button>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="trans-hashtags" class="block font-semibold mb-2 text-gray-300">Hashtags (thêm)</label>
+                                <input type="text" id="trans-hashtags" class="w-full p-2 border border-gray-600 rounded-md bg-gray-700 text-gray-200" placeholder="cách nhau bằng dấu phẩy">
+                            </div>
+                            <div>
+                                <label for="trans-keywords" class="block font-semibold mb-2 text-gray-300">Keywords (thêm)</label>
+                                <input type="text" id="trans-keywords" class="w-full p-2 border border-gray-600 rounded-md bg-gray-700 text-gray-200" placeholder="cách nhau bằng dấu phẩy">
+                            </div>
+                        </div>
+                        
+                        <div class="border-t border-gray-700 pt-4">
+                             <label for="trans-lang" class="block font-semibold mb-2 text-gray-300">Dịch sang ngôn ngữ</label>
+                             <div class="flex items-center gap-4">
+                                <select id="trans-lang" class="w-full p-3 border border-gray-600 rounded-md bg-gray-700 text-gray-200">
+                                    <option value="vietnamese">Tiếng Việt</option>
+                                    <option value="english">Tiếng Anh</option>
+                                    <option value="korean">Tiếng Hàn</option>
+                                    <option value="japanese">Tiếng Nhật</option>
+                                </select>
+                                <button id="translate-btn" class="w-1/2 bg-gradient-to-r from-emerald-500 to-green-600 text-white font-bold py-3 px-4 rounded-lg hover:opacity-90 transition transform hover:scale-105 duration-300 flex items-center justify-center text-lg shadow-md">
+                                    <i class="fas fa-language mr-2"></i> Dịch
+                                </button>
+                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
+                     <h3 class="text-xl font-bold mb-4 border-b border-gray-700 pb-3 text-gray-100">2. Kết quả Dịch thuật</h3>
+                     <div class="flex justify-between items-center mb-2">
+                         <h4 class="font-semibold text-gray-200">Nội dung đã định dạng</h4>
+                         <div class="flex items-center space-x-2">
+                             <button id="copy-translation-btn" class="bg-gray-700 text-gray-300 px-3 py-1 rounded-md text-sm hover:bg-gray-600 transition"><i class="fas fa-copy"></i> Sao chép</button>
+                         </div>
+                     </div>
+                     <div id="translation-loader" class="hidden items-center justify-center h-full">
+                        <div class="loader"></div>
+                     </div>
+                     <textarea id="translation-output" readonly class="w-full p-3 border border-gray-700 rounded-md h-[480px] bg-gray-900 font-mono text-sm text-gray-300"></textarea>
+                </div>
+            </div>
+        </section>
     </div>
 
     <!-- Toast container -->
     <div id="toast" class="toast"></div>
-
+    
     <!-- Modal xác nhận xóa -->
-    <div
-      id="confirm-modal"
-      class="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-4 hidden modal-backdrop"
-    >
-      <div
-        class="bg-gray-800 border border-gray-700 rounded-lg p-6 w-full max-w-sm mx-auto shadow-xl modal-content transform scale-95"
-      >
-        <h3 class="text-lg font-bold text-white" id="modal-title">
-          Xác nhận hành động
-        </h3>
-        <p class="text-gray-400 my-4" id="modal-body">
-          Bạn có chắc chắn muốn thực hiện hành động này không?
-        </p>
-        <div class="flex justify-end space-x-4">
-          <button
-            id="modal-cancel"
-            class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-500 transition"
-          >
-            Hủy
-          </button>
-          <button
-            id="modal-confirm"
-            class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition"
-          >
-            Xóa
-          </button>
+    <div id="confirm-modal" class="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-4 hidden opacity-0 modal-backdrop">
+        <div class="bg-gray-800 border border-gray-700 rounded-lg p-6 w-full max-w-sm mx-auto shadow-xl modal-content transform scale-95">
+            <h3 class="text-lg font-bold text-white" id="modal-title">Xác nhận hành động</h3>
+            <p class="text-gray-400 my-4" id="modal-body">Bạn có chắc chắn muốn thực hiện hành động này không?</p>
+            <div class="flex justify-end space-x-4">
+                <button id="modal-cancel" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-500 transition">Hủy</button>
+                <button id="modal-confirm" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition">Xóa</button>
+            </div>
         </div>
-      </div>
     </div>
 
-    <script>
-      document.addEventListener("DOMContentLoaded", () => {
-        // --- KHAI BÁO BIẾN VÀ DOM ELEMENTS ---
-        const apiKeyInput = document.getElementById("api-keys-input");
-        const saveApiKeysBtn = document.getElementById("save-api-keys");
-        const savedKeysList = document.getElementById("keys-ul");
-        const apiStatus = document.getElementById("api-status");
-
-        // Subtitle elements
-        const audioFileInput = document.getElementById("audio-file");
-        const audioFileNameLabel = document.getElementById("audio-file-name");
-        const docxFileInput = document.getElementById("docx-file");
-        const textContentArea = document.getElementById("text-content");
-        const generateViEnBtn = document.getElementById("generate-vi-en-btn");
-        const generateJaKoBtn = document.getElementById("generate-ja-ko-btn");
-        const resultContainer = document.getElementById("result-container");
-        const loaderContainer = document.getElementById("loader-container");
-        const srtViTextarea = document.getElementById("srt-vi");
-        const srtEnTextarea = document.getElementById("srt-en");
-        const srtJaTextarea = document.getElementById("srt-ja");
-        const srtKoTextarea = document.getElementById("srt-ko");
-
-        // Translator elements
-        const transGenreSelect = document.getElementById("trans-genre-select");
-        const transGenreCustom = document.getElementById("trans-genre-custom");
-        const transTitle = document.getElementById("trans-title");
-        const transSummary = document.getElementById("trans-summary");
-        const transDocxFile = document.getElementById("trans-docx-file");
-        const socialMediaList = document.getElementById("social-media-list");
-        const addSocialBtn = document.getElementById("add-social-btn");
-        const transHashtags = document.getElementById("trans-hashtags");
-        const transKeywords = document.getElementById("trans-keywords");
-        const transLang = document.getElementById("trans-lang");
-        const translateBtn = document.getElementById("translate-btn");
-        const translationLoader = document.getElementById("translation-loader");
-        const translationOutput = document.getElementById("translation-output");
-        const copyTranslationBtn = document.getElementById(
-          "copy-translation-btn"
-        );
-
-        // General UI elements
-        const toast = document.getElementById("toast");
-        const confirmModal = document.getElementById("confirm-modal");
-        const modalTitle = document.getElementById("modal-title");
-        const modalBody = document.getElementById("modal-body");
-        const modalConfirmBtn = document.getElementById("modal-confirm");
-        const modalCancelBtn = document.getElementById("modal-cancel");
-        const clearDbBtn = document.getElementById("clear-db");
-
-        let apiKeys = [];
-        let currentAudioFile = null;
-        let audioFileBase64 = null;
-        let audioMimeType = "";
-
-        // --- CẤU HÌNH IndexedDB ---
-        let db;
-        const dbName = "SubtitleAppDB";
-        const dbVersion = 1;
-
-        function initDB() {
-          const request = indexedDB.open(dbName, dbVersion);
-          request.onerror = (event) => {
-            console.error("Lỗi khi mở IndexedDB:", event.target.errorCode);
-            showToast("Không thể khởi tạo cơ sở dữ liệu.", "error");
-          };
-          request.onsuccess = (event) => {
-            db = event.target.result;
-            console.log("IndexedDB đã được mở thành công.");
-          };
-          request.onupgradeneeded = (event) => {
-            const dbInstance = event.target.result;
-            if (!dbInstance.objectStoreNames.contains("cache")) {
-              dbInstance.createObjectStore("cache", { keyPath: "id" });
-              console.log("Đã tạo Object Store 'cache'.");
-            }
-          };
-        }
-
-        function clearDB() {
-          if (!db) {
-            showToast("Cơ sở dữ liệu chưa sẵn sàng.", "error");
-            return;
-          }
-          const transaction = db.transaction(["cache"], "readwrite");
-          const store = transaction.objectStore("cache");
-          const request = store.clear();
-          request.onsuccess = () => {
-            showToast("Đã dọn dẹp bộ nhớ đệm thành công!", "success");
-          };
-          request.onerror = (event) => {
-            console.error("Lỗi khi dọn dẹp DB: ", event.target.error);
-            showToast("Có lỗi xảy ra khi dọn dẹp bộ nhớ.", "error");
-          };
-        }
-
-        // --- QUẢN LÝ API KEY ---
-        function loadApiKeys() {
-          const storedKeys = localStorage.getItem("geminiApiKeys");
-          if (storedKeys) {
-            apiKeys = JSON.parse(storedKeys);
-            apiKeyInput.value = apiKeys.join("\n");
-          }
-          renderApiKeys();
-          updateApiStatus();
-        }
-
-        function saveApiKeys() {
-          const keys = apiKeyInput.value
-            .split("\n")
-            .map((k) => k.trim())
-            .filter((k) => k);
-          apiKeys = [...new Set(keys)]; // Loại bỏ key trùng
-          localStorage.setItem("geminiApiKeys", JSON.stringify(apiKeys));
-          renderApiKeys();
-          updateApiStatus();
-          showToast("Đã lưu API keys thành công!", "success");
-        }
-
-        function renderApiKeys() {
-          savedKeysList.innerHTML = "";
-          if (apiKeys.length === 0) {
-            savedKeysList.innerHTML = "<li>Chưa có key nào được lưu.</li>";
-            return;
-          }
-          apiKeys.forEach((key, index) => {
-            const li = document.createElement("li");
-            li.className =
-              "flex justify-between items-center p-1 hover:bg-gray-700/50 rounded";
-            const maskedKey = `${key.substring(0, 5)}...${key.substring(
-              key.length - 4
-            )}`;
-            li.innerHTML = `
-                <span>${maskedKey}</span>
-                <button data-index="${index}" class="delete-key-btn text-red-500 hover:text-red-600 text-xs"><i class="fas fa-times-circle"></i></button>
-            `;
-            savedKeysList.appendChild(li);
-          });
-        }
-
-        function deleteApiKey(index) {
-          showConfirmModal(
-            "Xác nhận xóa API Key",
-            "Bạn có chắc muốn xóa API key này không?",
-            () => {
-              apiKeys.splice(index, 1);
-              localStorage.setItem("geminiApiKeys", JSON.stringify(apiKeys));
-              apiKeyInput.value = apiKeys.join("\n");
-              renderApiKeys();
-              updateApiStatus();
-              showToast("Đã xóa API key.", "success");
-            }
-          );
-        }
-
-        function updateApiStatus() {
-          if (apiKeys.length > 0) {
-            apiStatus.innerHTML = `<span class="text-green-400 font-semibold"><i class="fas fa-check-circle mr-1"></i>Đã nhập ${apiKeys.length} API key. Sẵn sàng hoạt động.</span>`;
-          } else {
-            apiStatus.innerHTML = `<span class="text-red-400 font-semibold"><i class="fas fa-exclamation-triangle mr-1"></i>Chưa nhập API key. Vui lòng nhập để sử dụng.</span>`;
-          }
-        }
-
-        // --- XỬ LÝ FILE INPUT (Chung) ---
-        function handleAudioFile(event) {
-          const file = event.target.files[0];
-          if (!file) return;
-          currentAudioFile = file;
-          audioMimeType = file.type;
-          audioFileNameLabel.textContent = file.name;
-          audioFileNameLabel.classList.add("font-semibold", "text-blue-400");
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            audioFileBase64 = reader.result.split(",")[1];
-          };
-          reader.readAsDataURL(file);
-          showToast(`Đã tải lên file: ${file.name}`, "info");
-        }
-
-        function handleDocxFile(event, targetTextarea) {
-          const file = event.target.files[0];
-          if (!file) return;
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            const arrayBuffer = e.target.result;
-            mammoth
-              .extractRawText({ arrayBuffer: arrayBuffer })
-              .then((result) => {
-                targetTextarea.value = result.value;
-                showToast(`Đã nhập nội dung từ ${file.name}`, "info");
-              })
-              .catch((error) => {
-                console.error(error);
-                showToast("Không thể đọc file .docx.", "error");
-              });
-          };
-          reader.readAsArrayBuffer(file);
-        }
-
-        // --- LOGIC TẠO PHỤ ĐỀ ---
-        async function processLanguage({
-          language,
-          sourceContent,
-          hasAudio,
-          startKeyIndex = 0,
-          onProgress,
-        }) {
-          let prompt;
-          let langName;
-          switch (language) {
-            case "vietnamese":
-              langName = "Việt";
-              break;
-            case "english":
-              langName = "Anh";
-              break;
-            case "japanese_from_original":
-              langName = "Nhật";
-              break;
-            case "korean_from_japanese":
-              langName = "Hàn";
-              break;
-            default:
-              langName = language;
-          }
-
-          if (language === "vietnamese") {
-            prompt = `Bạn là một chuyên gia tạo phụ đề. Dựa vào file âm thanh và nội dung văn bản sau, hãy tạo phụ đề tiếng Việt dạng SRT. Nội dung văn bản: "${sourceContent}". TRẢ VỀ KẾT QUẢ DƯỚI DẠNG JSON OBJECT với một key duy nhất là "srt". Ví dụ: { "srt": "1\\n00:00:01,234 --> 00:00:03,456\\nXin chào các bạn." }`;
-          } else if (language === "english") {
-            prompt = `Bạn là một dịch giả chuyên nghiệp. Dịch nội dung file SRT từ tiếng Việt sang tiếng Anh. GIỮ NGUYÊN ĐỊNH DẠNG VÀ MỐC THỜI GIAN. Nội dung SRT tiếng Việt cần dịch: \n${sourceContent}\n TRẢ VỀ KẾT QUẢ DƯỚI DẠNG JSON OBJECT với một key duy nhất là "srt". Ví dụ: { "srt": "1\\n00:00:01,234 --> 00:00:03,456\\nHello everyone." }`;
-          } else if (language === "japanese_from_original") {
-            prompt = `Bạn là một chuyên gia tạo phụ đề. Dựa vào file âm thanh và nội dung văn bản sau, hãy tạo phụ đề tiếng Nhật dạng SRT. Nội dung văn bản: "${sourceContent}". TRẢ VỀ KẾT QUẢ DƯỚI DẠNG JSON OBJECT với một key duy nhất là "srt".`;
-          } else if (language === "korean_from_japanese") {
-            prompt = `Bạn là một dịch giả chuyên nghiệp. Dịch nội dung file SRT từ tiếng Nhật sang tiếng Hàn. GIỮ NGUYÊN ĐỊNH DẠNG VÀ MỐC THỜI GIAN. Nội dung SRT tiếng Nhật cần dịch: \n${sourceContent}\n TRẢ VỀ KẾT QUẢ DƯỚI DẠNG JSON OBJECT với một key duy nhất là "srt".`;
-          }
-
-          const payload = {
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { responseMimeType: "application/json" },
-          };
-
-          if (hasAudio) {
-            payload.contents[0].parts.push({
-              inlineData: { mimeType: audioMimeType, data: audioFileBase64 },
-            });
-          }
-
-          // This loop is for API key rotation and retry
-          for (let i = 0; i < apiKeys.length; i++) {
-            const keyIndex = (startKeyIndex + i) % apiKeys.length;
-            const key = apiKeys[keyIndex];
-            onProgress(
-              `Đang tạo phụ đề tiếng ${langName}...`,
-              `Sử dụng API key ${keyIndex + 1}/${apiKeys.length}`
-            );
-            try {
-              const response = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${key}`,
-                {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify(payload),
-                }
-              );
-
-              if (!response.ok) {
-                if (i < apiKeys.length - 1) {
-                  onProgress(
-                    `Gặp lỗi với API Key ${keyIndex + 1}`,
-                    "Sẽ thử lại với key tiếp theo sau 10 giây..."
-                  );
-                  await new Promise((resolve) => setTimeout(resolve, 10000));
-                }
-                continue;
-              }
-              const result = await response.json();
-              const jsonText =
-                result?.candidates?.[0]?.content?.parts?.[0]?.text;
-              if (!jsonText) {
-                if (i < apiKeys.length - 1) {
-                  onProgress(
-                    `Kết quả trả về không hợp lệ`,
-                    "Sẽ thử lại với key tiếp theo sau 10 giây..."
-                  );
-                  await new Promise((resolve) => setTimeout(resolve, 10000));
-                }
-                continue;
-              }
-              const subtitles = JSON.parse(jsonText);
-              if (!subtitles.srt) {
-                if (i < apiKeys.length - 1) {
-                  onProgress(
-                    `Kết quả JSON không đúng định dạng`,
-                    "Sẽ thử lại với key tiếp theo sau 10 giây..."
-                  );
-                  await new Promise((resolve) => setTimeout(resolve, 10000));
-                }
-                continue;
-              }
-              return { success: true, srt: subtitles.srt, keyIndex: keyIndex };
-            } catch (error) {
-              if (i < apiKeys.length - 1) {
-                onProgress(
-                  `Gặp lỗi kết nối`,
-                  "Sẽ thử lại với key tiếp theo sau 10 giây..."
-                );
-                await new Promise((resolve) => setTimeout(resolve, 10000));
-              }
-            }
-          }
-          return { success: false, srt: null, keyIndex: -1 };
-        }
-
-        async function generateViEnFlow() {
-          if (!validateInputs()) return;
-          resetAllSubtitles();
-          const viResult = await processLanguage({
-            language: "vietnamese",
-            sourceContent: textContentArea.value.trim(),
-            hasAudio: true,
-            onProgress: (main, detail) => setLoadingState(true, main, detail),
-          });
-          setLoadingState(false);
-          if (viResult.success) {
-            srtViTextarea.value = viResult.srt;
-            showToast("Tạo phụ đề tiếng Việt thành công!", "success");
-            showRegenerateButton("vi");
-            generateEnglishSubtitleInBackground(viResult);
-          } else {
-            showToast(
-              "Không thể tạo phụ đề tiếng Việt. Tất cả API key đều gặp lỗi.",
-              "error"
-            );
-          }
-        }
-
-        async function generateJaKoFlow() {
-          if (!validateInputs()) return;
-          resetAllSubtitles();
-          const jaResult = await processLanguage({
-            language: "japanese_from_original",
-            sourceContent: textContentArea.value.trim(),
-            hasAudio: true,
-            onProgress: (main, detail) => setLoadingState(true, main, detail),
-          });
-          setLoadingState(false);
-          if (jaResult.success) {
-            srtJaTextarea.value = jaResult.srt;
-            showToast("Tạo phụ đề tiếng Nhật thành công!", "success");
-            showRegenerateButton("ja");
-            generateKoreanSubtitleInBackground(jaResult);
-          } else {
-            showToast(
-              "Không thể tạo phụ đề tiếng Nhật. Tất cả API key đều gặp lỗi.",
-              "error"
-            );
-          }
-        }
-
-        async function regenerateSubtitle(lang) {
-          let sourceContent = "",
-            hasAudio = false,
-            languageToProcess = "";
-          switch (lang) {
-            case "vi":
-              sourceContent = textContentArea.value.trim();
-              hasAudio = true;
-              languageToProcess = "vietnamese";
-              break;
-            case "en":
-              sourceContent = srtViTextarea.value;
-              languageToProcess = "english";
-              break;
-            case "ja":
-              sourceContent = textContentArea.value.trim();
-              hasAudio = true;
-              languageToProcess = "japanese_from_original";
-              break;
-            case "ko":
-              sourceContent = srtJaTextarea.value;
-              languageToProcess = "korean_from_japanese";
-              break;
-            default:
-              return;
-          }
-          if (!sourceContent) {
-            showToast(
-              `Không có nội dung nguồn để tạo lại phụ đề ${lang}.`,
-              "error"
-            );
-            return;
-          }
-          const loader = document.getElementById(`${lang}-loader`);
-          const status = document.getElementById(`${lang}-status`);
-          const textarea = document.getElementById(`srt-${lang}`);
-          const regenBtn = document.querySelector(
-            `.regenerate-btn[data-lang="${lang}"]`
-          );
-          loader.classList.remove("hidden");
-          regenBtn.disabled = true;
-          textarea.value = "";
-          const result = await processLanguage({
-            language: languageToProcess,
-            sourceContent,
-            hasAudio,
-            onProgress: (main, detail) => {
-              status.textContent = `${main} ${detail || ""}`;
-            },
-          });
-          loader.classList.add("hidden");
-          regenBtn.disabled = false;
-          if (result.success) {
-            textarea.value = result.srt;
-            showToast(`Tạo lại phụ đề ${lang} thành công!`, "success");
-            status.textContent = "Hoàn thành.";
-          } else {
-            status.textContent = "Thất bại.";
-            showToast(`Tạo lại phụ đề ${lang} thất bại.`, "error");
-          }
-          setTimeout(() => {
-            status.textContent = "";
-          }, 5000);
-        }
-
-        async function generateEnglishSubtitleInBackground(viResult) {
-          const enLoader = document.getElementById("en-loader"),
-            enStatus = document.getElementById("en-status");
-          enLoader.classList.remove("hidden");
-          enStatus.textContent = "Sẽ bắt đầu dịch sau 10 giây.";
-          await new Promise((resolve) => setTimeout(resolve, 10000));
-          const enResult = await processLanguage({
-            language: "english",
-            sourceContent: viResult.srt,
-            hasAudio: false,
-            startKeyIndex: (viResult.keyIndex + 1) % apiKeys.length,
-            onProgress: (main, detail) =>
-              (enStatus.textContent = `${main} ${detail || ""}`),
-          });
-          enLoader.classList.add("hidden");
-          if (enResult.success) {
-            srtEnTextarea.value = enResult.srt;
-            showToast("Tạo phụ đề tiếng Anh thành công!", "success");
-            enStatus.textContent = "Hoàn thành.";
-            showRegenerateButton("en");
-          } else {
-            srtEnTextarea.placeholder = "Dịch sang tiếng Anh thất bại.";
-            enStatus.textContent = "Thất bại.";
-            showToast("Không thể tạo phụ đề tiếng Anh.", "error");
-          }
-          setTimeout(() => {
-            enStatus.textContent = "";
-          }, 5000);
-        }
-
-        async function generateKoreanSubtitleInBackground(jaResult) {
-          const koLoader = document.getElementById("ko-loader"),
-            koStatus = document.getElementById("ko-status");
-          koLoader.classList.remove("hidden");
-          koStatus.textContent = "Sẽ bắt đầu dịch sau 10 giây.";
-          await new Promise((resolve) => setTimeout(resolve, 10000));
-          const koResult = await processLanguage({
-            language: "korean_from_japanese",
-            sourceContent: jaResult.srt,
-            hasAudio: false,
-            startKeyIndex: (jaResult.keyIndex + 1) % apiKeys.length,
-            onProgress: (main, detail) =>
-              (koStatus.textContent = `${main} ${detail || ""}`),
-          });
-          koLoader.classList.add("hidden");
-          if (koResult.success) {
-            srtKoTextarea.value = koResult.srt;
-            showToast("Tạo phụ đề tiếng Hàn thành công!", "success");
-            koStatus.textContent = "Hoàn thành.";
-            showRegenerateButton("ko");
-          } else {
-            srtKoTextarea.placeholder = "Dịch sang tiếng Hàn thất bại.";
-            koStatus.textContent = "Thất bại.";
-            showToast("Không thể tạo phụ đề tiếng Hàn.", "error");
-          }
-          setTimeout(() => {
-            koStatus.textContent = "";
-          }, 5000);
-        }
-
-        // --- LOGIC DỊCH THUẬT ---
-        function addSocialMediaInput() {
-          const id = Date.now();
-          const div = document.createElement("div");
-          div.className = "flex items-center gap-2 social-media-item";
-          div.innerHTML = `
-            <input type="text" class="w-1/3 p-2 border border-gray-600 rounded-md bg-gray-700 text-gray-200" placeholder="Tên MXH (VD: Facebook)">
-            <input type="text" class="w-2/3 p-2 border border-gray-600 rounded-md bg-gray-700 text-gray-200" placeholder="Đường link">
-            <button class="text-red-500 hover:text-red-600 remove-social-btn"><i class="fas fa-minus-circle"></i></button>
-        `;
-          socialMediaList.appendChild(div);
-        }
-
-        async function handleTranslation() {
-          if (apiKeys.length === 0) {
-            showToast("Vui lòng nhập và lưu ít nhất một API key.", "error");
-            return;
-          }
-
-          const targetLang = transLang.value;
-          const storyTitle = transTitle.value.trim();
-          const storyContent = transSummary.value.trim();
-          let genre =
-            transGenreSelect.value === "custom"
-              ? transGenreCustom.value.trim()
-              : transGenreSelect.value;
-
-          if (!genre || !storyTitle || !storyContent) {
-            showToast(
-              "Vui lòng nhập Thể loại, Tên truyện và Nội dung tóm tắt.",
-              "error"
-            );
-            return;
-          }
-
-          let channelName = "";
-          switch (targetLang) {
-            case "vietnamese":
-              channelName = "Trần Thiên Minh";
-              break;
-            case "english":
-              channelName = "Tran Thien Minh";
-              break;
-            case "korean":
-              channelName = "쩐 티엔 민 (Tran Thien Minh)";
-              break;
-            case "japanese":
-              channelName = "トラン・ティエン・ミン (Tran Thien Minh)";
-              break;
-          }
-
-          const socialMedia = Array.from(
-            document.querySelectorAll(".social-media-item")
-          )
-            .map((item) => {
-              const name = item
-                .querySelector("input:nth-child(1)")
-                .value.trim();
-              const link = item
-                .querySelector("input:nth-child(2)")
-                .value.trim();
-              return name && link ? `${name}: ${link}` : null;
-            })
-            .filter(Boolean)
-            .join("\n");
-
-          const additionalHashtags = transHashtags.value.trim();
-          const additionalKeywords = transKeywords.value.trim();
-
-          const prompt = `
-            Bạn là một trợ lý dịch thuật và định dạng nội dung chuyên nghiệp.
-            Nhiệm vụ của bạn là xử lý thông tin dưới đây và trả về một chuỗi văn bản đã được định dạng và dịch sang ngôn ngữ đích.
-
-            **Ngôn ngữ đích:** ${targetLang}
-
-            **Thông tin đầu vào:**
-            - Thể Loại Truyện: "${genre}"
-            - Tên Truyện: "${storyTitle}"
-            - Nội dung cần tóm tắt: "${storyContent}"
-            - Danh sách mạng xã hội: "${socialMedia}"
-            - Hashtag bổ sung (cách nhau bởi dấu phẩy): "${additionalHashtags}"
-            - Từ khóa bổ sung (cách nhau bởi dấu phẩy): "${additionalKeywords}"
-
-            **Yêu cầu:**
-            1.  **Dịch thuật chuyên nghiệp:**
-                - Dịch "Thể Loại Truyện", "Tên Truyện".
-                - Tóm tắt "Nội dung cần tóm tắt" một cách súc tích, hấp dẫn bằng ngôn ngữ đích.
-                - Dịch các hashtag mặc định (#truyenaudio, #tranthienminh) và các hashtag bổ sung.
-                - Dịch các từ khóa mặc định (Trần Thiên Minh, Truyện Audio, ${storyTitle}) và các từ khóa bổ sung.
-            2.  **Định dạng nghiêm ngặt:** Tạo ra kết quả cuối cùng theo đúng khuôn mẫu dưới đây. KHÔNG thêm bất kỳ ghi chú, lời giải thích hay ký tự nào khác ngoài khuôn mẫu. Nếu một trường thông tin (ví dụ: mạng xã hội) không được cung cấp, hãy bỏ trống phần đó trong kết quả.
-            3.  **Tên Kênh:** Sử dụng tên kênh chính xác sau: "${channelName}"
-
-            **Khuôn mẫu kết quả (TUYỆT ĐỐI TUÂN THỦ):**
-            {Thể Loại Truyện đã dịch} / {Tên Truyện đã dịch} | ${channelName}
-            ---------------------------------------------
-            {Nội dung đã được tóm tắt}
-            ---------------------------------------------
-            🧰 About us:
-            ${
-              socialMedia
-                ? "{Danh sách mạng xã hội (giữ nguyên không dịch)}"
-                : ""
-            }
-            ---------------------------------------------
-            🎷 HashTag: {danh sách hashtag đã dịch, cách nhau bởi dấu cách}
-
-            💌 Keyword: {danh sách từ khóa đã dịch, cách nhau bởi dấu phẩy và dấu cách}
-
-            **Lưu ý quan trọng:** Chỉ trả về kết quả dưới dạng JSON object với một key duy nhất là "formatted_text".
-            Ví dụ: { "formatted_text": "..." }
-        `;
-
-          translationLoader.style.display = "flex";
-          translationOutput.value = "";
-          translateBtn.disabled = true;
-
-          const payload = {
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { responseMimeType: "application/json" },
-          };
-
-          // Reuse API key rotation logic, but simplified for one call
-          let success = false;
-          for (let i = 0; i < apiKeys.length; i++) {
-            const key = apiKeys[i];
-            try {
-              const response = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${key}`,
-                {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify(payload),
-                }
-              );
-              if (!response.ok) continue;
-
-              const result = await response.json();
-              const jsonText =
-                result?.candidates?.[0]?.content?.parts?.[0]?.text;
-              if (jsonText) {
-                const parsed = JSON.parse(jsonText);
-                translationOutput.value = parsed.formatted_text;
-                success = true;
-                break;
-              }
-            } catch (error) {
-              console.error("Lỗi khi dịch:", error);
-            }
-          }
-
-          translationLoader.style.display = "none";
-          translateBtn.disabled = false;
-          if (success) {
-            showToast("Dịch và định dạng thành công!", "success");
-          } else {
-            showToast("Dịch thất bại, đã thử tất cả API key.", "error");
-          }
-        }
-
-        // --- HÀM HỖ TRỢ UI VÀ VALIDATION ---
-        function validateInputs() {
-          if (!currentAudioFile || !audioFileBase64) {
-            showToast("Vui lòng tải lên một file audio.", "error");
-            return false;
-          }
-          if (!textContentArea.value.trim()) {
-            showToast("Vui lòng nhập nội dung văn bản.", "error");
-            return false;
-          }
-          if (apiKeys.length === 0) {
-            showToast("Vui lòng nhập và lưu ít nhất một API key.", "error");
-            return false;
-          }
-          return true;
-        }
-
-        function resetAllSubtitles() {
-          [srtViTextarea, srtEnTextarea, srtJaTextarea, srtKoTextarea].forEach(
-            (ta) => {
-              ta.value = "";
-              ta.placeholder = "";
-            }
-          );
-          ["en-status", "ja-status", "ko-status"].forEach((id) => {
-            document.getElementById(id).textContent = "";
-          });
-          document
-            .querySelectorAll(".regenerate-btn")
-            .forEach((btn) => btn.classList.add("hidden"));
-        }
-
-        function showRegenerateButton(lang) {
-          const btn = document.querySelector(
-            `.regenerate-btn[data-lang="${lang}"]`
-          );
-          if (btn) btn.classList.remove("hidden");
-        }
-
-        function setLoadingState(
-          isLoading,
-          mainMessage = null,
-          detailMessage = null
-        ) {
-          const loaderMainText = document.getElementById("loader-main-text");
-          const loaderDetails = document.getElementById("loader-details");
-          const buttons = [generateViEnBtn, generateJaKoBtn];
-          if (isLoading) {
-            buttons.forEach((btn) => (btn.disabled = true));
-            resultContainer.classList.add("hidden");
-            loaderContainer.classList.remove("hidden");
-            loaderContainer.classList.add("flex");
-            loaderMainText.textContent =
-              mainMessage || "AI đang xử lý, vui lòng chờ...";
-            loaderDetails.textContent = detailMessage || "";
-          } else {
-            buttons.forEach((btn) => (btn.disabled = false));
-            resultContainer.classList.remove("hidden");
-            loaderContainer.classList.add("hidden");
-            loaderContainer.classList.remove("flex");
-          }
-        }
-
-        function showToast(message, type = "info") {
-          toast.textContent = message;
-          toast.className = "toast show";
-          if (type === "success") toast.classList.add("bg-green-500");
-          else if (type === "error") toast.classList.add("bg-red-500");
-          else toast.classList.add("bg-gray-700");
-          setTimeout(() => {
-            toast.className = "toast";
-          }, 4000);
-        }
-
-        function showConfirmModal(title, body, onConfirm) {
-          modalTitle.textContent = title;
-          modalBody.textContent = body;
-          confirmModal.classList.remove("hidden");
-          setTimeout(() => {
-            confirmModal
-              .querySelector(".modal-backdrop")
-              .classList.remove("opacity-0");
-            confirmModal
-              .querySelector(".modal-content")
-              .classList.remove("scale-95");
-          }, 10);
-          const confirmHandler = () => {
-            onConfirm();
-            hideConfirmModal();
-            modalConfirmBtn.removeEventListener("click", confirmHandler);
-          };
-          modalConfirmBtn.addEventListener("click", confirmHandler, {
-            once: true,
-          });
-        }
-
-        function hideConfirmModal() {
-          confirmModal
-            .querySelector(".modal-backdrop")
-            .classList.add("opacity-0");
-          confirmModal
-            .querySelector(".modal-content")
-            .classList.add("scale-95");
-          setTimeout(() => {
-            confirmModal.classList.add("hidden");
-          }, 300);
-        }
-
-        function copyToClipboard(targetId) {
-          const textarea = document.getElementById(targetId);
-          if (!textarea.value) {
-            showToast("Không có nội dung để sao chép.", "error");
-            return;
-          }
-          navigator.clipboard.writeText(textarea.value).then(
-            () => showToast("Đã sao chép!", "success"),
-            () => showToast("Lỗi khi sao chép.", "error")
-          );
-        }
-
-        function downloadSrt(lang) {
-          let content = "";
-          switch (lang) {
-            case "vi":
-              content = srtViTextarea.value;
-              break;
-            case "en":
-              content = srtEnTextarea.value;
-              break;
-            case "ko":
-              content = srtKoTextarea.value;
-              break;
-            case "ja":
-              content = srtJaTextarea.value;
-              break;
-            default:
-              content = "";
-          }
-          if (!content) {
-            showToast("Không có nội dung để tải xuống.", "error");
-            return;
-          }
-          const fileName = currentAudioFile
-            ? `${currentAudioFile.name.split(".")[0]}.${lang}.srt`
-            : `subtitle.${lang}.srt`;
-          const blob = new Blob([content], {
-            type: "text/plain;charset=utf-8",
-          });
-          const link = document.createElement("a");
-          link.href = URL.createObjectURL(blob);
-          link.download = fileName;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        }
-
-        // --- GẮN EVENT LISTENERS ---
-        saveApiKeysBtn.addEventListener("click", saveApiKeys);
-        generateViEnBtn.addEventListener("click", generateViEnFlow);
-        generateJaKoBtn.addEventListener("click", generateJaKoFlow);
-        audioFileInput.addEventListener("change", handleAudioFile);
-        docxFileInput.addEventListener("change", (e) =>
-          handleDocxFile(e, textContentArea)
-        );
-        transDocxFile.addEventListener("change", (e) =>
-          handleDocxFile(e, transSummary)
-        );
-
-        resultContainer.addEventListener("click", (e) => {
-          const btn = e.target.closest(".regenerate-btn");
-          if (btn) regenerateSubtitle(btn.dataset.lang);
-        });
-
-        savedKeysList.addEventListener("click", (e) => {
-          const btn = e.target.closest(".delete-key-btn");
-          if (btn) deleteApiKey(parseInt(btn.dataset.index, 10));
-        });
-
-        document
-          .querySelectorAll(".copy-btn")
-          .forEach((btn) =>
-            btn.addEventListener("click", () =>
-              copyToClipboard(btn.dataset.target)
-            )
-          );
-        document
-          .querySelectorAll(".download-btn")
-          .forEach((btn) =>
-            btn.addEventListener("click", () => downloadSrt(btn.dataset.lang))
-          );
-
-        modalCancelBtn.addEventListener("click", hideConfirmModal);
-        clearDbBtn.addEventListener("click", () =>
-          showConfirmModal(
-            "Xác nhận dọn dẹp",
-            "Bạn có chắc muốn xóa cache?",
-            clearDB
-          )
-        );
-
-        // Translator event listeners
-        transGenreSelect.addEventListener("change", () => {
-          transGenreCustom.classList.toggle(
-            "hidden",
-            transGenreSelect.value !== "custom"
-          );
-        });
-        addSocialBtn.addEventListener("click", addSocialMediaInput);
-        socialMediaList.addEventListener("click", (e) => {
-          if (e.target.closest(".remove-social-btn")) {
-            e.target.closest(".social-media-item").remove();
-          }
-        });
-        translateBtn.addEventListener("click", handleTranslation);
-        copyTranslationBtn.addEventListener("click", () =>
-          copyToClipboard("translation-output")
-        );
-
-        // --- KHỞI TẠO ỨNG DỤNG ---
-        function init() {
-          initDB();
-          loadApiKeys();
-          addSocialMediaInput(); // Add one social media input by default
-          const dropZone = document.querySelector(".border-dashed");
-          ["dragenter", "dragover", "dragleave", "drop"].forEach(
-            (eventName) => {
-              dropZone.addEventListener(eventName, (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-              });
-            }
-          );
-          ["dragenter", "dragover"].forEach((eventName) =>
-            dropZone.addEventListener(eventName, () =>
-              dropZone.classList.add("border-blue-500", "bg-blue-700/50")
-            )
-          );
-          ["dragleave", "drop"].forEach((eventName) =>
-            dropZone.addEventListener(eventName, () =>
-              dropZone.classList.remove("border-blue-500", "bg-blue-700/50")
-            )
-          );
-          dropZone.addEventListener("drop", (e) => {
-            audioFileInput.files = e.dataTransfer.files;
-            handleAudioFile({ target: audioFileInput });
-          });
-        }
-
-        init();
-      });
-    </script>
-  </body>
+    <script src="script.js"></script>
+</body>
 </html>
