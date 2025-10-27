@@ -9,7 +9,7 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     />
-    <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
+    <!-- Đã loại bỏ mammoth.js vì không còn chức năng tải .docx -->
     <style>
       body {
         font-family: "Inter", sans-serif;
@@ -181,19 +181,7 @@
                     class="mt-1 w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
-                <div>
-                  <label
-                    for="storyApiKeyInput"
-                    class="text-sm font-medium text-gray-300"
-                    >Story API Key (Tùy chọn)</label
-                  >
-                  <input
-                    type="password"
-                    id="storyApiKeyInput"
-                    placeholder="API Key cho tạo truyện"
-                    class="mt-1 w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
+                <!-- Đã loại bỏ Story API Key Input -->
                 <div>
                   <label
                     for="translateApiKeyInput"
@@ -227,7 +215,7 @@
                 class="w-full mb-2 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed"
                 disabled
               >
-                <i class="fas fa-brain mr-2"></i> Phân Tích Sâu Nhân Vật
+                <i class="fas fa-users mr-2"></i> Trích Xuất Tên Nhân Vật
               </button>
               <div class="flex gap-2">
                 <button
@@ -256,75 +244,11 @@
               ></div>
             </div>
 
-            <div>
-              <h2 class="text-xl font-semibold mb-3 text-white">
-                <span class="text-gray-500 mr-2">3</span> Tạo Truyện Hoàn Chỉnh
-              </h2>
-              <p class="text-sm text-gray-400 mb-3">
-                Tạo truyện để làm ngữ cảnh tham khảo cho quá trình dịch.
-              </p>
-              <button
-                id="generateStoryBtn"
-                class="w-full mb-2 bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-lg transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed"
-                disabled
-              >
-                <i class="fas fa-book-open mr-2"></i> Tạo Truyện
-              </button>
-              <div id="story-status" class="text-center text-sm my-3"></div>
-              <div class="space-y-3 mt-4">
-                <label
-                  for="story-context-input"
-                  class="text-sm font-medium text-gray-300"
-                  >Thêm Bối Cảnh (Tùy chọn)</label
-                >
-                <textarea
-                  id="story-context-input"
-                  rows="3"
-                  class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="Dán tóm tắt truyện, thông tin nhân vật..."
-                ></textarea>
-                <div class="flex items-center gap-2">
-                  <label
-                    for="docx-upload"
-                    class="cursor-pointer text-sm inline-flex items-center px-3 py-1 bg-gray-600 text-gray-300 rounded-md hover:bg-gray-700 transition duration-300"
-                  >
-                    <i class="fas fa-file-word mr-2"></i> Tải .docx
-                  </label>
-                  <input
-                    id="docx-upload"
-                    type="file"
-                    class="hidden"
-                    accept=".docx"
-                  />
-                  <span
-                    id="docx-file-name"
-                    class="text-xs text-gray-500 truncate"
-                  ></span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <label
-                    for="srt-context-upload"
-                    class="cursor-pointer text-sm inline-flex items-center px-3 py-1 bg-gray-600 text-gray-300 rounded-md hover:bg-gray-700 transition duration-300"
-                  >
-                    <i class="fas fa-file-alt mr-2"></i> Tải .srt Nguồn
-                  </label>
-                  <input
-                    id="srt-context-upload"
-                    type="file"
-                    class="hidden"
-                    accept=".srt"
-                  />
-                  <span
-                    id="srt-context-file-name"
-                    class="text-xs text-gray-500 truncate"
-                  ></span>
-                </div>
-              </div>
-            </div>
+            <!-- Đã loại bỏ hoàn toàn phần "Tạo Truyện Hoàn Chỉnh" (Bước 3 cũ) -->
 
             <div>
               <h2 class="text-xl font-semibold mb-3 text-white">
-                <span class="text-gray-500 mr-2">4</span> Dịch Phụ Đề
+                <span class="text-gray-500 mr-2">3</span> Dịch Phụ Đề
               </h2>
               <div class="mb-4">
                 <label
@@ -355,10 +279,10 @@
 
             <div class="border-t border-gray-700 pt-6">
               <h2 class="text-xl font-semibold mb-3 text-white">
-                <span class="text-gray-500 mr-2">5</span> Tự Động Hóa
+                <span class="text-gray-500 mr-2">4</span> Tự Động Hóa
               </h2>
               <p class="text-sm text-gray-400 mb-3">
-                Tự động chạy các bước Phân tích, Tạo truyện & Dịch.
+                Tự động chạy các bước Phân tích & Dịch.
               </p>
               <button
                 id="runAllBtn"
@@ -429,14 +353,23 @@
                 >
                   <i class="fas fa-search mr-2"></i>Rà Soát
                 </button>
-                <button
-                  id="retranslate-issues-btn"
-                  class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg hidden"
-                >
-                  <i class="fas fa-sync-alt mr-2"></i>Dịch Lại Lỗi
-                </button>
+                <!-- Container này sẽ chứa nút Dịch Lại Lỗi và API key tùy chọn -->
+                <div id="retranslate-container" class="hidden w-full mt-2 flex flex-wrap gap-2 items-center">
+                    <input
+                      type="password"
+                      id="retranslateApiKeyInput"
+                      placeholder="API Key Dịch Lại (nếu cần)"
+                      class="flex-grow bg-gray-900 border border-gray-600 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <button
+                      id="retranslate-issues-btn"
+                      class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg"
+                    >
+                      <i class="fas fa-sync-alt mr-2"></i>Dịch Lại Lỗi
+                    </button>
+                </div>
               </div>
-              <div id="edit-tool-status" class="text-sm mt-2 text-center"></div>
+              <div id="edit-tool-status" class="text-sm mt-2 text-center w-full"></div>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
@@ -506,7 +439,6 @@
       const analysisApiKeyInput = document.getElementById(
           "analysisApiKeyInput"
         ),
-        storyApiKeyInput = document.getElementById("storyApiKeyInput"),
         translateApiKeyInput = document.getElementById("translateApiKeyInput");
       const analyzeCharactersBtn = document.getElementById(
           "analyzeCharactersBtn"
@@ -525,8 +457,7 @@
       const closeModalBtn = document.getElementById("close-modal-btn");
       const modalContent = document.getElementById("modal-content");
       const modalTitle = document.getElementById("modal-title");
-      const generateStoryBtn = document.getElementById("generateStoryBtn");
-      const storyStatus = document.getElementById("story-status");
+      // Đã loại bỏ generateStoryBtn, storyStatus
       const runAllBtn = document.getElementById("runAllBtn");
       const toggleSizeBtn = document.getElementById("toggle-size-btn");
       const checkChineseBtn = document.getElementById("check-chinese-btn");
@@ -534,13 +465,11 @@
       const retranslateIssuesBtn = document.getElementById(
         "retranslate-issues-btn"
       );
-      const storyContextInput = document.getElementById("story-context-input");
-      const docxUpload = document.getElementById("docx-upload");
-      const docxFileName = document.getElementById("docx-file-name");
-      const srtContextUpload = document.getElementById("srt-context-upload");
-      const srtContextFileName = document.getElementById(
-        "srt-context-file-name"
-      );
+      // Thêm các element mới cho việc dịch lại
+      const retranslateContainer = document.getElementById("retranslate-container");
+      const retranslateApiKeyInput = document.getElementById("retranslateApiKeyInput");
+
+      // Đã loại bỏ các element liên quan đến context truyện
 
       let originalSrtContent = "",
         translatedSrtContent = "",
@@ -548,11 +477,8 @@
       let parsedSubs = [],
         translatedParsedSubs = [];
       let userAnalysisApiKey = "",
-        userStoryApiKey = "",
         userTranslateApiKey = "";
-      let storyContext = "";
-      let docxStoryContext = "";
-      let srtStoryContext = "";
+      // Đã loại bỏ các biến context truyện
       let untranslatedIndices = [];
 
       // --- Event Listeners ---
@@ -560,10 +486,7 @@
         userAnalysisApiKey = e.target.value.trim();
         localStorage.setItem("analysisApiKey", userAnalysisApiKey);
       });
-      storyApiKeyInput.addEventListener("input", (e) => {
-        userStoryApiKey = e.target.value.trim();
-        localStorage.setItem("storyApiKey", userStoryApiKey);
-      });
+      // Đã loại bỏ listener của storyApiKeyInput
       translateApiKeyInput.addEventListener("input", (e) => {
         userTranslateApiKey = e.target.value.trim();
         localStorage.setItem("translateApiKey", userTranslateApiKey);
@@ -596,15 +519,14 @@
       );
       fileLabel.addEventListener("drop", handleDrop, false);
       analyzeCharactersBtn.addEventListener("click", runCharacterAnalysis);
-      generateStoryBtn.addEventListener("click", runStoryGeneration);
+      // Đã loại bỏ listener của generateStoryBtn
       runAllBtn.addEventListener("click", runFullWorkflow);
       saveProfileBtn.addEventListener("click", saveCharacterProfile);
       loadProfileBtn.addEventListener("click", () => profileLoader.click());
       profileLoader.addEventListener("change", loadCharacterProfile);
       translateBtn.addEventListener("click", runTranslation);
       retranslateIssuesBtn.addEventListener("click", retranslateIssues);
-      docxUpload.addEventListener("change", handleDocxUpload);
-      srtContextUpload.addEventListener("change", handleSrtContextUpload);
+      // Đã loại bỏ listener của docxUpload, srtContextUpload
       translatedSubDiv.addEventListener("input", (e) => {
         if (e.target.classList.contains("sub-text")) {
           const arrayIndex = parseInt(e.target.dataset.arrayIndex, 10);
@@ -661,6 +583,25 @@
         }
       });
 
+      // --- Listener for Deleting Characters ---
+      characterMapContainer.addEventListener('click', function(e) {
+        // SỬA LỖI: Sử dụng .closest() để đảm bảo bắt được sự kiện
+        // ngay cả khi người dùng nhấp vào icon bên trong nút.
+        const deleteButton = e.target.closest('.delete-char-btn'); 
+        if (deleteButton) {
+          const card = deleteButton.closest('.character-profile-card');
+          if (card) {
+            card.remove();
+            analysisStatus.textContent = "Đã xóa một nhân vật.";
+            analysisStatus.className = "text-sm text-center text-yellow-400";
+            // If no cards left, hide fullscreen button
+            if (characterMapContainer.children.length === 0) {
+                fullscreenBtn.classList.add('hidden');
+            }
+          }
+        }
+      });
+
       // --- Load API Keys on Startup ---
       function loadApiKeys() {
         const savedAnalysisKey = localStorage.getItem("analysisApiKey");
@@ -668,11 +609,7 @@
           analysisApiKeyInput.value = savedAnalysisKey;
           userAnalysisApiKey = savedAnalysisKey;
         }
-        const savedStoryKey = localStorage.getItem("storyApiKey");
-        if (savedStoryKey) {
-          storyApiKeyInput.value = savedStoryKey;
-          userStoryApiKey = savedStoryKey;
-        }
+        // Đã loại bỏ load storyApiKey
         const savedTranslateKey = localStorage.getItem("translateApiKey");
         if (savedTranslateKey) {
           translateApiKeyInput.value = savedTranslateKey;
@@ -692,17 +629,15 @@
         const file = event.target.files[0];
         characterMapContainer.innerHTML = "";
         analysisStatus.textContent = "";
-        storyStatus.textContent = "";
-        storyContext = "";
+        // Đã loại bỏ reset storyStatus, storyContext
         fullscreenBtn.classList.add("hidden");
         if (file && file.name.endsWith(".srt")) {
           originalFileName = file.name.replace(".srt", "");
           fileNameDisplay.textContent = file.name;
           fileNameDisplay.classList.add("text-green-400");
           analyzeCharactersBtn.disabled = false;
-          generateStoryBtn.disabled = true; // Still disabled until analysis
-          translateBtn.disabled = true;
-          runAllBtn.disabled = true; // Disabled until analysis
+          translateBtn.disabled = true; // Vẫn disabled cho đến khi phân tích
+          runAllBtn.disabled = false; // Bật nút run all
           const reader = new FileReader();
           reader.onload = (e) => {
             originalSrtContent = e.target.result;
@@ -713,12 +648,9 @@
         } else {
           fileNameDisplay.textContent = "Vui lòng chọn tệp .srt hợp lệ";
           fileNameDisplay.classList.remove("text-green-400");
-          [
-            translateBtn,
-            analyzeCharactersBtn,
-            generateStoryBtn,
-            runAllBtn,
-          ].forEach((btn) => (btn.disabled = true));
+          [translateBtn, analyzeCharactersBtn, runAllBtn].forEach(
+            (btn) => (btn.disabled = true)
+          );
           originalFileName = "";
           originalSrtContent = "";
           parsedSubs = [];
@@ -739,24 +671,46 @@
           modalContent.innerHTML = "";
           modalContent.appendChild(clonedContent);
           modalContent.classList.remove("modal-prose");
-        } else if (type === "story") {
-          if (storyContext === "") {
-            storyStatus.textContent = "Chưa có câu chuyện nào để hiển thị.";
-            storyStatus.className = "text-yellow-400";
-            return;
-          }
-          modalTitle.textContent = "Câu Chuyện Hoàn Chỉnh";
-          modalContent.innerHTML = `<div class="modal-prose">${storyContext.replace(
-            /\n/g,
-            "<p>"
-          )}</div>`;
-          modalContent.classList.add("modal-prose");
         }
+        // Đã loại bỏ logic modal cho 'story'
         analysisModal.classList.remove("hidden");
       }
 
       function hideAnalysisModal() {
         analysisModal.classList.add("hidden");
+      }
+
+      // --- Helper function to create character card HTML ---
+      function createCharacterCardHTML(profile) {
+        // profile = { full_chinese_name, vietnamese_phonetic_name, translation_rule, gender, estimated_age }
+        // Handle profiles loaded from old files that might be missing gender/age
+        const gender = profile.gender || 'N/A';
+        const estimated_age = profile.estimated_age || 'N/A';
+        // Default rule to phonetic name if translation_rule is missing (e.g., first analysis)
+        const translation_rule = profile.translation_rule || profile.vietnamese_phonetic_name; 
+
+        return `
+          <div class="flex justify-between items-start mb-1">
+            <h4 class="original-name-display text-lg font-bold text-white">${profile.full_chinese_name}: ${profile.vietnamese_phonetic_name}</h4>
+            <button class="delete-char-btn text-gray-500 hover:text-red-400 text-xl font-bold leading-none" title="Xóa nhân vật">
+              <i class="fas fa-trash-alt"></i>
+            </button>
+          </div>
+          <div class="flex gap-4 mb-2 text-sm">
+            <div class="flex-1">
+              <label class="text-xs text-gray-400">Giới tính:</label>
+              <input type="text" value="${gender}" class="char-gender-input w-full bg-gray-900 border-b border-gray-600 px-1 py-0.5 text-white focus:outline-none focus:border-indigo-500">
+            </div>
+            <div class="flex-1">
+              <label class="text-xs text-gray-400">Tuổi:</label>
+              <input type="text" value="${estimated_age}" class="char-age-input w-full bg-gray-900 border-b border-gray-600 px-1 py-0.5 text-white focus:outline-none focus:border-indigo-500">
+            </div>
+          </div>
+          <p class="text-sm text-gray-400 mt-3 mb-1">Quy tắc dịch tên/xưng hô:</p>
+          <div class="flex gap-2">
+            <input type="text" value="${translation_rule}" placeholder="Nhập tên Việt hóa/quy tắc xưng hô..." class="translation-rule-input w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-1 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+        `;
       }
 
       // --- Character Profile Logic ---
@@ -775,21 +729,23 @@
           const phoneticName = entry
             .querySelector(".original-name-display")
             .textContent.split(":")[1]
-            .trim();
-          const translationRule = entry
-            .querySelector(".translation-rule-input")
-            .value.trim();
-          const background =
-            entry.querySelector(".background-summary-p")?.textContent.trim() ||
-            "Không có";
-          const relationships =
-            entry.querySelector(".relationships-p")?.textContent.trim() ||
-            "Không có";
-          if (originalName && translationRule) {
-            contextText += `\n- NHÂN VẬT: ${originalName} (phiên âm: ${phoneticName})\n  - QUY TẮC DỊCH TÊN/XƯNG HÔ CHÍNH: ${translationRule}\n  - BỐI CẢNH: ${background}\n  - CÁC MỐI QUAN HỆ: ${relationships}\n`;
-          }
-        });
-        return contextText;
+          .trim();
+        const translationRule = entry
+          .querySelector(".translation-rule-input")
+          .value.trim();
+        
+        // SỬA LỖI: Đọc các trường gender/age mới, xóa các trường background/relationships không còn tồn tại
+        const genderEl = entry.querySelector(".char-gender-input");
+        const ageEl = entry.querySelector(".char-age-input");
+
+        const gender = genderEl ? genderEl.value.trim() : "Không rõ";
+        const age = ageEl ? ageEl.value.trim() : "Không rõ";
+
+        if (originalName && translationRule) {
+          contextText += `\n- NHÂN VẬT: ${originalName} (phiên âm: ${phoneticName})\n  - QUY TẮC DỊCH TÊN/XƯNG HÔ CHÍNH: ${translationRule}\n  - Giới tính: ${gender}\n  - Tuổi: ${age}\n`;
+        }
+      });
+      return contextText;
       }
 
       function saveCharacterProfile() {
@@ -801,11 +757,18 @@
               .querySelector(".original-name-display")
               .textContent.split(":")
               .map((s) => s.trim());
+            
+            // Đọc dữ liệu giới tính và tuổi từ input
+            const gender = card.querySelector(".char-gender-input")?.value || "N/A";
+            const age = card.querySelector(".char-age-input")?.value || "N/A";
+            
             profiles.push({
               full_chinese_name: originalName,
               vietnamese_phonetic_name: phoneticName,
               translation_rule: card.querySelector(".translation-rule-input")
                 .value,
+              gender: gender, // Thêm để lưu
+              estimated_age: age, // Thêm để lưu
             });
           });
         if (profiles.length === 0) return;
@@ -833,12 +796,14 @@
             profiles.forEach((prof) => {
               const entry = document.createElement("div");
               entry.className = "character-profile-card";
-              entry.innerHTML = `<h4 class="original-name-display text-lg font-bold text-white mb-3">${prof.full_chinese_name}: ${prof.vietnamese_phonetic_name}</h4><div class="flex gap-2"><input type="text" value="${prof.translation_rule}" placeholder="Quy tắc dịch tên/xưng hô..." class="translation-rule-input w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-1 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"></div>`;
+              // Sử dụng helper function để tạo card
+              // Helper sẽ xử lý các tệp JSON cũ thiếu gender/age
+              entry.innerHTML = createCharacterCardHTML(prof);
               characterMapContainer.appendChild(entry);
             });
             if (profiles.length > 0) {
               fullscreenBtn.classList.remove("hidden");
-              generateStoryBtn.disabled = false;
+              // Đã loại bỏ generateStoryBtn.disabled
               translateBtn.disabled = false;
               runAllBtn.disabled = false;
             }
@@ -874,13 +839,19 @@
             characters.forEach((char) => {
               const entry = document.createElement("div");
               entry.className = "character-profile-card";
-              entry.innerHTML = `<div class="flex justify-between items-start mb-2"><h4 class="original-name-display text-lg font-bold text-white">${char.full_chinese_name}: ${char.vietnamese_phonetic_name}</h4><div class="text-right text-xs"><p class="text-gray-400">${char.gender}</p><p class="text-gray-400">~ ${char.estimated_age} tuổi</p></div></div><div class="mb-3"><p class="text-sm font-semibold text-gray-300 mb-1">Bối cảnh nhân vật:</p><p class="background-summary-p text-sm text-gray-400 bg-gray-900 p-2 rounded">${char.background_summary}</p></div><div class="mb-3"><p class="text-sm font-semibold text-gray-300 mb-1">Mối quan hệ & Xưng hô:</p><p class="relationships-p text-sm text-gray-400 bg-gray-900 p-2 rounded">${char.relationships}</p></div><div class="flex gap-2"><input type="text" value="${char.vietnamese_phonetic_name}" placeholder="Quy tắc dịch tên/xưng hô..." class="translation-rule-input w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-1 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"></div>`;
+              // Sử dụng helper function.
+              // Đặt translation_rule mặc định là Tên phiên âm cho lần đầu
+              const profileData = {
+                ...char,
+                translation_rule: char.vietnamese_phonetic_name 
+              };
+              entry.innerHTML = createCharacterCardHTML(profileData);
               characterMapContainer.appendChild(entry);
             });
             analysisStatus.textContent = `Phân tích xong! Đã tìm thấy ${characters.length} nhân vật.`;
             analysisStatus.className = "text-green-500";
             fullscreenBtn.classList.remove("hidden");
-            generateStoryBtn.disabled = false;
+            // Đã loại bỏ generateStoryBtn.disabled
             translateBtn.disabled = false;
             runAllBtn.disabled = false;
           }
@@ -898,8 +869,21 @@
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${
           userAnalysisApiKey || ""
         }`;
-        const systemPrompt = `Bạn là một chuyên gia phân tích kịch bản cực kỳ tỉ mỉ. Nhiệm vụ của bạn là đọc phụ đề và phân tích TOÀN BỘ các nhân vật.\n- ƯU TIÊN SỐ 1: Phải xác định được HỌ VÀ TÊN ĐẦY ĐỦ của nhân vật nếu có.\n- TRƯỜNG HỢP NGOẠI LỆ: Nếu nhân vật không có tên riêng mà chỉ được gọi bằng danh xưng, chức vụ (ví dụ: 'giáo viên', 'cảnh sát'), hãy giữ nguyên danh xưng đó.\n- YÊU CẦU: Bạn phải quét toàn bộ văn bản, liệt kê TẤT CẢ các nhân vật, kể cả người chỉ được nhắc tên một lần, và KHÔNG ĐƯỢC BỎ SÓT.`;
-        const userPrompt = `Phân tích tất cả nhân vật trong phụ đề sau. Với mỗi nhân vật, hãy cung cấp chính xác các mục sau:\n1. 'full_chinese_name': HỌ VÀ TÊN ĐẦY ĐỦ, CHÍNH XÁC của nhân vật (ví dụ: 'Lý Mộ Bạch'). Nếu không có tên đầy đủ, hãy sử dụng danh xưng hoặc chức vụ (ví dụ: '美术老师'). Đây là yêu cầu bắt buộc.\n2. 'vietnamese_phonetic_name': Tên của nhân vật đó được phiên âm Hán-Việt, hoặc dịch danh xưng (ví dụ: 'Giáo viên mỹ thuật').\n3. 'gender': Giới tính.\n4. 'estimated_age': Tuổi ước tính.\n5. 'background_summary': Tóm tắt ngắn gọn về bối cảnh, xuất thân của nhân vật.\n6. 'relationships': Tóm tắt các mối quan hệ chính và cách xưng hô của nhân vật này với những người khác.\n\nKhông bỏ sót bất kỳ ai. Trả về dưới dạng một mảng JSON hợp lệ theo format đã mô tả. Không thêm bất kỳ văn bản nào khác. \n\nPhụ đề:\n\n${text}`;
+        const systemPrompt = `Bạn là một chuyên gia ngôn ngữ. Nhiệm vụ của bạn là đọc phụ đề và chỉ trích xuất HỌ VÀ TÊN ĐẦY ĐỦ của nhân vật (ví dụ: 'Lý Mộ Bạch', 'Trương Tam').
+- YÊU CẦU CỐT LÕI: Chỉ lấy tên đầy đủ. Bỏ qua tất cả các danh xưng, biệt hiệu (ví dụ: 'giáo viên', 'cảnh sát', 'bệ hạ', 'bạch nguyệt quang') hoặc các tên không đầy đủ (ví dụ: 'A Tinh', 'Tiểu Lý').
+- YÊU CẦU: Bạn phải quét toàn bộ văn bản, liệt kê TẤT CẢ các nhân vật có tên đầy đủ và KHÔNG ĐƯỢC BỎ SÓT.`;
+        const userPrompt = `Phân tích tất cả nhân vật trong phụ đề sau. Với mỗi nhân vật, hãy cung cấp 4 mục sau:
+1. 'full_chinese_name': HỌ VÀ TÊN ĐẦY ĐỦ, CHÍNH XÁC của nhân vật (ví dụ: 'Lý Mộ Bạch'). BẮT BUỘC phải là tên đầy đủ, KHÔNG lấy danh xưng, biệt hiệu.
+2. 'vietnamese_phonetic_name': Tên của nhân vật đó được phiên âm Hán-Việt (ví dụ: 'Lý Mộ Bạch').
+3. 'gender': Giới tính (ví dụ: 'Nam', 'Nữ', 'Không rõ').
+4. 'estimated_age': Tuổi ước tính (ví dụ: 'khoảng 20', 'trung niên', 'Không rõ').
+
+Nếu không tìm thấy bất kỳ HỌ VÀ TÊN ĐẦY ĐỦ nào, hãy trả về một mảng JSON rỗng [].
+Chỉ trả về dưới dạng một mảng JSON hợp lệ.
+
+Phụ đề:
+
+${text}`;
 
         const payload = {
           contents: [{ parts: [{ text: userPrompt }] }],
@@ -915,16 +899,12 @@
                   vietnamese_phonetic_name: { type: "STRING" },
                   gender: { type: "STRING" },
                   estimated_age: { type: "STRING" },
-                  background_summary: { type: "STRING" },
-                  relationships: { type: "STRING" },
                 },
                 required: [
-                  "full_chinese_name",
+                  "full_chinese_name", 
                   "vietnamese_phonetic_name",
                   "gender",
-                  "estimated_age",
-                  "background_summary",
-                  "relationships",
+                  "estimated_age"
                 ],
               },
             },
@@ -957,149 +937,8 @@
         return JSON.parse(jsonText);
       }
 
-      // --- Story Generation ---
-      function cleanSrtForStory(srtContent) {
-        return srtContent
-          .replace(/\r/g, "")
-          .split("\n\n")
-          .map((block) => {
-            const lines = block.split("\n");
-            return lines.length >= 3 ? lines.slice(2).join(" ") : "";
-          })
-          .filter((line) => line.trim() !== "")
-          .join("\n");
-      }
-
-      async function runStoryGeneration() {
-        const mainSrtText = originalSrtContent
-          ? cleanSrtForStory(originalSrtContent)
-          : "";
-        const sourceTextForStory = srtStoryContext || mainSrtText;
-
-        if (!sourceTextForStory) {
-          storyStatus.textContent =
-            "Vui lòng tải lên tệp SRT ở Bước 1 hoặc trong mục này để tạo truyện.";
-          storyStatus.className = "text-yellow-400";
-          return;
-        }
-
-        storyStatus.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> AI đang sáng tác...`;
-        storyStatus.className =
-          "text-blue-400 flex items-center justify-center";
-        generateStoryBtn.disabled = true;
-        try {
-          const combinedSubtitleText = [mainSrtText, srtStoryContext]
-            .filter(Boolean)
-            .join("\n\n");
-          const extraContext = [storyContextInput.value, docxStoryContext]
-            .filter(Boolean)
-            .join("\n\n---\n\n");
-          storyContext = await generateStoryWithAI(
-            combinedSubtitleText,
-            extraContext
-          );
-          storyStatus.innerHTML = `Đã tạo xong! <span class="underline cursor-pointer ml-2" onclick="showModalWithContent('story')">Xem truyện</span>`;
-          storyStatus.className = "text-green-500";
-        } catch (error) {
-          console.error("Lỗi khi tạo truyện:", error);
-          storyStatus.textContent = `Lỗi: ${error.message}`;
-          storyStatus.className = "text-red-500";
-          throw error;
-        } finally {
-          generateStoryBtn.disabled = false;
-        }
-      }
-
-      async function generateStoryWithAI(subtitleText, extraContext) {
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${
-          userStoryApiKey || ""
-        }`;
-        const systemPrompt = `Bạn là một người kể chuyện chuyên nghiệp. Nhiệm vụ của bạn là chuyển đổi nội dung của một tệp phụ đề (chỉ chứa lời thoại) thành một câu chuyện tường thuật HOÀN CHỈNH bằng tiếng Việt.`;
-        const userPrompt = `Dựa vào nội dung phụ đề chính dưới đây, và có tham khảo thêm các thông tin bối cảnh bổ sung (nếu có), hãy viết một câu chuyện tường thuật HOÀN CHỈNH bằng tiếng Việt.
-- **Yêu cầu:**
-  - Viết thành một câu chuyện hoàn chỉnh, có mở đầu, diễn biến và kết thúc hợp lý.
-  - Văn phong tự nhiên, mạch lạc, hấp dẫn.
-
-**Bối cảnh bổ sung (để tham khảo):**
-${extraContext || "Không có."}
-
-**Nội dung phụ đề chính (nguồn chính để viết truyện):**
-${subtitleText}`;
-
-        const payload = {
-          contents: [{ parts: [{ text: userPrompt }] }],
-          systemInstruction: { parts: [{ text: systemPrompt }] },
-          safetySettings: [
-            { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-            { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-            {
-              category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-              threshold: "BLOCK_NONE",
-            },
-            {
-              category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-              threshold: "BLOCK_NONE",
-            },
-          ],
-        };
-
-        const response = await fetch(apiUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        if (!response.ok)
-          throw new Error(
-            `Lỗi API tạo truyện: ${response.status} ${await response.text()}`
-          );
-        const result = await response.json();
-        const candidate = result.candidates?.[0];
-        if (candidate?.content?.parts?.[0]?.text)
-          return candidate.content.parts[0].text;
-        throw new Error(
-          "Phản hồi API không hợp lệ hoặc không chứa nội dung truyện."
-        );
-      }
-
-      function handleDocxUpload(event) {
-        const file = event.target.files[0];
-        if (!file) {
-          docxFileName.textContent = "";
-          return;
-        }
-        docxFileName.textContent = file.name;
-        const reader = new FileReader();
-        reader.onload = function (e) {
-          mammoth
-            .extractRawText({ arrayBuffer: e.target.result })
-            .then((result) => {
-              docxStoryContext = result.value;
-              docxFileName.classList.add("text-green-400");
-            })
-            .catch((err) => {
-              console.error("Lỗi đọc file .docx:", err);
-              docxFileName.textContent = "Lỗi đọc file";
-              docxFileName.classList.add("text-red-400");
-            });
-        };
-        reader.readAsArrayBuffer(file);
-      }
-
-      function handleSrtContextUpload(event) {
-        const file = event.target.files[0];
-        if (!file) {
-          srtContextFileName.textContent = "";
-          return;
-        }
-        srtContextFileName.textContent = file.name;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          srtStoryContext = cleanSrtForStory(e.target.result);
-          srtContextFileName.classList.add("text-green-400");
-          generateStoryBtn.disabled = false; // Enable story generation when context file is added
-        };
-        reader.readAsText(file);
-      }
+      // --- Story Generation (ĐÃ BỊ LOẠI BỎ) ---
+      // Các hàm runStoryGeneration, generateStoryWithAI, handleDocxUpload, handleSrtContextUpload, cleanSrtForStory đã bị xóa.
 
       // --- SRT Utilities ---
       function parseSRT(data) {
@@ -1189,8 +1028,8 @@ ${subtitleText}`;
                   textToTranslate,
                   characterContext,
                   selectedGenre,
-                  previousChunkContext,
-                  storyContext
+                  previousChunkContext
+                  // Đã loại bỏ storyContext
                 );
                 const translatedMap = new Map();
                 translatedText.split("\n---\n").forEach((block) => {
@@ -1273,21 +1112,15 @@ ${subtitleText}`;
           statusDiv.className = "text-yellow-400";
           return;
         }
-        const buttons = [
-          analyzeCharactersBtn,
-          generateStoryBtn,
-          translateBtn,
-          runAllBtn,
-        ];
+        const buttons = [analyzeCharactersBtn, translateBtn, runAllBtn]; // Đã loại bỏ generateStoryBtn
         buttons.forEach((btn) => (btn.disabled = true));
         statusDiv.textContent = "Bắt đầu quy trình tự động...";
         statusDiv.className = "text-blue-400";
         try {
-          statusDiv.textContent = "Bước 1/3: Đang phân tích nhân vật...";
+          statusDiv.textContent = "Bước 1/2: Đang phân tích nhân vật...";
           await runCharacterAnalysis();
-          statusDiv.textContent = "Bước 2/3: Đang tạo truyện hoàn chỉnh...";
-          await runStoryGeneration();
-          statusDiv.textContent = "Bước 3/3: Đang dịch phụ đề...";
+          // Đã loại bỏ Bước 2/3 (Tạo truyện)
+          statusDiv.textContent = "Bước 2/2: Đang dịch phụ đề...";
           await runTranslation();
           statusDiv.textContent = "Quy trình tự động hoàn tất!";
           statusDiv.className = "text-green-500";
@@ -1299,10 +1132,16 @@ ${subtitleText}`;
           if (parsedSubs.length > 0) {
             buttons.forEach((btn) => (btn.disabled = false));
             if (characterMapContainer.innerHTML.trim() === "") {
-              generateStoryBtn.disabled = true;
+              // Nếu không có phân tích, vẫn tắt nút dịch và chạy
               translateBtn.disabled = true;
               runAllBtn.disabled = true;
+            } else {
+              // Nếu có phân tích, bật nút dịch và chạy
+              translateBtn.disabled = false;
+              runAllBtn.disabled = false;
             }
+            // Nút phân tích luôn được bật sau khi chạy
+            analyzeCharactersBtn.disabled = false;
           }
         }
       }
@@ -1324,7 +1163,8 @@ ${subtitleText}`;
           .forEach((el) => el.classList.remove("warning-highlight"));
         const chineseRegex = /[\u4e00-\u9fa5]/;
         untranslatedIndices = [];
-        retranslateIssuesBtn.classList.add("hidden");
+        // Ẩn container thay vì chỉ ẩn nút
+        retranslateContainer.classList.add("hidden");
 
         if (translatedParsedSubs.length === 0) {
           editToolStatus.textContent = "Chưa có bản dịch để rà soát.";
@@ -1343,7 +1183,8 @@ ${subtitleText}`;
         if (untranslatedIndices.length > 0) {
           editToolStatus.textContent = `Rà soát hoàn tất. Tìm thấy ${untranslatedIndices.length} dòng có thể còn sót tiếng Trung.`;
           editToolStatus.className = "text-sm mt-2 text-center text-yellow-400";
-          retranslateIssuesBtn.classList.remove("hidden");
+          // Hiển thị container chứa cả nút và ô nhập API key
+          retranslateContainer.classList.remove("hidden");
           const firstIssue = document.querySelector(
             ".sub-block.warning-highlight"
           );
@@ -1365,6 +1206,8 @@ ${subtitleText}`;
 
         const characterContext = getCharacterContext();
         const selectedGenre = genreSelect.value;
+        // Lấy API key từ ô nhập mới
+        const retranslateApiKey = retranslateApiKeyInput.value.trim();
 
         let successCount = 0;
 
@@ -1376,7 +1219,9 @@ ${subtitleText}`;
               characterContext,
               selectedGenre,
               "",
-              storyContext
+              // Truyền API key này vào hàm dịch.
+              // Nếu nó rỗng, hàm callTranslationAPI sẽ tự động dùng key chính.
+              retranslateApiKey 
             );
             const match = translatedText.trim().match(/^1::([\s\S]*)/);
             if (match && match[1]) {
@@ -1397,7 +1242,8 @@ ${subtitleText}`;
         editToolStatus.className = "text-sm mt-2 text-center text-green-500";
 
         retranslateIssuesBtn.disabled = false;
-        retranslateIssuesBtn.classList.add("hidden");
+        // Ẩn container sau khi hoàn tất
+        retranslateContainer.classList.add("hidden");
         untranslatedIndices = [];
 
         // Re-run the check to confirm
@@ -1409,18 +1255,36 @@ ${subtitleText}`;
         characterContext,
         genre,
         previousContext,
-        storyContext
+        // Thêm tham số apiKey tùy chọn
+        apiKey 
       ) {
+        // Nếu apiKey được cung cấp (từ việc dịch lại), hãy dùng nó.
+        // Nếu không (khi dịch chính), hãy dùng userTranslateApiKey.
+        const activeApiKey = apiKey || userTranslateApiKey;
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${
-          userTranslateApiKey || ""
+          activeApiKey || ""
         }`;
         const genreInstruction =
           genre && genre !== "chung"
             ? `PHONG CÁCH DỊCH: Dịch theo phong cách phù hợp với thể loại '${genre}'.`
-            : "";
-        const systemPrompt = `Bạn là chuyên gia dịch thuật phụ đề từ tiếng Trung sang tiếng Việt. Nhiệm vụ của bạn là dịch với độ chính xác và nhất quán cao nhất dựa trên các bối cảnh được cung cấp.\n\nBỐI CẢNH CÂU CHUYỆN (để hiểu rõ hơn về mạch truyện, chỉ dùng để tham khảo, không được lấy nội dung từ đây để dịch):\n${
-          storyContext || "Không có."
-        }\n\n${characterContext}\n\n${previousContext}\n\nQUY TẮC TUYỆT ĐỐI:\n1. GIỮ NGUYÊN CẤU TRÚC SỐ: Đầu vào có dạng 'số:: nội dung' và phân tách bằng '---'. Đầu ra BẮT BUỘC phải giữ nguyên format 'số:: nội dung đã dịch' và dấu '---'.\n2. KHÔNG BÌNH LUẬN: Chỉ trả về nội dung dịch.\n3. ${genreInstruction}`;
+            : "PHONG CÁCH DỊCH: Dịch theo phong cách chung, tự nhiên.";
+        
+        // Cải thiện System Prompt
+        const systemPrompt = `Bạn là chuyên gia dịch thuật phụ đề từ tiếng Trung sang tiếng Việt. Nhiệm vụ của bạn là dịch với độ chính xác và nhất quán cao nhất dựa trên các bối cảnh được cung cấp.
+
+BỐI CẢNH NHÂN VẬT:
+${characterContext || "Không có."}
+
+BỐI CẢNH CÂU TRƯỚC:
+${previousContext || "Không có."}
+
+QUY TẮC TUYỆT ĐỐI (BẮT BUỘC TUÂN THỦ):
+1. GIỮ NGUYÊN CẤU TRÚC SỐ: Đầu vào có dạng 'số:: nội dung' và phân tách bằng '---'. Đầu ra BẮT BUỘC phải giữ nguyên format 'số:: nội dung đã dịch' và dấu '---'.
+2. DỊCH TÊN NHẤT QUÁN: Dịch tên nhân vật và cách xưng hô theo đúng "QUY TẮC DỊCH TÊN/XƯNG HÔ CHÍNH" đã được cung cấp trong BỐI CẢNH NHÂN VẬT. Đây là ưu tiên hàng đầu.
+3. XƯNG HÔ THÔNG MINH: Dựa vào "Giới tính" và "Tuổi" của các nhân vật trong bối cảnh để xác định cách xưng hô (anh, em, chị, ông, bà, cô, chú...) cho phù hợp với văn hóa Việt Nam.
+4. ${genreInstruction}
+5. KHÔNG BÌNH LUẬN: Chỉ trả về nội dung dịch.`;
+        
         const payload = {
           contents: [{ parts: [{ text: text }] }],
           systemInstruction: { parts: [{ text: systemPrompt }] },
@@ -1501,3 +1365,6 @@ ${subtitleText}`;
     </script>
   </body>
 </html>
+
+
+
