@@ -28,9 +28,10 @@
         background-color: #334155; /* slate-700 */
       }
 
-      /* Thẻ nhân vật */
+      /* Thẻ nhân vật & Thẻ địa danh */
       #characterMapContainer .character-profile-card,
-      #modal-content .character-profile-card {
+      #modal-content .character-profile-card,
+      #placeNameMapContainer .place-name-card { /* Added place-name-card */
         background-color: #1e293b; /* slate-800 */
         border-radius: 0.5rem;
         padding: 1rem;
@@ -97,6 +98,7 @@
       /* Tùy chỉnh thanh cuộn */
       .sub-container,
       #characterMapContainer,
+      #placeNameMapContainer, /* Added placeNameMapContainer */
       #modal-content,
       .custom-scrollbar {
         scrollbar-width: thin;
@@ -104,12 +106,14 @@
       }
       .sub-container::-webkit-scrollbar,
       #characterMapContainer::-webkit-scrollbar,
+      #placeNameMapContainer::-webkit-scrollbar, /* Added placeNameMapContainer */
       #modal-content::-webkit-scrollbar,
       .custom-scrollbar::-webkit-scrollbar {
         width: 8px;
       }
       .sub-container::-webkit-scrollbar-track,
       #characterMapContainer::-webkit-scrollbar-track,
+      #placeNameMapContainer::-webkit-scrollbar-track, /* Added placeNameMapContainer */
       #modal-content::-webkit-scrollbar-track,
       .custom-scrollbar::-webkit-scrollbar-track {
         background: #1e293b; /* slate-800 */
@@ -117,6 +121,7 @@
       }
       .sub-container::-webkit-scrollbar-thumb,
       #characterMapContainer::-webkit-scrollbar-thumb,
+      #placeNameMapContainer::-webkit-scrollbar-thumb, /* Added placeNameMapContainer */
       #modal-content::-webkit-scrollbar-thumb,
       .custom-scrollbar::-webkit-scrollbar-thumb {
         background: #475569; /* slate-600 */
@@ -124,6 +129,7 @@
       }
       .sub-container::-webkit-scrollbar-thumb:hover,
       #characterMapContainer::-webkit-scrollbar-thumb:hover,
+      #placeNameMapContainer::-webkit-scrollbar-thumb:hover, /* Added placeNameMapContainer */
       #modal-content::-webkit-scrollbar-thumb:hover,
       .custom-scrollbar::-webkit-scrollbar-thumb:hover {
         background: #64748b; /* slate-500 */
@@ -412,6 +418,13 @@
               <i class="fas fa-brain mr-2"></i> P.Tích Nhân Vật
             </button>
             <button
+              id="analyzePlaceNamesBtn" /* New Button */
+              class="flex-1 sm:flex-none bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-lg transition-colors disabled:bg-slate-600 disabled:cursor-not-allowed text-sm"
+              disabled
+            >
+              <i class="fas fa-map-marker-alt mr-2"></i> P.Tích Địa Danh
+            </button>
+            <button
               id="plotAnalysisBtn"
               class="flex-1 sm:flex-none bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-4 rounded-lg transition-colors disabled:bg-slate-500 disabled:cursor-not-allowed text-sm"
               disabled
@@ -540,6 +553,19 @@
                 class="max-h-60 overflow-y-auto pr-2 custom-scrollbar"
               >
                 <!-- Thẻ nhân vật -->
+              </div>
+            </div>
+             <!-- Phân Tích Địa Danh (Mới) -->
+            <div id="place-name-analysis-section" class="border-t border-slate-700 pt-6">
+              <h3 class="text-lg font-semibold mb-3 text-white">
+                Phân Tích Địa Danh
+              </h3>
+              <div id="place-names-status" class="text-center text-sm my-3"></div>
+              <div
+                id="placeNameMapContainer"
+                class="max-h-60 overflow-y-auto pr-2 custom-scrollbar"
+              >
+                <!-- Thẻ địa danh -->
               </div>
             </div>
 
@@ -701,12 +727,17 @@
           "relationships-result-container"
         ),
         relationshipsResult = document.getElementById("relationships-result");
-       // NEW: Title Suggestion Elements
+       // Title Suggestion Elements
       const suggestTitlesBtn = document.getElementById("suggestTitlesBtn"),
             titlesStatus = document.getElementById("titles-status"),
             titlesResultContainer = document.getElementById("titles-result-container"),
             suggestedTitlesList = document.getElementById("suggested-titles-list"),
             regenerateTitlesBtn = document.getElementById("regenerateTitlesBtn");
+       // Place Name Elements (NEW)
+      const analyzePlaceNamesBtn = document.getElementById("analyzePlaceNamesBtn"),
+            placeNamesStatus = document.getElementById("place-names-status"),
+            placeNameMapContainer = document.getElementById("placeNameMapContainer");
+
       const progressBar = document.getElementById("progress-bar");
       const findInput = document.getElementById("find-input");
       const genreSelect = document.getElementById("genre-select");
@@ -726,7 +757,7 @@
         "retranslateApiKeyInput"
       );
 
-      // --- NEW POPUP SELECTORS ---
+      // --- POPUP SELECTORS ---
       const actionWrapper = document.getElementById("action-wrapper");
       const popupResultDisplay = document.getElementById(
         "popup-result-display"
@@ -743,11 +774,11 @@
       const relationshipAnalysisSection = document.getElementById(
         "relationship-analysis-section"
       );
-      // NEW: Title Suggestion Section for Popup
       const titleSuggestionSection = document.getElementById("title-suggestion-section");
+      const placeNameAnalysisSection = document.getElementById("place-name-analysis-section"); // NEW
 
 
-      // --- NEW SETTINGS TOGGLE SELECTORS ---
+      // --- SETTINGS TOGGLE SELECTORS ---
       const toggleSettingsBtn = document.getElementById("toggle-settings-btn");
       const settingsPanel = document.getElementById("settings-panel");
       const settingsChevron = document.getElementById("settings-chevron");
@@ -762,9 +793,10 @@
         userTranslateApiKey = "";
       let plotAnalysisContext = "";
       let relationshipContext = "";
+      let placeNameContext = ""; // NEW state for place names
       let untranslatedIndices = [];
 
-      // --- NEW POPUP STATE ---
+      // --- POPUP STATE ---
       let activePopup = null;
       let hidePopupTimer = null;
 
@@ -806,30 +838,29 @@
       fileLabel.addEventListener("drop", handleDrop, false);
 
       analyzeCharactersBtn.addEventListener("click", runCharacterAnalysis);
+      analyzePlaceNamesBtn.addEventListener("click", runAnalyzePlaceNames); // NEW
       plotAnalysisBtn.addEventListener("click", runPlotAnalysis);
       analyzeRelationshipsBtn.addEventListener(
         "click",
         runRelationshipAnalysis
       );
-      // NEW: Title Suggestion Listeners
       suggestTitlesBtn.addEventListener("click", runSuggestTitles);
       regenerateTitlesBtn.addEventListener("click", runSuggestTitles);
 
       translateBtn.addEventListener("click", runTranslation);
       retranslateIssuesBtn.addEventListener("click", retranslateIssues);
 
-      // Listen for dynamic delete buttons
+      // Listen for dynamic delete buttons (characters only for now)
       characterMapContainer.addEventListener("click", function (e) {
         const deleteButton = e.target.closest(".delete-char-btn");
         if (deleteButton) {
           deleteButton.closest(".character-profile-card").remove();
         }
       });
-       // NEW: Listen for dynamic copy buttons in title list
+       // Listen for dynamic copy buttons in title list
         suggestedTitlesList.addEventListener('click', function(e) {
             const copyButton = e.target.closest('.copy-title-btn');
             if (copyButton) {
-                // Find the span containing the title text within the same list item
                 const titleSpan = copyButton.closest('li').querySelector('span');
                 if (titleSpan) {
                     const titleText = titleSpan.textContent;
@@ -871,7 +902,7 @@
       checkChineseBtn.addEventListener("click", checkRemainingChinese);
       headerDownloadBtn.addEventListener("click", downloadSRT);
       fullscreenBtn.addEventListener("click", () =>
-        showModalWithContent("analysis")
+        showModalWithContent("analysis") // Currently only supports character analysis modal
       );
       closeModalBtn.addEventListener("click", hideAnalysisModal);
       analysisModal.addEventListener("click", (e) => {
@@ -894,7 +925,7 @@
         }
       });
 
-      // --- NEW SETTINGS TOGGLE LISTENER ---
+      // --- SETTINGS TOGGLE LISTENER ---
       toggleSettingsBtn.addEventListener("click", () => {
         if (
           settingsPanel.style.maxHeight &&
@@ -909,7 +940,7 @@
         settingsChevron.classList.toggle("rotate-180");
       });
 
-      // --- NEW POPUP LOGIC FUNCTIONS ---
+      // --- POPUP LOGIC FUNCTIONS ---
       function showPopup(contentElement) {
         clearTimeout(hidePopupTimer);
         if (activePopup === contentElement) return; // Đã hiển thị, không làm gì
@@ -938,28 +969,19 @@
         }, 300); // Đợi 300ms
       }
 
-      // --- NEW POPUP EVENT LISTENERS ---
+      // --- POPUP EVENT LISTENERS ---
       actionWrapper.addEventListener("mouseleave", startHideTimer);
       popupResultDisplay.addEventListener("mouseenter", () =>
         clearTimeout(hidePopupTimer)
       ); // Hủy ẩn nếu di chuột vào pop-up
 
-      // NEW: Title Suggestion Hover
       suggestTitlesBtn.addEventListener("mouseenter", () => showPopup(titleSuggestionSection));
-
-      analyzeCharactersBtn.addEventListener("mouseenter", () =>
-        showPopup(charAnalysisSection)
-      );
-      plotAnalysisBtn.addEventListener("mouseenter", () =>
-        showPopup(plotAnalysisSection)
-      );
-      analyzeRelationshipsBtn.addEventListener("mouseenter", () =>
-        showPopup(relationshipAnalysisSection)
-      );
+      analyzeCharactersBtn.addEventListener("mouseenter", () => showPopup(charAnalysisSection));
+      analyzePlaceNamesBtn.addEventListener("mouseenter", () => showPopup(placeNameAnalysisSection)); // NEW
+      plotAnalysisBtn.addEventListener("mouseenter", () => showPopup(plotAnalysisSection));
+      analyzeRelationshipsBtn.addEventListener("mouseenter", () => showPopup(relationshipAnalysisSection));
       // Nút dịch không cần hover
-      translateBtn.addEventListener("mouseenter", () =>
-        clearTimeout(hidePopupTimer)
-      );
+      translateBtn.addEventListener("mouseenter", () => clearTimeout(hidePopupTimer));
 
       // --- Load API Keys on Startup ---
       function loadApiKeys() {
@@ -988,11 +1010,12 @@
         // Reset mọi thứ
         characterMapContainer.innerHTML = "";
         analysisStatus.textContent = "";
+        placeNameMapContainer.innerHTML = ""; // NEW Reset Place Names
+        placeNamesStatus.textContent = ""; // NEW
         plotAnalysisStatus.textContent = "";
         plotAnalysisResultContainer.classList.add("hidden");
         relationshipsStatus.textContent = "";
         relationshipsResultContainer.classList.add("hidden");
-        // NEW: Reset Title Suggestions
         titlesStatus.textContent = "";
         titlesResultContainer.classList.add("hidden");
         suggestedTitlesList.innerHTML = "";
@@ -1000,6 +1023,7 @@
         fullscreenBtn.classList.add("hidden");
         plotAnalysisContext = "";
         relationshipContext = "";
+        placeNameContext = ""; // NEW Reset Place Name context
         downloadBtnWrapper.classList.add("hidden");
         editToolbar.classList.add("hidden");
         resultContainer.classList.add("hidden");
@@ -1007,8 +1031,9 @@
         statusDiv.textContent = "";
 
         // Ẩn các section trong cột phân tích (dù cột đã ẩn)
-        titleSuggestionSection.classList.add("hidden"); // NEW
+        titleSuggestionSection.classList.add("hidden");
         charAnalysisSection.classList.add("hidden");
+        placeNameAnalysisSection.classList.add("hidden"); // NEW
         plotAnalysisSection.classList.add("hidden");
         relationshipAnalysisSection.classList.add("hidden");
 
@@ -1016,7 +1041,7 @@
           originalFileName = file.name.replace(".srt", "");
           fileNameDisplay.textContent = file.name;
           fileNameDisplay.classList.add("text-green-400");
-          [analyzeCharactersBtn, plotAnalysisBtn, suggestTitlesBtn].forEach( // NEW: Enable suggestTitlesBtn
+          [analyzeCharactersBtn, analyzePlaceNamesBtn, plotAnalysisBtn, suggestTitlesBtn].forEach( // Added analyzePlaceNamesBtn
             (btn) => (btn.disabled = false)
           );
           analyzeRelationshipsBtn.disabled = true; // Vẫn tắt cho đến khi Bước 2 chạy
@@ -1035,9 +1060,10 @@
           [
             translateBtn,
             analyzeCharactersBtn,
+            analyzePlaceNamesBtn, // NEW
             plotAnalysisBtn,
             analyzeRelationshipsBtn,
-            suggestTitlesBtn // NEW
+            suggestTitlesBtn
           ].forEach((btn) => (btn.disabled = true));
           originalFileName = "";
           originalSrtContent = "";
@@ -1047,6 +1073,7 @@
 
       // --- Modal Logic ---
       function showModalWithContent(type) {
+         // Currently only supports character analysis modal
         if (type === "analysis") {
           if (characterMapContainer.innerHTML.trim() === "") {
             analysisStatus.textContent = "Chưa có phân tích nào để hiển thị.";
@@ -1063,8 +1090,8 @@
           modalContent.innerHTML = "";
           modalContent.appendChild(clonedContent);
           modalContent.classList.remove("modal-prose");
+          analysisModal.classList.remove("hidden");
         }
-        analysisModal.classList.remove("hidden");
       }
 
       function hideAnalysisModal() {
@@ -1116,7 +1143,6 @@
         analyzeRelationshipsBtn.disabled = true; // Tắt khi đang chạy
         translateBtn.disabled = true; // Tắt khi đang chạy
 
-        // Hiển thị section (dù nó đang ở trong cột ẩn) để logic hover hoạt động
         charAnalysisSection.classList.remove("hidden");
 
         try {
@@ -1243,6 +1269,133 @@
         return JSON.parse(jsonText);
       }
 
+      // --- Place Name Analysis (NEW) ---
+        function getPlaceNameContext() {
+            const entries = placeNameMapContainer.querySelectorAll(".place-name-card");
+            if (entries.length === 0) return "";
+            let contextText = "BỐI CẢNH ĐỊA DANH (Dịch nhất quán theo quy tắc sau):\n";
+            entries.forEach((entry) => {
+                const originalName = entry.querySelector(".original-place-name").textContent.trim();
+                const translationRule = entry.querySelector(".vietnamese-place-name-input").value.trim();
+                if (originalName && translationRule) {
+                    contextText += `- ${originalName}: ${translationRule}\n`;
+                }
+            });
+            return contextText;
+        }
+
+        async function runAnalyzePlaceNames() {
+            if (parsedSubs.length === 0) {
+                placeNamesStatus.textContent = "Vui lòng tải tệp SRT trước.";
+                placeNamesStatus.className = "text-yellow-400";
+                return;
+            }
+            placeNamesStatus.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Đang phân tích địa danh...`;
+            placeNamesStatus.className = "text-blue-400 flex items-center justify-center";
+            analyzePlaceNamesBtn.disabled = true;
+
+            placeNameAnalysisSection.classList.remove("hidden"); // Show section for hover
+
+            try {
+                const sampleText = parsedSubs.slice(0, Math.min(parsedSubs.length, 500)) // Increase sample size slightly for place names
+                                        .map(sub => sub.text)
+                                        .join("\n");
+                const placeNames = await analyzePlaceNamesWithAI(sampleText);
+
+                placeNameMapContainer.innerHTML = ""; // Clear previous results
+                if (placeNames.length === 0) {
+                    placeNamesStatus.textContent = "Không tìm thấy địa danh nào đáng kể.";
+                    placeNamesStatus.className = "text-slate-400";
+                } else {
+                    placeNames.forEach(place => {
+                        const entry = document.createElement("div");
+                        entry.className = "place-name-card"; // Re-use card style or create a specific one
+                        entry.innerHTML = `
+                            <h4 class="original-place-name text-lg font-bold text-white mb-2">${place.chinese_place_name}</h4>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Tên tiếng Việt / Quy tắc dịch</label>
+                                <input type="text" value="${place.vietnamese_equivalent}" placeholder="Nhập tên tiếng Việt..." class="vietnamese-place-name-input editable-field">
+                            </div>
+                        `;
+                        placeNameMapContainer.appendChild(entry);
+                    });
+                    placeNamesStatus.textContent = `Phân tích xong! Đã tìm thấy ${placeNames.length} địa danh.`;
+                    placeNamesStatus.className = "text-green-500";
+                }
+            } catch (error) {
+                console.error("Lỗi phân tích địa danh:", error);
+                placeNamesStatus.textContent = `Lỗi: ${error.message}`;
+                placeNamesStatus.className = "text-red-500";
+            } finally {
+                analyzePlaceNamesBtn.disabled = false;
+            }
+        }
+
+       async function analyzePlaceNamesWithAI(text) {
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${userAnalysisApiKey || ""}`;
+            const systemPrompt = "Bạn là chuyên gia phân tích văn bản, giỏi nhận diện các địa danh (tên thành phố, quốc gia, địa điểm cụ thể...) trong văn bản tiếng Trung.";
+            const userPrompt = `Phân tích và trích xuất tất cả các địa danh có trong đoạn phụ đề tiếng Trung sau. Với mỗi địa danh, cung cấp:\n1. 'chinese_place_name': Tên địa danh gốc bằng tiếng Trung.\n2. 'vietnamese_equivalent': Tên địa danh đó bằng tiếng Việt (dịch hoặc phiên âm Hán-Việt phù hợp).\n\nChỉ lấy tên địa danh, bỏ qua tên người, tên tổ chức.\n\nPhụ đề:\n${text}\n\nHãy trả về kết quả dưới dạng một mảng JSON hợp lệ. Ví dụ: [{"chinese_place_name": "北京", "vietnamese_equivalent": "Bắc Kinh"}, {"chinese_place_name": "上海", "vietnamese_equivalent": "Thượng Hải"}]`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userPrompt }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "ARRAY",
+                        items: {
+                            type: "OBJECT",
+                            properties: {
+                                chinese_place_name: { type: "STRING" },
+                                vietnamese_equivalent: { type: "STRING" },
+                            },
+                            required: ["chinese_place_name", "vietnamese_equivalent"],
+                        },
+                    },
+                },
+                safetySettings: [
+                  { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+                  { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+                  { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+                  { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+                ],
+            };
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                throw new Error(`Lỗi API phân tích địa danh: ${response.status} ${await response.text()}`);
+            }
+            const result = await response.json();
+            const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+             if (!jsonText) {
+                // Handle cases where AI might return empty content or unexpected structure
+                 if (result.candidates && result.candidates.length > 0 && result.candidates[0].finishReason === 'SAFETY') {
+                    throw new Error("Phản hồi bị chặn vì lý do an toàn.");
+                } else {
+                     console.warn("API returned no place names or unexpected response:", result);
+                     return []; // Return empty array if no valid data
+                }
+            }
+            try {
+                const parsed = JSON.parse(jsonText);
+                 // Basic validation if the parsed result is an array
+                if (!Array.isArray(parsed)) {
+                     console.error("Parsed place name data is not an array:", parsed);
+                     throw new Error("Phản hồi AI không phải là một mảng JSON hợp lệ.");
+                 }
+                return parsed;
+            } catch (e) {
+                console.error("Lỗi phân tích JSON địa danh:", e, "Raw:", jsonText);
+                throw new Error("Phản hồi AI không phải là JSON hợp lệ.");
+            }
+        }
+
+
       // --- Plot Analysis ---
       async function runPlotAnalysis() {
         if (parsedSubs.length === 0) {
@@ -1256,16 +1409,15 @@
         plotAnalysisBtn.disabled = true;
         plotAnalysisContext = ""; // Reset context
 
-        // Hiển thị section (dù nó đang ở trong cột ẩn) để logic hover hoạt động
         plotAnalysisSection.classList.remove("hidden");
 
         try {
           const fullText = parsedSubs.map((sub) => sub.text).join("\n");
           const analysisResult = await analyzePlotWithAI(fullText);
 
-          plotAnalysisContext = analysisResult; // Lưu kết quả để dùng khi dịch
+          plotAnalysisContext = analysisResult;
           plotAnalysisResult.textContent = analysisResult;
-          plotAnalysisResultContainer.classList.remove("hidden"); // HIỂN THỊ CONTAINER BÊN TRONG
+          plotAnalysisResultContainer.classList.remove("hidden");
           plotAnalysisStatus.textContent = "Phân tích cốt truyện hoàn tất.";
           plotAnalysisStatus.className = "text-green-500";
         } catch (error) {
@@ -1370,7 +1522,6 @@
         analyzeRelationshipsBtn.disabled = true;
         relationshipContext = ""; // Reset context
 
-        // Hiển thị section (dù nó đang ở trong cột ẩn) để logic hover hoạt động
         relationshipAnalysisSection.classList.remove("hidden");
 
         try {
@@ -1382,9 +1533,9 @@
             fullSrtText
           );
 
-          relationshipContext = analysisResult; // Store for translation
+          relationshipContext = analysisResult;
           relationshipsResult.innerHTML = analysisResult.replace(/\n/g, "<br>");
-          relationshipsResultContainer.classList.remove("hidden"); // HIỂN THỊ CONTAINER BÊN TRONG
+          relationshipsResultContainer.classList.remove("hidden");
           relationshipsStatus.textContent = "Phân tích mối quan hệ hoàn tất.";
           relationshipsStatus.className = "text-green-500";
         } catch (error) {
@@ -1401,7 +1552,6 @@
           userAnalysisApiKey || ""
         }`;
 
-        // **** MODIFIED PROMPT ****
         const systemPrompt = `Bạn là một chuyên gia phân tích kịch bản, hiểu rõ về văn hóa và cách xưng hô của người Trung Quốc.
 Nhiệm vụ của bạn là đọc danh sách nhân vật (cùng tuổi và giới tính) và toàn bộ lời thoại của kịch bản (tiếng Trung).
 Sau đó, hãy phân tích mối quan hệ giữa các nhân vật chính VÀ gợi ý cách họ gọi nhau bằng tiếng Trung (sử dụng Pinyin).
@@ -1419,7 +1569,6 @@ ${fullSrtText.substring(0, 50000)}... (trích đoạn)
 Hãy trả về kết quả phân tích của bạn dưới dạng văn bản thuần túy, ví dụ:
 - A (Nam, 30) và B (Nữ, 28): Người yêu. A gọi B là 'Bǎobèi'. B gọi A là 'Lǎogōng'.
 - C (Nam, 55) là cha của A: A gọi C là 'Bàba'. C gọi A là 'Érzi'.`;
-        // **** END OF MODIFICATION ****
 
         const payload = {
           contents: [{ parts: [{ text: userPrompt }] }],
@@ -1461,7 +1610,7 @@ Hãy trả về kết quả phân tích của bạn dưới dạng văn bản th
         }
       }
 
-      // --- NEW: Title Suggestion Logic ---
+      // --- Title Suggestion Logic ---
       async function runSuggestTitles() {
         if (parsedSubs.length === 0) {
           titlesStatus.textContent = "Vui lòng tải tệp SRT trước.";
@@ -1473,20 +1622,19 @@ Hãy trả về kết quả phân tích của bạn dưới dạng văn bản th
         suggestTitlesBtn.disabled = true;
         regenerateTitlesBtn.disabled = true;
 
-        // Ensure the section is visible for the popup logic
         titleSuggestionSection.classList.remove("hidden");
 
         try {
-            const srtSampleText = parsedSubs.slice(0, Math.min(parsedSubs.length, 300)) // Sample first 300 lines
+            const srtSampleText = parsedSubs.slice(0, Math.min(parsedSubs.length, 300))
                                     .map(sub => sub.text)
                                     .join("\n");
             const suggestedTitles = await suggestTitlesWithAI(srtSampleText);
 
-            suggestedTitlesList.innerHTML = ""; // Clear previous list
+            suggestedTitlesList.innerHTML = "";
             if (suggestedTitles && suggestedTitles.length > 0) {
                 suggestedTitles.forEach(title => {
                     const li = document.createElement("li");
-                    const span = document.createElement("span"); // Span to hold text
+                    const span = document.createElement("span");
                     span.textContent = title;
                     const button = document.createElement("button");
                     button.className = "copy-title-btn";
@@ -1530,7 +1678,7 @@ Hãy trả về kết quả phân tích của bạn dưới dạng văn bản th
                         type: "ARRAY",
                         items: { type: "STRING" }
                     },
-                    temperature: 0.7 // Tăng nhiệt độ để có gợi ý sáng tạo hơn
+                    temperature: 0.7
                 },
                 safetySettings: [
                   { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
@@ -1562,7 +1710,7 @@ Hãy trả về kết quả phân tích của bạn dưới dạng văn bản th
             }
         }
 
-       // --- NEW: Copy to Clipboard Function ---
+       // --- Copy to Clipboard Function ---
         function copyToClipboard(text, buttonElement) {
             const textarea = document.createElement('textarea');
             textarea.value = text;
@@ -1570,15 +1718,13 @@ Hãy trả về kết quả phân tích của bạn dưới dạng văn bản th
             textarea.select();
             try {
                 document.execCommand('copy');
-                // Visual feedback
                 const originalIcon = buttonElement.innerHTML;
                 buttonElement.innerHTML = '<i class="fas fa-check"></i>';
                 setTimeout(() => {
                     buttonElement.innerHTML = originalIcon;
-                }, 1500); // Reset icon after 1.5 seconds
+                }, 1500);
             } catch (err) {
                 console.error('Không thể sao chép:', err);
-                // Optionally show an error message to the user
             }
             document.body.removeChild(textarea);
         }
@@ -1609,7 +1755,7 @@ Hãy trả về kết quả phân tích của bạn dưới dạng văn bản th
       }
 
       function displaySubtitles(subs, element, isEditable = false) {
-        element.innerHTML = ""; // Clear previous content
+        element.innerHTML = "";
         subs.forEach((sub, i) => {
           const block = document.createElement("div");
           block.id = `${element.id}-block-${i}`;
@@ -1653,9 +1799,10 @@ Hãy trả về kết quả phân tích của bạn dưới dạng văn bản th
 
         const CHUNK_SIZE = 30;
         const characterContext = getCharacterContext();
+        const placeNameContextForTranslation = getPlaceNameContext(); // NEW: Get place name context
         const selectedGenre = genreSelect.value;
-        const plotContextForTranslation = plotAnalysisContext; // Lấy bối cảnh cốt truyện
-        const relationshipContextForTranslation = relationshipContext; // Lấy bối cảnh mối quan hệ
+        const plotContextForTranslation = plotAnalysisContext;
+        const relationshipContextForTranslation = relationshipContext;
         translatedParsedSubs = [];
         let previousChunkContext = "";
         const totalChunks = Math.ceil(parsedSubs.length / CHUNK_SIZE);
@@ -1681,10 +1828,11 @@ Hãy trả về kết quả phân tích của bạn dưới dạng văn bản th
                 translatedText = await callTranslationAPI(
                   textToTranslate,
                   characterContext,
+                  placeNameContextForTranslation, // NEW: Pass place name context
                   selectedGenre,
                   previousChunkContext,
-                  plotContextForTranslation, // Truyền bối cảnh cốt truyện
-                  relationshipContextForTranslation // Truyền bối cảnh mối quan hệ
+                  plotContextForTranslation,
+                  relationshipContextForTranslation
                 );
                 const translatedMap = new Map();
                 translatedText.split("\n---\n").forEach((block) => {
@@ -1748,7 +1896,7 @@ Hãy trả về kết quả phân tích của bạn dưới dạng văn bản th
           statusDiv.className = "text-green-500";
           resultContainer.classList.remove("hidden");
           editToolbar.classList.remove("hidden");
-          downloadBtnWrapper.classList.remove("hidden"); // Hiển thị nút tải
+          downloadBtnWrapper.classList.remove("hidden");
         } catch (error) {
           console.error("Lỗi dịch:", error);
           statusDiv.textContent = `Đã xảy ra lỗi: ${error.message}`;
@@ -1779,12 +1927,10 @@ Hãy trả về kết quả phân tích của bạn dưới dạng văn bản th
         let foundCount = 0;
         translatedParsedSubs.forEach((sub, i) => {
           let hasIssue = false;
-          // Kiểm tra tiếng Trung
           if (chineseRegex.test(sub.text)) {
             hasIssue = true;
             untranslatedIndices.push(i);
           }
-          // Kiểm tra từ khóa tìm kiếm
           if (findValue && sub.text.includes(findValue)) {
             hasIssue = true;
           }
@@ -1829,11 +1975,11 @@ Hãy trả về kết quả phân tích của bạn dưới dạng văn bản th
         editToolStatus.className = "text-sm mt-2 text-center text-blue-400";
 
         const characterContext = getCharacterContext();
+        const placeNameContextForRetranslation = getPlaceNameContext(); // NEW
         const selectedGenre = genreSelect.value;
         const plotContextForRetranslation = plotAnalysisContext;
         const relationshipContextForRetranslation = relationshipContext;
 
-        // Xác định API key sẽ sử dụng
         const apiKeyToUse =
           retranslateApiKeyInput.value.trim() || userTranslateApiKey;
         if (!apiKeyToUse) {
@@ -1851,11 +1997,12 @@ Hãy trả về kết quả phân tích của bạn dưới dạng văn bản th
             const translatedText = await callTranslationAPI(
               `1:: ${originalText}`,
               characterContext,
+              placeNameContextForRetranslation, // NEW
               selectedGenre,
-              "", // No previous context for single line re-translation
+              "",
               plotContextForRetranslation,
               relationshipContextForRetranslation,
-              apiKeyToUse // Truyền API key cụ thể
+              apiKeyToUse
             );
             const match = translatedText.trim().match(/^1::([\s\S]*)/);
             if (match && match[1]) {
@@ -1879,20 +2026,19 @@ Hãy trả về kết quả phân tích của bạn dưới dạng văn bản th
         retranslateIssuesBtn.classList.add("hidden");
         untranslatedIndices = [];
 
-        // Re-run the check to confirm
         setTimeout(checkRemainingChinese, 500);
       }
 
       async function callTranslationAPI(
         text,
         characterContext,
+        placeNameContext, // NEW parameter
         genre,
         previousContext,
         plotAnalysisContext,
         relationshipContext,
-        specificApiKey = null // Thêm tham số cho API key cụ thể
+        specificApiKey = null
       ) {
-        // Ưu tiên API key cụ thể (cho việc dịch lại), nếu không có thì dùng key chung
         const apiKey = specificApiKey || userTranslateApiKey;
 
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${
@@ -1902,8 +2048,8 @@ Hãy trả về kết quả phân tích của bạn dưới dạng văn bản th
           genre && genre !== "chung"
             ? `PHONG CÁCH DỊCH: Dịch theo phong cách phù hợp với thể loại '${genre}'.`
             : "";
-        // **RULE for "Nhân vật tôi"**
         const narratorRule = `6. XƯNG HÔ "NHÂN VẬT TÔI": Nếu người nói là "Nhân vật tôi" (Người kể chuyện), hãy mặc định dịch đại từ nhân xưng là "tôi", trừ khi bối cảnh (ví dụ: nói chuyện với vua, cha mẹ) rõ ràng yêu cầu cách xưng hô khác (ví dụ: thần, con...).`
+        const placeNameRule = `7. DỊCH ĐỊA DANH: Tuân thủ nghiêm ngặt các quy tắc dịch địa danh trong BỐI CẢNH ĐỊA DANH được cung cấp.`; // NEW Rule
 
         const systemPrompt = `Bạn là chuyên gia dịch thuật phụ đề từ tiếng Trung sang tiếng Việt. Nhiệm vụ của bạn là dịch với độ chính xác và nhất quán cao nhất dựa trên các bối cảnh được cung cấp.
 
@@ -1911,6 +2057,8 @@ BỐI CẢNH CỐT TRUYỆN (để hiểu rõ hơn về mạch truyện, chỉ d
 ${plotAnalysisContext || "Không có."}
 
 ${characterContext}
+
+${placeNameContext || "Chưa phân tích địa danh."} /* NEW Context Added */
 
 BỐI CẢNH MỐI QUAN HỆ VÀ XƯNG HÔ (Tham khảo kỹ để dịch xưng hô cho đúng):
 ${relationshipContext || "Chưa phân tích."}
@@ -1923,7 +2071,8 @@ QUY TẮC TUYỆT ĐỐI:
 3. TUÂN THỦ "QUY TẮC DỊCH TÊN/XƯNG HÔ CHÍNH" ở trên.
 4. CHỦ ĐỘNG SỬ DỤNG Giới tính, Tuổi (từ Bối cảnh nhân vật) và Bối cảnh mối quan hệ để quyết định cách xưng hô (anh, em, chị, ông, bà...) cho phù hợp văn hóa Việt Nam.
 5. ${genreInstruction}
-${narratorRule}`; // Added the new rule here
+${narratorRule}
+${placeNameRule}`; // NEW Rule Added
 
         const payload = {
           contents: [{ parts: [{ text: text }] }],
