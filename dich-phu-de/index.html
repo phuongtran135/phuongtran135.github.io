@@ -155,12 +155,14 @@
         margin-bottom: 1rem;
         border-left: 3px solid #334155; /* slate-700 */
         transition: background-color 0.2s ease, border-left-color 0.2s ease;
+        position: relative; /* Needed for the retry button */
       }
       .sub-block.highlighted {
         background-color: #4338ca; /* indigo-700 */
         border-left-color: #a5b4fc; /* indigo-300 */
       }
-      .sub-block.warning-highlight {
+      .sub-block.warning-highlight,
+      .sub-block.error-translate { /* Style for error blocks */
         border-left-color: #f59e0b; /* amber-500 */
         background-color: #3f2d15;
       }
@@ -179,7 +181,42 @@
         color: #f1f5f9; /* slate-100 */
         line-height: 1.6;
         outline: none;
+        padding-right: 2.5rem; /* Add padding to avoid overlapping with retry button */
       }
+      .sub-block.error-translate .sub-text { /* Make error text more visible */
+          color: #fcd34d; /* amber-300 */
+          font-style: italic;
+      }
+      /* NEW: Retry Translate Button Style */
+      .retry-translate-btn {
+          position: absolute;
+          bottom: 0.5rem;
+          right: 0.5rem;
+          background-color: #475569; /* slate-600 */
+          color: #cbd5e1; /* slate-300 */
+          border: none;
+          border-radius: 50%;
+          width: 1.75rem;
+          height: 1.75rem;
+          font-size: 0.8rem;
+          cursor: pointer;
+          transition: background-color 0.2s ease, color 0.2s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+      }
+      .retry-translate-btn:hover {
+          background-color: #6366f1; /* indigo-500 */
+          color: white;
+      }
+      .retry-translate-btn.loading {
+          cursor: not-allowed;
+          background-color: #334155; /* slate-700 */
+      }
+       .retry-translate-btn .fa-spin {
+          font-size: 0.9rem;
+      }
+
 
       /* Prose styles for results */
       .prose {
@@ -795,6 +832,7 @@
       let relationshipContext = "";
       let placeNameContext = ""; // NEW state for place names
       let untranslatedIndices = [];
+      let failedChunkIndices = []; // Keep track of failed chunk indices
 
       // --- POPUP STATE ---
       let activePopup = null;
@@ -869,6 +907,17 @@
             }
         });
 
+       // NEW: Listen for retry translate buttons
+       translatedSubDiv.addEventListener('click', async (e) => {
+           const retryButton = e.target.closest('.retry-translate-btn');
+           if (retryButton && !retryButton.classList.contains('loading')) {
+               const arrayIndex = parseInt(retryButton.dataset.arrayIndex, 10);
+               if (!isNaN(arrayIndex)) {
+                   await retrySingleTranslation(arrayIndex, retryButton);
+               }
+           }
+       });
+
 
       translatedSubDiv.addEventListener("input", (e) => {
         if (e.target.classList.contains("sub-text")) {
@@ -876,6 +925,13 @@
           if (!isNaN(arrayIndex) && translatedParsedSubs[arrayIndex]) {
             translatedParsedSubs[arrayIndex].text = e.target.textContent;
             translatedSrtContent = buildSRT(translatedParsedSubs);
+            // Remove error class and retry button if user edits a failed line
+             const block = e.target.closest('.sub-block');
+             if (block && block.classList.contains('error-translate')) {
+                 block.classList.remove('error-translate');
+                 const retryBtn = block.querySelector('.retry-translate-btn');
+                 if(retryBtn) retryBtn.remove();
+             }
           }
         }
       });
@@ -1029,6 +1085,7 @@
         resultContainer.classList.add("hidden");
         loadingContainer.classList.add("hidden");
         statusDiv.textContent = "";
+        failedChunkIndices = []; // Reset failed chunks
 
         // Ẩn các section trong cột phân tích (dù cột đã ẩn)
         titleSuggestionSection.classList.add("hidden");
@@ -1107,26 +1164,27 @@
         let contextText =
           "BỐI CẢNH NHÂN VẬT (CỰC KỲ QUAN TRỌNG, HÃY TUÂN THỦ NGHIÊM NGẶT):\n";
         entries.forEach((entry) => {
-          const originalName = entry
-            .querySelector(".original-name-display")
-            .textContent.split(":")[0]
-            .trim();
-          const phoneticName = entry
-            .querySelector(".original-name-display")
-            .textContent.split(":")[1]
-            .trim();
-          const gender = entry.querySelector(".gender-input").value.trim();
-          const age = entry.querySelector(".age-input").value.trim();
-          const translationRule = entry
-            .querySelector(".translation-rule-input")
-            .value.trim();
+          const nameDisplay = entry.querySelector(".original-name-display");
+          const genderInput = entry.querySelector(".gender-input");
+          const ageInput = entry.querySelector(".age-input");
+          const ruleInput = entry.querySelector(".translation-rule-input");
 
-          if (originalName && translationRule) {
-            let info = `Tên: ${originalName} (Phiên âm: ${phoneticName})`;
-            if (gender) info += `, Giới tính: ${gender}`;
-            if (age) info += `, Tuổi: ${age}`;
+          if (nameDisplay && genderInput && ageInput && ruleInput) {
+              const nameParts = nameDisplay.textContent.split(":");
+              const originalName = nameParts[0]?.trim() || '';
+              const phoneticName = nameParts[1]?.trim() || '';
+              const gender = genderInput.value.trim();
+              const age = ageInput.value.trim();
+              const translationRule = ruleInput.value.trim();
 
-            contextText += `\n- NHÂN VẬT: ${info}\n  - QUY TẮC DỊCH TÊN/XƯNG HÔ CHÍNH: ${translationRule}\n`;
+              if (originalName && translationRule) {
+                  let info = `Tên: ${originalName} (Phiên âm: ${phoneticName})`;
+                  if (gender) info += `, Giới tính: ${gender}`;
+                  if (age) info += `, Tuổi: ${age}`;
+                  contextText += `\n- NHÂN VẬT: ${info}\n  - QUY TẮC DỊCH TÊN/XƯNG HÔ CHÍNH: ${translationRule}\n`;
+              }
+          } else {
+              console.warn("Could not find all expected elements in a character card:", entry);
           }
         });
         return contextText;
@@ -1140,8 +1198,8 @@
         analysisStatus.className =
           "text-blue-400 flex items-center justify-center";
         analyzeCharactersBtn.disabled = true;
-        analyzeRelationshipsBtn.disabled = true; // Tắt khi đang chạy
-        translateBtn.disabled = true; // Tắt khi đang chạy
+        analyzeRelationshipsBtn.disabled = true;
+        translateBtn.disabled = true;
 
         charAnalysisSection.classList.remove("hidden");
 
@@ -1171,13 +1229,13 @@
                   <div>
                     <label class="block text-xs font-medium text-slate-400 mb-1">Giới tính</label>
                     <input type="text" value="${
-                      char.gender
+                      char.gender || ''
                     }" class="gender-input editable-field" placeholder="Nam/Nữ...">
                   </div>
                   <div>
                     <label class="block text-xs font-medium text-slate-400 mb-1">Tuổi</label>
                     <input type="text" value="${
-                      char.estimated_age
+                      char.estimated_age || ''
                     }" class="age-input editable-field" placeholder="Tuổi...">
                   </div>
                 </div>
@@ -1193,8 +1251,8 @@
             analysisStatus.textContent = `Phân tích xong! Đã tìm thấy ${characters.length} nhân vật.`;
             analysisStatus.className = "text-green-500";
             fullscreenBtn.classList.remove("hidden");
-            translateBtn.disabled = false; // Bật Dịch
-            analyzeRelationshipsBtn.disabled = false; // Bật Phân tích Mối quan hệ
+            translateBtn.disabled = false;
+            analyzeRelationshipsBtn.disabled = false;
           }
         } catch (error) {
           console.error("Lỗi phân tích nhân vật:", error);
@@ -1275,10 +1333,17 @@
             if (entries.length === 0) return "";
             let contextText = "BỐI CẢNH ĐỊA DANH (Dịch nhất quán theo quy tắc sau):\n";
             entries.forEach((entry) => {
-                const originalName = entry.querySelector(".original-place-name").textContent.trim();
-                const translationRule = entry.querySelector(".vietnamese-place-name-input").value.trim();
-                if (originalName && translationRule) {
-                    contextText += `- ${originalName}: ${translationRule}\n`;
+                const originalNameEl = entry.querySelector(".original-place-name");
+                const translationInput = entry.querySelector(".vietnamese-place-name-input");
+
+                if (originalNameEl && translationInput) {
+                    const originalName = originalNameEl.textContent.trim();
+                    const translationRule = translationInput.value.trim();
+                    if (originalName && translationRule) {
+                        contextText += `- ${originalName}: ${translationRule}\n`;
+                    }
+                } else {
+                     console.warn("Could not find all expected elements in a place name card:", entry);
                 }
             });
             return contextText;
@@ -1297,19 +1362,19 @@
             placeNameAnalysisSection.classList.remove("hidden"); // Show section for hover
 
             try {
-                const sampleText = parsedSubs.slice(0, Math.min(parsedSubs.length, 500)) // Increase sample size slightly for place names
+                const sampleText = parsedSubs.slice(0, Math.min(parsedSubs.length, 500))
                                         .map(sub => sub.text)
                                         .join("\n");
                 const placeNames = await analyzePlaceNamesWithAI(sampleText);
 
-                placeNameMapContainer.innerHTML = ""; // Clear previous results
+                placeNameMapContainer.innerHTML = "";
                 if (placeNames.length === 0) {
                     placeNamesStatus.textContent = "Không tìm thấy địa danh nào đáng kể.";
                     placeNamesStatus.className = "text-slate-400";
                 } else {
                     placeNames.forEach(place => {
                         const entry = document.createElement("div");
-                        entry.className = "place-name-card"; // Re-use card style or create a specific one
+                        entry.className = "place-name-card";
                         entry.innerHTML = `
                             <h4 class="original-place-name text-lg font-bold text-white mb-2">${place.chinese_place_name}</h4>
                             <div>
@@ -1373,17 +1438,15 @@
             const result = await response.json();
             const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
              if (!jsonText) {
-                // Handle cases where AI might return empty content or unexpected structure
                  if (result.candidates && result.candidates.length > 0 && result.candidates[0].finishReason === 'SAFETY') {
                     throw new Error("Phản hồi bị chặn vì lý do an toàn.");
                 } else {
                      console.warn("API returned no place names or unexpected response:", result);
-                     return []; // Return empty array if no valid data
+                     return [];
                 }
             }
             try {
                 const parsed = JSON.parse(jsonText);
-                 // Basic validation if the parsed result is an array
                 if (!Array.isArray(parsed)) {
                      console.error("Parsed place name data is not an array:", parsed);
                      throw new Error("Phản hồi AI không phải là một mảng JSON hợp lệ.");
@@ -1407,7 +1470,7 @@
         plotAnalysisStatus.className =
           "text-blue-400 flex items-center justify-center";
         plotAnalysisBtn.disabled = true;
-        plotAnalysisContext = ""; // Reset context
+        plotAnalysisContext = "";
 
         plotAnalysisSection.classList.remove("hidden");
 
@@ -1485,23 +1548,27 @@
 
         let listText = "DANH SÁCH NHÂN VẬT ĐÃ BIẾT:\n";
         entries.forEach((entry) => {
-          const originalName = entry
-            .querySelector(".original-name-display")
-            .textContent.split(":")[0]
-            .trim();
-          const phoneticName = entry
-            .querySelector(".original-name-display")
-            .textContent.split(":")[1]
-            .trim();
-          const gender =
-            entry.querySelector(".gender-input").value.trim() || "Không rõ";
-          const age =
-            entry.querySelector(".age-input").value.trim() || "Không rõ";
+          const nameDisplay = entry.querySelector(".original-name-display");
+          const genderInput = entry.querySelector(".gender-input");
+          const ageInput = entry.querySelector(".age-input");
 
-          listText += `- Tên: ${originalName} (Phiên âm: ${phoneticName}), Giới tính: ${gender}, Tuổi: ${age}\n`;
+          if (nameDisplay && genderInput && ageInput) {
+            const nameParts = nameDisplay.textContent.split(":");
+            const originalName = nameParts[0]?.trim() || '';
+            const phoneticName = nameParts[1]?.trim() || '';
+            const gender = genderInput.value.trim() || "Không rõ";
+            const age = ageInput.value.trim() || "Không rõ";
+
+             if (originalName) {
+                 listText += `- Tên: ${originalName} (Phiên âm: ${phoneticName}), Giới tính: ${gender}, Tuổi: ${age}\n`;
+             }
+          } else {
+               console.warn("Could not find all expected elements in a character card for relationship analysis:", entry);
+          }
         });
         return listText;
       }
+
 
       async function runRelationshipAnalysis() {
         if (parsedSubs.length === 0) {
@@ -1520,7 +1587,7 @@
         relationshipsStatus.className =
           "text-blue-400 flex items-center justify-center";
         analyzeRelationshipsBtn.disabled = true;
-        relationshipContext = ""; // Reset context
+        relationshipContext = "";
 
         relationshipAnalysisSection.classList.remove("hidden");
 
@@ -1754,29 +1821,47 @@ Hãy trả về kết quả phân tích của bạn dưới dạng văn bản th
           .join("\n\n");
       }
 
-      function displaySubtitles(subs, element, isEditable = false) {
+     function displaySubtitles(subs, element, isEditable = false) {
         element.innerHTML = "";
         subs.forEach((sub, i) => {
           const block = document.createElement("div");
           block.id = `${element.id}-block-${i}`;
           block.className = "sub-block";
+
           const indexEl = document.createElement("div");
           indexEl.className = "sub-index";
           indexEl.textContent = sub.index;
+
           const timeEl = document.createElement("div");
           timeEl.className = "sub-time";
           timeEl.textContent = sub.time;
+
           const textEl = document.createElement("div");
           textEl.className = "sub-text";
           textEl.textContent = sub.text;
+
+          block.append(indexEl, timeEl, textEl);
+
+          // Add retry button only for the translated side and if it's an error
+          if (isEditable && sub.text === "[LỖI DỊCH - Cần dịch lại thủ công]") {
+            block.classList.add('error-translate');
+            const retryBtn = document.createElement('button');
+            retryBtn.className = 'retry-translate-btn';
+            retryBtn.title = 'Dịch lại dòng này';
+            retryBtn.dataset.arrayIndex = i; // Store index on the button
+            retryBtn.innerHTML = '<i class="fas fa-sync-alt"></i>';
+            block.appendChild(retryBtn); // Append button to the block
+          }
+
           if (isEditable) {
             textEl.contentEditable = true;
-            textEl.dataset.arrayIndex = i;
+            textEl.dataset.arrayIndex = i; // Store index on the text element as well
           }
-          block.append(indexEl, timeEl, textEl);
+
           element.appendChild(block);
         });
-      }
+     }
+
 
       // --- Translation & Editing ---
       async function runTranslation() {
@@ -1796,22 +1881,25 @@ Hãy trả về kết quả phân tích của bạn dưới dạng văn bản th
         statusDiv.textContent = "";
         translatedSubDiv.innerHTML = "";
         progressBar.style.width = "0%";
+        failedChunkIndices = []; // Reset failed chunks tracker
 
         const CHUNK_SIZE = 30;
         const characterContext = getCharacterContext();
-        const placeNameContextForTranslation = getPlaceNameContext(); // NEW: Get place name context
+        const placeNameContextForTranslation = getPlaceNameContext();
         const selectedGenre = genreSelect.value;
         const plotContextForTranslation = plotAnalysisContext;
         const relationshipContextForTranslation = relationshipContext;
-        translatedParsedSubs = [];
+        translatedParsedSubs = []; // Start fresh for translation results
         let previousChunkContext = "";
         const totalChunks = Math.ceil(parsedSubs.length / CHUNK_SIZE);
 
         try {
           for (let i = 0; i < parsedSubs.length; i += CHUNK_SIZE) {
-            const chunkIndex = Math.floor(i / CHUNK_SIZE) + 1;
-            loadingText.textContent = `Đang dịch khối ${chunkIndex} / ${totalChunks}...`;
-            progressBar.style.width = `${(chunkIndex / totalChunks) * 100}%`;
+            const chunkIndex = Math.floor(i / CHUNK_SIZE); // 0-based index
+            const displayChunkIndex = chunkIndex + 1;
+            loadingText.textContent = `Đang dịch khối ${displayChunkIndex} / ${totalChunks}...`;
+            progressBar.style.width = `${(displayChunkIndex / totalChunks) * 100}%`;
+
             const chunk = parsedSubs.slice(i, i + CHUNK_SIZE);
             const textToTranslate = chunk
               .map((sub, index) => `${index + 1}:: ${sub.text}`)
@@ -1821,87 +1909,109 @@ Hãy trả về kết quả phân tích của bạn dưới dạng văn bản th
             let attempt = 0;
             const MAX_ATTEMPTS = 3;
             let isValidResponse = false;
+            let chunkError = null;
 
-            while (attempt < MAX_ATTEMPTS && !isValidResponse) {
-              attempt++;
-              try {
-                translatedText = await callTranslationAPI(
-                  textToTranslate,
-                  characterContext,
-                  placeNameContextForTranslation, // NEW: Pass place name context
-                  selectedGenre,
-                  previousChunkContext,
-                  plotContextForTranslation,
-                  relationshipContextForTranslation
-                );
-                const translatedMap = new Map();
-                translatedText.split("\n---\n").forEach((block) => {
-                  const match = block.trim().match(/^(\d+)::([\s\S]*)/);
-                  if (match)
-                    translatedMap.set(
-                      parseInt(match[1], 10) - 1,
-                      match[2].trim()
+            // --- TRY CATCH BLOCK FOR EACH CHUNK ---
+            try {
+                while (attempt < MAX_ATTEMPTS && !isValidResponse) {
+                  attempt++;
+                  try {
+                    translatedText = await callTranslationAPI(
+                      textToTranslate,
+                      characterContext,
+                      placeNameContextForTranslation,
+                      selectedGenre,
+                      previousChunkContext,
+                      plotContextForTranslation,
+                      relationshipContextForTranslation
                     );
-                });
-                if (translatedMap.size === chunk.length) {
-                  isValidResponse = true;
-                } else {
-                  console.warn(
-                    `Attempt ${attempt}: Invalid response for chunk ${chunkIndex}. Expected ${chunk.length}, got ${translatedMap.size}. Retrying...`
-                  );
-                  if (attempt >= MAX_ATTEMPTS)
-                    throw new Error(
-                      `API trả về phản hồi không hợp lệ cho khối ${chunkIndex} sau ${MAX_ATTEMPTS} lần thử.`
+                    const translatedMap = new Map();
+                    translatedText.split("\n---\n").forEach((block) => {
+                      const match = block.trim().match(/^(\d+)::([\s\S]*)/);
+                      if (match)
+                        translatedMap.set(
+                          parseInt(match[1], 10) - 1,
+                          match[2].trim()
+                        );
+                    });
+                    if (translatedMap.size === chunk.length) {
+                      isValidResponse = true; // Success!
+                      // Process successful translation
+                      const tempTranslatedChunk = [];
+                      chunk.forEach((sub, index) => {
+                            const newSub = { ...sub };
+                            newSub.text = translatedMap.has(index) ? translatedMap.get(index) : `[LỖI PHÂN TÍCH] ${sub.text}`; // Should not happen if size matches
+                            translatedParsedSubs.push(newSub); // Add to the main results array
+                            tempTranslatedChunk.push(newSub);
+                        });
+                      previousChunkContext = // Update context only on success
+                        `BỐI CẢNH TỪ NHỮNG CÂU THOẠI TRƯỚC ĐÓ (để dịch cho khớp):\n` +
+                        tempTranslatedChunk
+                          .slice(-3)
+                          .map((s) => s.text)
+                          .join("\n");
+
+                    } else {
+                      console.warn(
+                        `Attempt ${attempt}: Invalid response for chunk ${displayChunkIndex}. Expected ${chunk.length}, got ${translatedMap.size}. Retrying...`
+                      );
+                      if (attempt >= MAX_ATTEMPTS) {
+                          chunkError = new Error(`API trả về phản hồi không hợp lệ cho khối ${displayChunkIndex} sau ${MAX_ATTEMPTS} lần thử.`);
+                      } else {
+                         await new Promise((res) => setTimeout(res, 1000 * attempt));
+                      }
+                    }
+                  } catch (error) { // Catch errors from callTranslationAPI or response processing
+                    console.warn(
+                      `Attempt ${attempt}: API call failed for chunk ${displayChunkIndex}. Retrying...`, error
                     );
-                  await new Promise((res) => setTimeout(res, 1000 * attempt));
+                     if (attempt >= MAX_ATTEMPTS) {
+                         chunkError = error; // Store the final error
+                     } else {
+                        await new Promise((res) => setTimeout(res, 1000 * attempt));
+                     }
+                  }
+                } // end while loop
+
+                if (chunkError) { // If after retries, there was still an error
+                   throw chunkError;
                 }
-              } catch (error) {
-                if (attempt >= MAX_ATTEMPTS) throw error;
-                console.warn(
-                  `Attempt ${attempt}: API call failed for chunk ${chunkIndex}. Retrying...`,
-                  error
-                );
-                await new Promise((res) => setTimeout(res, 1000 * attempt));
-              }
+
+            } catch (error) { // Catch errors specific to this chunk (including thrown errors from while loop)
+                console.error(`Lỗi khi dịch khối ${displayChunkIndex}:`, error);
+                failedChunkIndices.push(displayChunkIndex); // Track failed chunk number
+                // Mark lines in this chunk as failed
+                chunk.forEach(sub => {
+                    const failedSub = { ...sub, text: "[LỖI DỊCH - Cần dịch lại thủ công]" };
+                    translatedParsedSubs.push(failedSub); // Add failed markers to the main results
+                });
+                 previousChunkContext = ""; // Reset context after failure
             }
+            // --- END TRY CATCH BLOCK ---
 
-            const tempTranslatedChunk = [];
-            const translatedMap = new Map();
-            translatedText.split("\n---\n").forEach((block) => {
-              const match = block.trim().match(/^(\d+)::([\s\S]*)/);
-              if (match)
-                translatedMap.set(parseInt(match[1], 10) - 1, match[2].trim());
-            });
-            chunk.forEach((sub, index) => {
-              const newSub = { ...sub };
-              newSub.text = translatedMap.has(index)
-                ? translatedMap.get(index)
-                : `[LỖI DỊCH] ${sub.text}`;
-              translatedParsedSubs.push(newSub);
-              tempTranslatedChunk.push(newSub);
-            });
-
-            previousChunkContext =
-              `BỐI CẢNH TỪ NHỮNG CÂU THOẠI TRƯỚC ĐÓ (để dịch cho khớp):\n` +
-              tempTranslatedChunk
-                .slice(-3)
-                .map((s) => s.text)
-                .join("\n");
+            // Update UI regardless of success or failure for the current chunk
             displaySubtitles(translatedParsedSubs, translatedSubDiv, true);
-            await new Promise((res) => setTimeout(res, 1000));
-          }
+            await new Promise((res) => setTimeout(res, 500)); // Shorter delay between chunks
+          } // end for loop
+
+          // Final status message
           translatedSrtContent = buildSRT(translatedParsedSubs);
-          statusDiv.textContent =
-            "Dịch hoàn tất! Bạn có thể chỉnh sửa trực tiếp bên trên.";
-          statusDiv.className = "text-green-500";
+          if (failedChunkIndices.length > 0) {
+              statusDiv.textContent = `Dịch hoàn tất với ${failedChunkIndices.length} khối bị lỗi (đã đánh dấu). Vui lòng kiểm tra và dịch lại thủ công hoặc dùng chức năng 'Dịch Lại Lỗi'.`;
+              statusDiv.className = "text-yellow-500";
+          } else {
+              statusDiv.textContent = "Dịch hoàn tất! Bạn có thể chỉnh sửa trực tiếp bên trên.";
+              statusDiv.className = "text-green-500";
+          }
           resultContainer.classList.remove("hidden");
           editToolbar.classList.remove("hidden");
           downloadBtnWrapper.classList.remove("hidden");
-        } catch (error) {
-          console.error("Lỗi dịch:", error);
-          statusDiv.textContent = `Đã xảy ra lỗi: ${error.message}`;
+
+        } catch (error) { // Catch any unexpected error outside the chunk loop (should be rare now)
+          console.error("Lỗi nghiêm trọng trong quá trình dịch:", error);
+          statusDiv.textContent = `Đã xảy ra lỗi nghiêm trọng: ${error.message}`;
           statusDiv.className = "text-red-500";
-          throw error;
+         // Don't throw, let it finish gracefully but show error
         } finally {
           loadingContainer.classList.add("hidden");
           loadingContainer.classList.remove("flex");
@@ -1909,14 +2019,87 @@ Hãy trả về kết quả phân tích của bạn dưới dạng văn bản th
         }
       }
 
+      // NEW: Function to retry translation for a single line
+      async function retrySingleTranslation(index, buttonElement) {
+          if (!parsedSubs[index]) return;
+
+          const originalText = parsedSubs[index].text;
+          const blockElement = document.getElementById(`translated-sub-block-${index}`);
+          const textElement = blockElement?.querySelector('.sub-text');
+
+          if (!blockElement || !textElement) return;
+
+          // Show loading state
+          buttonElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+          buttonElement.classList.add('loading');
+          buttonElement.disabled = true;
+          const originalBlockClasses = blockElement.className; // Store original classes
+          blockElement.classList.remove('error-translate', 'warning-highlight'); // Temporarily remove error style
+
+          try {
+              const characterContext = getCharacterContext();
+              const placeNameContextForRetranslation = getPlaceNameContext();
+              const selectedGenre = genreSelect.value;
+              const plotContextForRetranslation = plotAnalysisContext;
+              const relationshipContextForRetranslation = relationshipContext;
+              const apiKeyToUse = retranslateApiKeyInput.value.trim() || userTranslateApiKey;
+
+               if (!apiKeyToUse) {
+                  throw new Error("Không tìm thấy API Key để dịch lại.");
+               }
+
+
+              const translatedTextResult = await callTranslationAPI(
+                  `1:: ${originalText}`,
+                  characterContext,
+                  placeNameContextForRetranslation,
+                  selectedGenre,
+                  "", // No previous context for single retry
+                  plotContextForRetranslation,
+                  relationshipContextForRetranslation,
+                  apiKeyToUse
+              );
+
+              const match = translatedTextResult.trim().match(/^1::([\s\S]*)/);
+              if (match && match[1]) {
+                  const newText = match[1].trim();
+                  translatedParsedSubs[index].text = newText; // Update data array
+                  textElement.textContent = newText; // Update UI
+                  textElement.style.fontStyle = 'normal'; // Reset style if needed
+                  textElement.style.color = ''; // Reset color if needed
+                  buttonElement.remove(); // Remove retry button on success
+                  // Update the main SRT content variable
+                  translatedSrtContent = buildSRT(translatedParsedSubs);
+              } else {
+                  throw new Error("API không trả về định dạng mong đợi.");
+              }
+          } catch (error) {
+              console.error(`Lỗi dịch lại dòng ${index}:`, error);
+              textElement.textContent = `[LỖI DỊCH LẠI: ${error.message}]`;
+              // Restore error styles
+              blockElement.className = originalBlockClasses + ' error-translate';
+              // Reset button after a short delay
+              setTimeout(() => {
+                 buttonElement.innerHTML = '<i class="fas fa-sync-alt"></i>';
+                 buttonElement.classList.remove('loading');
+                 buttonElement.disabled = false;
+              }, 1500);
+          }
+      }
+
+
       function checkRemainingChinese() {
         document
-          .querySelectorAll(".sub-block.warning-highlight")
-          .forEach((el) => el.classList.remove("warning-highlight"));
+          .querySelectorAll(".sub-block.warning-highlight, .sub-block.error-translate") // Check both warning and error classes
+          .forEach((el) => {
+              el.classList.remove("warning-highlight");
+              // Keep error-translate class if it exists, remove only warning-highlight
+          });
+
         const chineseRegex = /[\u4e00-\u9fa5]/;
         const findValue = findInput.value.trim();
-        untranslatedIndices = [];
-        retranslateIssuesBtn.classList.add("hidden");
+        untranslatedIndices = []; // Reset indices needing re-translation (specifically for Chinese chars)
+        retranslateIssuesBtn.classList.add("hidden"); // Hide the bulk retranslate button initially
 
         if (translatedParsedSubs.length === 0) {
           editToolStatus.textContent = "Chưa có bản dịch để rà soát.";
@@ -1924,39 +2107,62 @@ Hãy trả về kết quả phân tích của bạn dưới dạng văn bản th
           return;
         }
 
-        let foundCount = 0;
-        translatedParsedSubs.forEach((sub, i) => {
-          let hasIssue = false;
-          if (chineseRegex.test(sub.text)) {
-            hasIssue = true;
-            untranslatedIndices.push(i);
-          }
-          if (findValue && sub.text.includes(findValue)) {
-            hasIssue = true;
-          }
+        let foundHighlightCount = 0; // Count lines that need highlighting (search or error)
+        let chineseCharCount = 0; // Count lines with Chinese chars specifically
 
-          if (hasIssue) {
+        translatedParsedSubs.forEach((sub, i) => {
+          let needsHighlight = false;
+          let hasChinese = false;
+
+          // Check for Chinese characters
+          if (chineseRegex.test(sub.text)) {
+            hasChinese = true;
+            // Only add to untranslatedIndices IF it's not the generic error message
+            if(sub.text !== "[LỖI DỊCH - Cần dịch lại thủ công]") {
+                untranslatedIndices.push(i);
+            }
+            needsHighlight = true;
+          }
+          // Check for search term
+          if (findValue && sub.text.includes(findValue)) {
+            needsHighlight = true;
+          }
+          // Check for existing error marker
+           if (sub.text === "[LỖI DỊCH - Cần dịch lại thủ công]") {
+                needsHighlight = true; // Ensure error lines are highlighted by search/scan
+           }
+
+
+          if (needsHighlight) {
             const block = document.getElementById(`translated-sub-block-${i}`);
             if (block) {
-              block.classList.add("warning-highlight");
-              foundCount++;
+                // Add warning highlight unless it's already an error block
+                 if (!block.classList.contains('error-translate')) {
+                    block.classList.add("warning-highlight");
+                 }
+              foundHighlightCount++;
             }
           }
+          if(hasChinese && sub.text !== "[LỖI DỊCH - Cần dịch lại thủ công]") chineseCharCount++; // Count only if it's not the generic error message
         });
 
         let statusMessage = "";
-        if (foundCount > 0) {
+        if (foundHighlightCount > 0) {
           if (findValue) {
-            statusMessage += `Tìm thấy ${foundCount} dòng chứa "${findValue}". `;
+            statusMessage += `Tìm thấy ${foundHighlightCount} dòng chứa "${findValue}" hoặc bị lỗi dịch/còn tiếng Trung. `;
+          } else {
+             statusMessage += `Tìm thấy ${foundHighlightCount} dòng bị lỗi dịch hoặc còn sót tiếng Trung. `;
           }
-          if (untranslatedIndices.length > 0) {
-            statusMessage += `Phát hiện ${untranslatedIndices.length} dòng có thể còn sót tiếng Trung.`;
+
+          if (chineseCharCount > 0) {
+            // Only show bulk retranslate button if there are actual Chinese chars (not just errors)
             retranslateIssuesBtn.classList.remove("hidden");
+            statusMessage += `(${chineseCharCount} dòng có tiếng Trung có thể dịch lại hàng loạt).`;
           }
           editToolStatus.textContent = `Rà soát hoàn tất. ${statusMessage}`;
           editToolStatus.className = "text-sm mt-2 text-center text-yellow-400";
           const firstIssue = document.querySelector(
-            ".sub-block.warning-highlight"
+            ".sub-block.warning-highlight, .sub-block.error-translate" // Scroll to first warning or error
           );
           if (firstIssue)
             firstIssue.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -1968,14 +2174,14 @@ Hãy trả về kết quả phân tích của bạn dưới dạng văn bản th
       }
 
       async function retranslateIssues() {
-        if (untranslatedIndices.length === 0) return;
+        if (untranslatedIndices.length === 0) return; // Only retranslate lines specifically marked for Chinese chars
 
         retranslateIssuesBtn.disabled = true;
-        editToolStatus.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Đang dịch lại ${untranslatedIndices.length} dòng lỗi...`;
+        editToolStatus.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Đang dịch lại ${untranslatedIndices.length} dòng có tiếng Trung...`;
         editToolStatus.className = "text-sm mt-2 text-center text-blue-400";
 
         const characterContext = getCharacterContext();
-        const placeNameContextForRetranslation = getPlaceNameContext(); // NEW
+        const placeNameContextForRetranslation = getPlaceNameContext();
         const selectedGenre = genreSelect.value;
         const plotContextForRetranslation = plotAnalysisContext;
         const relationshipContextForRetranslation = relationshipContext;
@@ -1992,12 +2198,14 @@ Hãy trả về kết quả phân tích của bạn dưới dạng văn bản th
 
         let successCount = 0;
         const retranslationPromises = untranslatedIndices.map(async (index) => {
+           // Only process indices in the untranslatedIndices list
+           // This list now only contains indices with actual Chinese chars detected by checkRemainingChinese
           try {
-            const originalText = parsedSubs[index].text;
+            const originalText = parsedSubs[index].text; // Get original text
             const translatedText = await callTranslationAPI(
               `1:: ${originalText}`,
               characterContext,
-              placeNameContextForRetranslation, // NEW
+              placeNameContextForRetranslation,
               selectedGenre,
               "",
               plotContextForRetranslation,
@@ -2008,31 +2216,60 @@ Hãy trả về kết quả phân tích của bạn dưới dạng văn bản th
             if (match && match[1]) {
               translatedParsedSubs[index].text = match[1].trim();
               successCount++;
+               // Remove error/warning class and retry button after successful re-translation
+                const block = document.getElementById(`translated-sub-block-${index}`);
+                if (block) {
+                    block.classList.remove('error-translate', 'warning-highlight');
+                    const retryBtn = block.querySelector('.retry-translate-btn');
+                    if(retryBtn) retryBtn.remove();
+                }
+            } else {
+                 console.warn(`Dịch lại dòng ${index} không trả về kết quả hợp lệ.`);
+                 // Keep the line as is, maybe add a different marker?
             }
+
           } catch (error) {
             console.error(`Lỗi khi dịch lại dòng index ${index}:`, error);
+             // Mark as error if re-translation fails
+             translatedParsedSubs[index].text = "[LỖI DỊCH LẠI]";
+             const block = document.getElementById(`translated-sub-block-${index}`);
+             if (block) {
+                  block.classList.add('error-translate'); // Ensure it's marked as error
+                  block.classList.remove('warning-highlight');
+                  // Re-add retry button if needed, or rely on manual edit
+                  if (!block.querySelector('.retry-translate-btn')) {
+                       const retryBtn = document.createElement('button');
+                       retryBtn.className = 'retry-translate-btn';
+                       retryBtn.title = 'Dịch lại dòng này';
+                       retryBtn.dataset.arrayIndex = index;
+                       retryBtn.innerHTML = '<i class="fas fa-sync-alt"></i>';
+                       block.appendChild(retryBtn);
+                  }
+             }
           }
         });
 
         await Promise.all(retranslationPromises);
 
-        displaySubtitles(translatedParsedSubs, translatedSubDiv, true);
+        displaySubtitles(translatedParsedSubs, translatedSubDiv, true); // Redisplay everything
         translatedSrtContent = buildSRT(translatedParsedSubs);
 
-        editToolStatus.textContent = `Đã dịch lại thành công ${successCount} / ${untranslatedIndices.length} dòng.`;
+        editToolStatus.textContent = `Đã dịch lại thành công ${successCount} / ${untranslatedIndices.length} dòng có tiếng Trung.`;
         editToolStatus.className = "text-sm mt-2 text-center text-green-500";
 
         retranslateIssuesBtn.disabled = false;
         retranslateIssuesBtn.classList.add("hidden");
-        untranslatedIndices = [];
+        untranslatedIndices = []; // Clear the list after attempting
 
+        // Re-run the check to confirm and highlight remaining issues
         setTimeout(checkRemainingChinese, 500);
       }
+
 
       async function callTranslationAPI(
         text,
         characterContext,
-        placeNameContext, // NEW parameter
+        placeNameContext,
         genre,
         previousContext,
         plotAnalysisContext,
@@ -2049,7 +2286,7 @@ Hãy trả về kết quả phân tích của bạn dưới dạng văn bản th
             ? `PHONG CÁCH DỊCH: Dịch theo phong cách phù hợp với thể loại '${genre}'.`
             : "";
         const narratorRule = `6. XƯNG HÔ "NHÂN VẬT TÔI": Nếu người nói là "Nhân vật tôi" (Người kể chuyện), hãy mặc định dịch đại từ nhân xưng là "tôi", trừ khi bối cảnh (ví dụ: nói chuyện với vua, cha mẹ) rõ ràng yêu cầu cách xưng hô khác (ví dụ: thần, con...).`
-        const placeNameRule = `7. DỊCH ĐỊA DANH: Tuân thủ nghiêm ngặt các quy tắc dịch địa danh trong BỐI CẢNH ĐỊA DANH được cung cấp.`; // NEW Rule
+        const placeNameRule = `7. DỊCH ĐỊA DANH: Tuân thủ nghiêm ngặt các quy tắc dịch địa danh trong BỐI CẢNH ĐỊA DANH được cung cấp.`;
 
         const systemPrompt = `Bạn là chuyên gia dịch thuật phụ đề từ tiếng Trung sang tiếng Việt. Nhiệm vụ của bạn là dịch với độ chính xác và nhất quán cao nhất dựa trên các bối cảnh được cung cấp.
 
@@ -2058,7 +2295,7 @@ ${plotAnalysisContext || "Không có."}
 
 ${characterContext}
 
-${placeNameContext || "Chưa phân tích địa danh."} /* NEW Context Added */
+${placeNameContext || "Chưa phân tích địa danh."}
 
 BỐI CẢNH MỐI QUAN HỆ VÀ XƯNG HÔ (Tham khảo kỹ để dịch xưng hô cho đúng):
 ${relationshipContext || "Chưa phân tích."}
@@ -2072,7 +2309,7 @@ QUY TẮC TUYỆT ĐỐI:
 4. CHỦ ĐỘNG SỬ DỤNG Giới tính, Tuổi (từ Bối cảnh nhân vật) và Bối cảnh mối quan hệ để quyết định cách xưng hô (anh, em, chị, ông, bà...) cho phù hợp văn hóa Việt Nam.
 5. ${genreInstruction}
 ${narratorRule}
-${placeNameRule}`; // NEW Rule Added
+${placeNameRule}`;
 
         const payload = {
           contents: [{ parts: [{ text: text }] }],
@@ -2131,11 +2368,18 @@ ${placeNameRule}`; // NEW Rule Added
                 );
               await new Promise((res) => setTimeout(res, delay));
               delay *= 2;
-            } else throw error;
+            } else {
+                 retries--; // Decrement retries for other errors too before potentially throwing
+                 if (retries === 0) throw error; // Throw original error after retries fail
+                 await new Promise((res) => setTimeout(res, delay));
+                 delay *= 2;
+            }
           }
         }
+        // If the loop finishes without returning or throwing a specific error after retries, throw a generic error.
         throw new Error("Không thể dịch sau nhiều lần thử.");
       }
+
 
       // --- Download Logic ---
       function downloadSRT() {
@@ -2154,3 +2398,4 @@ ${placeNameRule}`; // NEW Rule Added
     </script>
   </body>
 </html>
+
