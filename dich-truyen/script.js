@@ -1110,7 +1110,7 @@ Here are the comments to translate:
         true
       );
       const targetLanguage = languageSelect.value;
-      const model = "gemini-2.5-flash-preview-05-20";
+      const model = "gemini-2.5-flash";
       const prompt = promptTemplate
         .replace("{text}", text)
         .replace(/{language}/g, targetLanguage);

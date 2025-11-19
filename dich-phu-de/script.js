@@ -497,7 +497,7 @@ async function runCharacterAnalysis() {
 }
 
 async function analyzeCharactersWithAI(text) {
-  const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${
+  const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${
     userAnalysisApiKey || ""
   }`;
   const systemPrompt = `Bạn là một chuyên gia phân tích kịch bản. Nhiệm vụ của bạn là đọc phụ đề và trích xuất TOÀN BỘ các nhân vật.
